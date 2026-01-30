@@ -205,3 +205,4 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
 };
 
 export default WalletCard;
+// Force rebuild Fri Jan 30 13:42:49 -04 2026
