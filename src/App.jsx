@@ -326,6 +326,9 @@ function App() {
                           justifyContent: 'space-between',
                           alignItems: 'center'
                                 }}>
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                                }}>
                           <span style={{ fontSize: '0.75rem', color: '#FCD34D', fontWeight: 'bold' }}>💰 INVERSIÓN:</span>
                           <span style={{ fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', fontFamily: 'monospace' }}>
                             ${(t.investedAmount || (quantity * t.entryPrice)).toFixed(2)}
