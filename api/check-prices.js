@@ -78,6 +78,11 @@ export default async function handler(req, res) {
 
         console.log(`🧠 STRATEGY: ${strategy} | TARGET: ${PROFIT_TARGET}% | MODE: LONG-ONLY 🐂`);
 
+        // Parse active trades and history
+        const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+        const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+
+
         const newActiveTrades = [...activeTrades];
         const newWins = [];
 
