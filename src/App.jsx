@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ParticlesBackground from './components/ParticlesBackground';
 import styles from './App.module.css';
 import { TOP_PAIRS, fetchCandles, fetchTickerPrices } from './api/binance';
 import { analyzePair } from './utils/analysis';
@@ -163,10 +164,6 @@ function App() {
       clearInterval(cronInterval);
     };
   }, [cloudStatus.active.length]);
-
-  import ParticlesBackground from './components/ParticlesBackground';
-
-  // ...
 
   return (
     <div className={styles.appContainer}>
