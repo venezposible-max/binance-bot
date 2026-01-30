@@ -54,20 +54,20 @@ export default async function handler(req, res) {
 
         let activeTradesStr = await redis.get('sentinel_active_trades');
         let winHistoryStr = await redis.get('sentinel_win_history');
-        let walletConfig = walletConfigStr ? JSON.parse(walletConfigStr) : {
-            currentBalance: 1000, riskPercentage: 10, isBotActive: true
-        };
+        let walletConfigStr = await redis.get('sentinel_wallet_config');
 
-        // --- GLOBAL KILL SWITCH ---
-        if (walletConfig.isBotActive === false) {
-            console.log('💤 Bot is PAUSED by User. Skipping Scan.');
-            return res.status(200).json({ status: 'PAUSED', message: 'Bot Desactivado', alerts: [] });
-        }
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
             currentBalance: 1000,
-            riskPercentage: 10
+            riskPercentage: 10,
+            isBotActive: true
         };
+
+        // --- GLOBAL KILL SWITCH ---
+        if (wallet.isBotActive === false) {
+            console.log('💤 Bot is PAUSED by User. Skipping Scan.');
+            return res.status(200).json({ status: 'PAUSED', message: 'Bot Desactivado', alerts: [] });
+        }
 
         // Determine Configured Strategy (Default: SWING)
         let strategy = wallet.strategy || (wallet.multiFrameMode ? 'TRIPLE' : 'SWING');
@@ -191,11 +191,10 @@ export default async function handler(req, res) {
                 }
 
                 // --- 3. Scan for New Opportunities (Auto-Entry) ---
-                // Only run Auto-Scan if NO injected opportunities were provided (Standard Cron Job)
-                // If Force Scan was used, we already handled entries in MODE A.
-                const isForceScan = (injectedOpportunities && injectedOpportunities.length > 0);
+                // Always scan for new opportunities if no active trade exists for this symbol
+                // The bot should be autonomous and enter trades automatically
 
-                if (tradeIndex === -1 && !isForceScan) {
+                if (tradeIndex === -1) {
                     let primaryInterval = strategy === 'SCALP' ? '5m' : '4h';
 
                     // SMART REGION SWITCHING FOR KLINES
