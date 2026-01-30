@@ -126,6 +126,10 @@ function App() {
 
   useEffect(() => {
     fetchData(); // Initial load (defaults to 4h)
+
+    // ⚡ WAKE UP SENTINEL: Force immediate check on load to catch missed exits
+    fetch('/api/check-prices', { method: 'POST' }).catch(e => console.warn("Wakeup check failed:", e));
+
     const interval = setInterval(() => fetchData(), 30000); // 30s Sync
 
     // --- CRON SIMULATION (Auto-Check every 60s) ---
