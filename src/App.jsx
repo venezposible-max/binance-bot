@@ -510,11 +510,14 @@ function App() {
           ))}
         </MarketGrid>
 
+
         <footer style={{ textAlign: 'center', color: '#5E6673', padding: '40px 20px', fontSize: '0.8rem' }}>
           Cloud Core Running on Vercel Edge • Redis Persistence Active • NFA
         </footer>
-      </main >
-    </div >
+      </main>
+
+      <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
+    </div>
   );
 }
 
