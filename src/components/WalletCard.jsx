@@ -262,8 +262,6 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
             </div>
         </div>
     );
-};
+});
 
 export default WalletCard;
-
-// Force rebuild Fri Jan 30 13:42:49 -04 2026
