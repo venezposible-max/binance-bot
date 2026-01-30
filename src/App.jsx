@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styles from './App.module.css';
-import { TOP_PAIRS, fetchCandles } from './api/binance';
+import { TOP_PAIRS, fetchCandles, fetchTickerPrices } from './api/binance';
 import { analyzePair } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
@@ -66,12 +66,16 @@ function App() {
     let neutralCount = 0;
 
     try {
+      setLoading(false); // Quick UI feedback
+
       // 1. Fetch Market Context (Binance)
       const promises = TOP_PAIRS.map(async (symbol) => {
         try {
           const candles = await fetchCandles(symbol, currentTf, 100);
           const analysis = analyzePair(candles);
-          const history = candles.slice(-20).map(c => c.close || parseFloat(c[4])); // Support both formats
+          const history = candles.slice(-20).map(c => c.close || parseFloat(c[4]));
+          // Note: analysis.price comes from candles, might be slightly old.
+          // We will override it below with Ticker Price.
 
           if (analysis.prediction.signal.includes('BUY')) buyCount++;
           else if (analysis.prediction.signal.includes('SELL')) sellCount++;
@@ -85,7 +89,15 @@ function App() {
       });
 
       const analyzedPairs = (await Promise.all(promises)).filter(p => p !== null);
+
+      // 1.5 FETCH REAL-TIME PRICES (Ticker API) - More accurate than candles
+      const realTimePrices = await fetchTickerPrices(TOP_PAIRS);
+
       analyzedPairs.forEach(({ symbol, analysis, history }) => {
+        // OVERRIDE Price with Ticker Price if available
+        if (realTimePrices[symbol]) {
+          analysis.price = realTimePrices[symbol];
+        }
         results[symbol] = { ...analysis, history };
       });
 
