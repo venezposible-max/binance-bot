@@ -150,14 +150,10 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 </motion.button>
             )}
 
-            {/* Professional Candlestick Chart */}
-            {data.candles && data.candles.length > 0 && (
-                <CandlestickChart
-                    candles={data.candles}
-                    emaData={data.chartData?.ema || []}
-                    color={color}
-                />
-            )}
+            {/* Sparkline Chart */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60px', overflow: 'hidden', opacity: 0.5, zIndex: 0 }}>
+                <MiniChart data={data.history || []} ema={data.chartData?.ema || []} color={color} />
+            </div>
 
         </motion.div>
     );
