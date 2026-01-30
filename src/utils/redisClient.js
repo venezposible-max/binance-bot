@@ -7,8 +7,11 @@ console.log(`🔌 Initializing Redis Client... ${REDIS_URL ? 'URL Found' : 'NO U
 let redis;
 
 if (REDIS_URL) {
+    const isInternal = REDIS_URL.includes('.internal'); // Railway Private DNS
+    console.log(`🔌 Redis Mode: ${isInternal ? 'Internal (IPv6)' : 'Public/External (IPv4)'}`);
+
     redis = new Redis(REDIS_URL, {
-        family: 6, // Railway Internal Network uses IPv6
+        family: isInternal ? 6 : 0, // Auto-detect for public, Force IPv6 for internal
         maxRetriesPerRequest: null,
         retryStrategy(times) {
             const delay = Math.min(times * 50, 2000);
