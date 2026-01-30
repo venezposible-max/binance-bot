@@ -170,8 +170,53 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
         return '#10B981'; // Teal (Default/Swing)
     };
 
+    const handleToggleBot = async () => {
+        if (!wallet) return;
+        const newState = !(wallet.isBotActive !== false); // Toggle
+        try {
+            // Optimistic update
+            setWallet(prev => ({ ...prev, isBotActive: newState }));
+
+            await fetch('/api/wallet/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isBotActive: newState })
+            });
+        } catch (e) {
+            console.error(e);
+            alert('Error al cambiar estado del bot');
+        }
+    };
+
     return (
         <div className={styles.card}>
+            {/* Header with Kill Switch */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    💼 BILLETERA
+                </div>
+                <button
+                    onClick={handleToggleBot}
+                    style={{
+                        background: wallet.isBotActive !== false ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                        color: wallet.isBotActive !== false ? '#10B981' : '#EF4444',
+                        border: `1px solid ${wallet.isBotActive !== false ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                        borderRadius: '20px',
+                        padding: '6px 14px',
+                        fontSize: '0.75rem',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: wallet.isBotActive !== false ? '#10B981' : '#EF4444', boxShadow: wallet.isBotActive !== false ? '0 0 8px #10B981' : 'none' }}></div>
+                    {wallet.isBotActive !== false ? 'BOT ACTIVO' : 'BOT PAUSADO'}
+                </button>
+            </div>
+
             <div className={styles.balanceGroup}>
                 <span className={styles.label}>CAPITAL DISPONIBLE (CASH)</span>
                 <span className={styles.value}>${wallet.currentBalance.toFixed(2)}</span>

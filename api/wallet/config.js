@@ -11,6 +11,7 @@ export default async function handler(req, res) {
                 initialBalance: 1000,
                 currentBalance: 1000,
                 riskPercentage: 10,
+                isBotActive: true, // Default State: ACTIVATED
                 ...existingConfig // Override with existing values if present
             };
 
@@ -29,6 +30,7 @@ export default async function handler(req, res) {
                     initialBalance: parseFloat(initialBalance),
                     currentBalance: parseFloat(initialBalance),
                     riskPercentage: parseFloat(riskPercentage),
+                    isBotActive: true, // Default ON after correct config
                     multiFrameMode: false // Reset defaults to OFF
                 };
             } else {
