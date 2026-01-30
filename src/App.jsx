@@ -390,34 +390,61 @@ function App() {
                   return (
                     <div key={i} className={styles.tradeCard} style={{
                       border: borderStyle,
-                      background: bgStyle
+                      background: bgStyle,
+                      padding: '12px'
                     }}>
-                      <div className={styles.tradeCardHeader}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className={styles.tradeTag} style={{ background: statusColor, color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>
-                            {isWin ? 'WIN' : 'LOST'}
+                      {/* Header: Status, Type, Strategy, Pair */}
+                      <div className={styles.tradeCardHeader} style={{ marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className={styles.tradeTag} style={{ background: statusColor, color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                            {isWin ? 'WIN' : 'LOSS'}
                           </span>
-                          <span className={styles.tradeTag} style={{ color: statusColor }}>{h.type}</span>
-                          {/* Strategy Tag History */}
-                          <span style={{
-                            fontSize: '0.7rem',
-                            color: '#94A3B8',
-                            fontWeight: 'bold',
-                            letterSpacing: '0.5px'
-                          }}>
-                            {h.strategy || 'MANUAL'}
+                          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: statusColor }}>{h.type}</span>
+                          <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{h.strategy || 'MANUAL'}</span>
+                        </div>
+                        <span className={styles.tradeSymbol} style={{ fontSize: '0.9rem' }}>{h.symbol.replace('USDT', '')}</span>
+                      </div>
+
+                      {/* Prices Grid */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '10px',
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        marginBottom: '10px'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}>ENTRADA DE</div>
+                          <div style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: '#E2E8F0' }}>
+                            ${h.entryPrice ? h.entryPrice.toLocaleString() : '---'}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}>SALIDA EN</div>
+                          <div style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: statusColor, fontWeight: 'bold' }}>
+                            ${(h.exitPrice || h.closePrice) ? (h.exitPrice || h.closePrice).toLocaleString() : '---'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Results Footer */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Resultado Neto</span>
+                          <span style={{ color: statusColor, fontWeight: 'bold', fontSize: '1rem' }}>
+                            {isWin ? '+' : ''}{h.pnl.toFixed(2)}%
                           </span>
                         </div>
-                        <span className={styles.tradeSymbol}>{h.symbol.replace('USDT', '')}</span>
-                      </div>
-                      <div className={styles.tradePnL} style={{ color: statusColor, fontSize: '1.1rem' }}>
-                        {isWin ? '🚀' : '📉'} {isWin ? '+' : ''}{h.pnl.toFixed(2)}%
-                      </div>
-                      {h.profitUsd && (
-                        <div style={{ fontSize: '0.8rem', color: statusColor, marginTop: '5px', fontWeight: 'bold' }}>
-                          {isWin ? '+' : ''}${h.profitUsd.toFixed(2)} USD
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Retorno (USD)</div>
+                          <div style={{ color: '#fff', fontWeight: 'bold', fontFamily: 'monospace' }}>
+                            {isWin ? '+' : ''}${h.profitUsd ? h.profitUsd.toFixed(2) : '0.00'}
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
