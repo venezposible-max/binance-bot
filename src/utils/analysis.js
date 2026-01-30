@@ -21,8 +21,9 @@ export const analyzePair = (candles) => {
 
     const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
-    // 2. Calculate EMA (50 period - trend)
-    const currentEMA = EMA.calculate({ period: 50, values: closes }).slice(-1)[0] || lastPrice;
+    // 2. Calculate EMA (200 period - trend) & BB
+    const emaValues = EMA.calculate({ period: 200, values: closes });
+    const currentEMA = emaValues[emaValues.length - 1] || null;
 
     // 3. Calculate Bollinger Bands (20 period, 2 stdDev)
     const bbValues = BollingerBands.calculate({ period: 20, values: closes, stdDev: 2 });
@@ -82,9 +83,14 @@ export const analyzePair = (candles) => {
 
     return {
         price: lastPrice,
+        ema: currentEMA, // For display
+        chartData: {
+            ema: emaValues.slice(-50), // For visualization
+            bb: bbValues.slice(-50)
+        },
         indicators: {
             rsi: currentRSI.toFixed(1),
-            ema: currentEMA.toFixed(2),
+            ema: currentEMA ? currentEMA.toFixed(2) : '---',
             bb: {
                 upper: currentBB.upper.toFixed(2),
                 lower: currentBB.lower.toFixed(2)

@@ -71,9 +71,9 @@ function App() {
       // 1. Fetch Market Context (Binance)
       const promises = TOP_PAIRS.map(async (symbol) => {
         try {
-          const candles = await fetchCandles(symbol, currentTf, 100);
+          const candles = await fetchCandles(symbol, currentTf, 250);
           const analysis = analyzePair(candles);
-          const history = candles.slice(-20).map(c => c.close || parseFloat(c[4]));
+          const history = candles.slice(-50).map(c => c.close || parseFloat(c[4]));
           // Note: analysis.price comes from candles, might be slightly old.
           // We will override it below with Ticker Price.
 

@@ -110,7 +110,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
 
             {/* Sparkline Chart */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60px', overflow: 'hidden', opacity: 0.5, zIndex: 0 }}>
-                <MiniChart data={data.history || []} color={color} />
+                <MiniChart data={data.history || []} ema={data.chartData?.ema || []} color={color} />
             </div>
 
         </motion.div>
@@ -118,32 +118,56 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
 };
 
 // Mini Sparkline Component
-const MiniChart = ({ data, color }) => {
+const MiniChart = ({ data, ema, color }) => {
     if (!data || data.length < 2) return null;
 
-    const max = Math.max(...data);
-    const min = Math.min(...data);
-    const range = max - min || 1; // Avoid division by zero
+    // Filter nulls just in case
+    const validData = data.filter(n => n !== null && !isNaN(n));
+    const validEma = ema ? ema.filter(n => n !== null && !isNaN(n)) : [];
 
-    // Normalize to 0-100 height, width stretched to 100%
-    const points = data.map((price, index) => {
-        const x = (index / (data.length - 1)) * 100;
-        const y = 100 - ((price - min) / range) * 100; // Invert Y because SVG 0 is top
-        return `${x},${y}`;
-    }).join(' ');
+    // Calculate Global Min/Max to fit both lines
+    const allPoints = [...validData, ...validEma];
+    const max = Math.max(...allPoints);
+    const min = Math.min(...allPoints);
+    const range = max - min || 1;
+
+    const getPoints = (dataset) => {
+        return dataset.map((price, index) => {
+            const x = (index / (dataset.length - 1)) * 100;
+            const y = 100 - ((price - min) / range) * 100;
+            return `${x},${y}`;
+        }).join(' ');
+    };
+
+    const pricePoints = getPoints(validData);
+    const emaPoints = validEma.length > 0 ? getPoints(validEma) : '';
 
     return (
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+            {/* EMA Line (Gold/Yellow) */}
+            {emaPoints && (
+                <polyline
+                    fill="none"
+                    stroke="#F59E0B" // Amber/Gold Trend Line
+                    strokeWidth="1.5"
+                    strokeDasharray="4,2" // Dashed line for EMA
+                    points={emaPoints}
+                    vectorEffect="non-scaling-stroke"
+                    opacity="0.8"
+                />
+            )}
+
+            {/* Price Line */}
             <polyline
                 fill="none"
-                stroke={color === '#94A3B8' ? '#4B5563' : color} // Darker gray for neutral
+                stroke={color === '#94A3B8' ? '#4B5563' : color}
                 strokeWidth="2"
-                points={points}
+                points={pricePoints}
                 vectorEffect="non-scaling-stroke"
             />
-            {/* Gradient Fill under line */}
+            {/* Gradient Fill under Price */}
             <path
-                d={`M0,100 L0,${100 - ((data[0] - min) / range) * 100} ${points.replace(/,/g, ' ').split(' ').map((coord, i) => (i % 2 === 0 ? `L${coord}` : coord)).join(' ')} L100,100 Z`}
+                d={`M0,100 L0,${100 - ((validData[0] - min) / range) * 100} ${pricePoints.replace(/,/g, ' ').split(' ').map((coord, i) => (i % 2 === 0 ? `L${coord}` : coord)).join(' ')} L100,100 Z`}
                 fill={color}
                 fillOpacity="0.1"
             />
