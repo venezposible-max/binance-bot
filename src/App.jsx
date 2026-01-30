@@ -188,7 +188,7 @@ function App() {
 
     if (tabId === 'settings') {
       // Trigger wallet configuration
-      setShowConfigModal(true);
+      walletRef.current?.configure();
     }
   };
 
