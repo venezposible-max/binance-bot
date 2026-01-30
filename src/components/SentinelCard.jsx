@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Activity, Minus } from 'lucide-react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
-import CandlestickChart from './CandlestickChart';
+// import CandlestickChart from './CandlestickChart'; // Temporarily disabled
 import styles from './SentinelCard.module.css';
 
 // Animated Number Component
