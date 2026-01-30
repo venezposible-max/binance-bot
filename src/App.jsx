@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ParticlesBackground from './components/ParticlesBackground';
+import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
 import { TOP_PAIRS, fetchCandles, fetchTickerPrices } from './api/binance';
 import { analyzePair } from './utils/analysis';
@@ -165,6 +166,16 @@ function App() {
     };
   }, [cloudStatus.active.length]);
 
+  // --- MOBILE NAV STATE ---
+  const [mobileTab, setMobileTab] = useState('dashboard');
+
+  const handleMobileNav = (tabId) => {
+    setMobileTab(tabId);
+    if (tabId === 'dashboard') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tabId === 'wallet') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
+    // Config uses modal possibly, or scroll to specific area
+  };
+
   return (
     <div className={styles.appContainer}>
       <ParticlesBackground />
@@ -192,11 +203,13 @@ function App() {
           </p>
         </section>
 
-        <WalletCard
-          onConfigChange={handleConfigChange}
-          activeTrades={cloudStatus.active}
-          marketData={marketData}
-        />
+        <div id="wallet-section">
+          <WalletCard
+            onConfigChange={handleConfigChange}
+            activeTrades={cloudStatus.active}
+            marketData={marketData}
+          />
+        </div>
 
         {/* --- Trades Autónomos --- */}
         <section className={styles.portfolioSection}>

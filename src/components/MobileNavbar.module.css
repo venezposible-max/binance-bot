@@ -1,0 +1,68 @@
+.navbar {
+    display: none;
+    /* Hidden on Desktop */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    /* Thumb friendly */
+    background: rgba(13, 17, 23, 0.85);
+    /* Glass */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+    /* iPhone X safe area */
+}
+
+.navItem {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #64748B;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.navItem.active {
+    color: #F0B90B;
+    /* Binance Yellow */
+}
+
+.iconWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.label {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.indicator {
+    position: absolute;
+    bottom: -8px;
+    /* Below icon */
+    width: 4px;
+    height: 4px;
+    background: #F0B90B;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #F0B90B;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        display: flex;
+    }
+}
