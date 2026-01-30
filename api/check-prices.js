@@ -28,15 +28,17 @@ async function fetchGlobalPrice(symbol) {
         }
     }
 
-    // OPTION B: USA (VERCEL) -> Use Coinbase Oracle + Binance US Fallback
+    // OPTION B: USA (VERCEL/RAILWAY) -> Use Binance US Priority + Coinbase Fallback
     const base = symbol.replace('USDT', '');
     try {
-        const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`);
-        return parseFloat(res.data.data.amount);
+        // Priority 1: Binance US (More accurate for Binance simulation)
+        const res = await axios.get(`https://api.binance.us/api/v3/ticker/price?symbol=${symbol}`);
+        return parseFloat(res.data.price);
     } catch (e) {
         try {
-            const res = await axios.get(`https://api.binance.us/api/v3/ticker/price?symbol=${symbol}`);
-            return parseFloat(res.data.price);
+            // Priority 2: Coinbase Oracle (Backup)
+            const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`);
+            return parseFloat(res.data.data.amount);
         } catch (err) {
             console.error(`Price Fetch Failed for ${symbol}`, err.message);
             return null;
