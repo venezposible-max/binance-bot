@@ -108,7 +108,15 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 </div>
             </div>
 
-            <div className={styles.indicatorsGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+
+            <div className={styles.indicatorsGrid} style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '10px',
+                marginTop: '10px',
+                position: 'relative',
+                zIndex: 2
+            }}>
                 <div className={styles.indicator}>
                     <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>RSI (14)</span>
                     <div className={styles.indValue} style={{
@@ -127,6 +135,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                     </div>
                 </div>
             </div>
+
 
             <div className={styles.signalBadge} style={{
                 background: color, color: '#000', boxShadow: `0 0 15px ${color}`,
