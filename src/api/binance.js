@@ -32,9 +32,6 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
 };
 
 /**
- * Fetch 24hr Ticker for current price and change %
- */
-/**
  * Fetch Real-Time Prices via Backend Proxy (with Browser Fallback)
  * @param {Array} symbols - List of symbols (e.g. ['BTCUSDT', 'ETHUSDT'])
  */
@@ -43,6 +40,7 @@ export const fetchTickerPrices = async (symbols) => {
         const symbolsParam = symbols.join(',');
 
         // 1. Try Backend Proxy (Best for CORS, but might be Rate Limited/IP Blocked)
+        // If this works, great. If it fails or returns empty (due to IP block), we catch it.
         const response = await axios.get(`/api/ticker`, {
             params: { symbols: symbolsParam },
             timeout: 5000
@@ -57,24 +55,54 @@ export const fetchTickerPrices = async (symbols) => {
     } catch (error) {
         console.warn("Backend Ticker failed, trying Direct Browser Fetch...", error.message);
 
-        // 2. Fallback: Direct Browser Fetch (might work if backend IP is dirty)
-        // Note: Binance US usually allows CORS for public data.
-        try {
-            const fallbackResponse = await axios.get('https://api.binance.us/api/v3/ticker/price', {
-                timeout: 3000
-            });
-
-            // Transform array [{symbol, price}] to object {symbol: price}
-            const fallbackPrices = {};
-            fallbackResponse.data.forEach(t => {
+        // Helper to format ticker array to object
+        const processTickerData = (data, symbols) => {
+            const prices = {};
+            data.forEach(t => {
                 if (symbols.includes(t.symbol)) {
-                    fallbackPrices[t.symbol] = parseFloat(t.price);
+                    prices[t.symbol] = parseFloat(t.price);
                 }
             });
-            return fallbackPrices;
-        } catch (directError) {
-            console.error("Direct Browser Fetch also failed:", directError.message);
-            return {};
+            return prices;
+        };
+
+        // 2. Fallback A: Direct Browser Fetch (GLOBAL - api.binance.com)
+        // This is what the user requested and works best for international IPs.
+        try {
+            console.log("Fallback A: Trying Binance Global...");
+            const globalResponse = await axios.get('https://api.binance.com/api/v3/ticker/price', {
+                timeout: 3000
+            });
+            return processTickerData(globalResponse.data, symbols);
+        } catch (globalError) {
+            console.warn("Global Fetch failed, trying US...", globalError.message);
+
+            // 3. Fallback B: Direct Browser Fetch (US - api.binance.us)
+            try {
+                console.log("Fallback B: Trying Binance US...");
+                const usResponse = await axios.get('https://api.binance.us/api/v3/ticker/price', {
+                    timeout: 3000
+                });
+                return processTickerData(usResponse.data, symbols);
+            } catch (usError) {
+                console.error("All Fetch Methods Failed:", usError.message);
+                return {};
+            }
         }
+    }
+};
+
+/**
+ * Fetch 24hr Ticker for current price and change %
+ * (Legacy / unused or used for manual checks)
+ */
+export const fetchTicker24h = async () => {
+    try {
+        const response = await axios.get(`${BASE_URL}/ticker/24hr`);
+        // Filter only our top pairs to optimize
+        return response.data.filter(t => TOP_PAIRS.includes(t.symbol));
+    } catch (error) {
+        console.error("Error fetching ticker:", error);
+        return [];
     }
 };
