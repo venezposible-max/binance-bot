@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { RSI } from 'technicalindicators';
 import redis from '../src/utils/redisClient.js';
+import { v4 as uuidv4 } from 'uuid';
 
 // --- Shared Logic ---
 const TOP_PAIRS = [
