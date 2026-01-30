@@ -313,104 +313,118 @@ function App() {
                                     ${currentVal.toFixed(2)}
                                   </span>
                                 </div>
-                              </span >
-                        </div>
+
+                                <div style={{
+                                  marginTop: '8px',
+                                  padding: '4px 8px',
+                                  background: 'rgba(245, 158, 11, 0.1)',
+                                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                                  borderRadius: '4px',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#FCD34D', fontWeight: 'bold' }}>💰 INVERSIÓN:</span>
+                                  <span style={{ fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', fontFamily: 'monospace' }}>
+                                    ${(t.investedAmount || (quantity * t.entryPrice)).toFixed(2)}
+                                  </span>
+                                </div>
                               </>
-                    );
+                            );
                           })()}
-                  </div>
-                )
-              }
+                        </div>
+                      )
+                      }
                     </div>
                   </div>
-        );
+                );
               })}
-    </div>
-  ) : (
-    <div className={styles.emptyPortfolio}>El Cloud Sniper está patrullando... Esperando señal fuerte para entrar.</div>
-  )
-}
+            </div>
+          ) : (
+            <div className={styles.emptyPortfolio}>El Cloud Sniper está patrullando... Esperando señal fuerte para entrar.</div>
+          )
+          }
         </section >
 
-  {/* --- Historial de Victorias NUBE --- */ }
-{
-  cloudStatus.history.length > 0 && (
-    <section className={styles.portfolioSection} style={{ marginTop: '-20px', marginBottom: '40px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h2 className={styles.sectionTitle} style={{ color: '#10B981', opacity: 1, margin: 0 }}>🏆 HISTORIAL DE OPERACIONES</h2>
-        <button
-          onClick={async () => {
-            if (confirm('¿Borrar todo el historial de victorias?')) {
-              try {
-                await fetch('/api/manual-trade', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'CLEAR_HISTORY' })
-                });
-                setCloudStatus(prev => ({ ...prev, history: [] }));
-              } catch (e) {
-                alert('Error al borrar historial');
-              }
-            }
-          }}
-          style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            color: '#EF4444',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '0.7rem'
-          }}
-        >
-          🗑️ BORRAR HISTORIAL
-        </button>
-      </div>
-      <div className={styles.tradeGrid}>
-        {cloudStatus.history.map((h, i) => {
-          const isWin = h.pnl >= 0;
-          const statusColor = isWin ? '#10B981' : '#EF4444';
-          const bgStyle = isWin ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
-          const borderStyle = isWin ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
+        {/* --- Historial de Victorias NUBE --- */}
+        {
+          cloudStatus.history.length > 0 && (
+            <section className={styles.portfolioSection} style={{ marginTop: '-20px', marginBottom: '40px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h2 className={styles.sectionTitle} style={{ color: '#10B981', opacity: 1, margin: 0 }}>🏆 HISTORIAL DE OPERACIONES</h2>
+                <button
+                  onClick={async () => {
+                    if (confirm('¿Borrar todo el historial de victorias?')) {
+                      try {
+                        await fetch('/api/manual-trade', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'CLEAR_HISTORY' })
+                        });
+                        setCloudStatus(prev => ({ ...prev, history: [] }));
+                      } catch (e) {
+                        alert('Error al borrar historial');
+                      }
+                    }
+                  }}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#EF4444',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.7rem'
+                  }}
+                >
+                  🗑️ BORRAR HISTORIAL
+                </button>
+              </div>
+              <div className={styles.tradeGrid}>
+                {cloudStatus.history.map((h, i) => {
+                  const isWin = h.pnl >= 0;
+                  const statusColor = isWin ? '#10B981' : '#EF4444';
+                  const bgStyle = isWin ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+                  const borderStyle = isWin ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
 
-          return (
-            <div key={i} className={styles.tradeCard} style={{
-              border: borderStyle,
-              background: bgStyle
-            }}>
-              <div className={styles.tradeCardHeader}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={styles.tradeTag} style={{ background: statusColor, color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>
-                    {isWin ? 'WIN' : 'LOST'}
-                  </span>
-                  <span className={styles.tradeTag} style={{ color: statusColor }}>{h.type}</span>
-                  {/* Strategy Tag History */}
-                  <span style={{
-                    fontSize: '0.7rem',
-                    color: '#94A3B8',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.5px'
-                  }}>
-                    {h.strategy || 'MANUAL'}
-                  </span>
-                </div>
-                <span className={styles.tradeSymbol}>{h.symbol.replace('USDT', '')}</span>
+                  return (
+                    <div key={i} className={styles.tradeCard} style={{
+                      border: borderStyle,
+                      background: bgStyle
+                    }}>
+                      <div className={styles.tradeCardHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={styles.tradeTag} style={{ background: statusColor, color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>
+                            {isWin ? 'WIN' : 'LOST'}
+                          </span>
+                          <span className={styles.tradeTag} style={{ color: statusColor }}>{h.type}</span>
+                          {/* Strategy Tag History */}
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: '#94A3B8',
+                            fontWeight: 'bold',
+                            letterSpacing: '0.5px'
+                          }}>
+                            {h.strategy || 'MANUAL'}
+                          </span>
+                        </div>
+                        <span className={styles.tradeSymbol}>{h.symbol.replace('USDT', '')}</span>
+                      </div>
+                      <div className={styles.tradePnL} style={{ color: statusColor, fontSize: '1.1rem' }}>
+                        {isWin ? '🚀' : '📉'} {isWin ? '+' : ''}{h.pnl.toFixed(2)}%
+                      </div>
+                      {h.profitUsd && (
+                        <div style={{ fontSize: '0.8rem', color: statusColor, marginTop: '5px', fontWeight: 'bold' }}>
+                          {isWin ? '+' : ''}${h.profitUsd.toFixed(2)} USD
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <div className={styles.tradePnL} style={{ color: statusColor, fontSize: '1.1rem' }}>
-                {isWin ? '🚀' : '📉'} {isWin ? '+' : ''}{h.pnl.toFixed(2)}%
-              </div>
-              {h.profitUsd && (
-                <div style={{ fontSize: '0.8rem', color: statusColor, marginTop: '5px', fontWeight: 'bold' }}>
-                  {isWin ? '+' : ''}${h.profitUsd.toFixed(2)} USD
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  )
-}
+            </section>
+          )
+        }
 
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <button
