@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Activity, Minus } from 'lucide-react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
-// import CandlestickChart from './CandlestickChart'; // Temporarily disabled
+import ProfessionalChart from './ProfessionalChart';
 import styles from './SentinelCard.module.css';
 
 // Animated Number Component
@@ -150,10 +150,14 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 </motion.button>
             )}
 
-            {/* Sparkline Chart */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60px', overflow: 'hidden', opacity: 0.5, zIndex: 0 }}>
-                <MiniChart data={data.history || []} ema={data.chartData?.ema || []} color={color} />
-            </div>
+            {/* Professional Chart with Recharts */}
+            {data.candles && data.candles.length > 0 && (
+                <ProfessionalChart
+                    candles={data.candles}
+                    emaData={data.chartData?.ema || []}
+                    color={color}
+                />
+            )}
 
         </motion.div>
     );
