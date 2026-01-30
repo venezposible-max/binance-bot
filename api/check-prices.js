@@ -215,6 +215,9 @@ export default async function handler(req, res) {
                         } catch (e) { console.warn('Triple Check Fail', e.message); }
                     }
 
+                    // DEBUG: Log RSI and decision
+                    console.log(`📊 ${symbol} | RSI: ${rsi.toFixed(2)} | isStrongBuy: ${isStrongBuy} | Strategy: ${strategy}`);
+
                     if (isStrongBuy) {
                         const type = 'LONG';
                         // Wallet Logic
