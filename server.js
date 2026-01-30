@@ -2,16 +2,32 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+// --- CRASH PREVENTION & LOGGING ---
+console.log('🔥 SERVER STARTING... Catching all errors.');
+
+process.on('uncaughtException', (err) => {
+    console.error('💥 CRITICAL ERROR (Uncaught Exception):', err);
+    // Do not exit immediately to allow logs to flush
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('💥 CRITICAL ERROR (Unhandled Rejection):', reason);
+});
+
+// Import handlers after setting up error listeners
 import checkPrices from './api/check-prices.js';
 import manualTrade from './api/manual-trade.js';
-import getStatus from './api/get-status.js'; // Assuming you have this or similar
+import getStatus from './api/get-status.js';
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 8080; // Railway uses 8080 (or provided PORT)
+const PORT = process.env.PORT || 8080;
+
+console.log(`🔌 Configured PORT: ${PORT}`);
 
 app.use(cors());
 app.use(express.json());
@@ -43,8 +59,12 @@ app.get('*', (req, res) => {
 });
 
 // START SERVER
-app.listen(PORT, () => {
-    console.log(`🚀 Sentinel Bot Server running on port ${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🇪🇺 Region: ${process.env.REGION || 'Default'}`);
-});
+try {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 SENTINEL BOT SERVER IS ALIVE ON PORT ${PORT}`);
+        console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+        console.log(`🇪🇺 Region: ${process.env.REGION || 'Default'}`);
+    });
+} catch (e) {
+    console.error('❌ FATAL ERROR STARTING SERVER:', e);
+}
