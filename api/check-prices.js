@@ -3,7 +3,10 @@ import { RSI } from 'technicalindicators';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
-const redis = new Redis(process.env.REDIS_URL);
+console.log(`Connecting to Redis... ${process.env.REDIS_URL ? 'URL Provided' : 'MISSING URL'}`);
+const redis = new Redis(process.env.REDIS_URL, {
+    family: 6 // Railway Private Network uses IPv6
+});
 
 // --- Shared Logic ---
 const TOP_PAIRS = [

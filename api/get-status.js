@@ -1,6 +1,8 @@
 import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL);
+const redis = new Redis(process.env.REDIS_URL, {
+    family: 6 // Railway IPv6 Fix
+});
 
 export default async function handler(req, res) {
     try {

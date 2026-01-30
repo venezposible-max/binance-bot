@@ -2,7 +2,9 @@ import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
-const redis = new Redis(process.env.REDIS_URL);
+const redis = new Redis(process.env.REDIS_URL, {
+    family: 6 // Railway IPv6 Fix
+});
 const BOT_TOKEN = '8025293831:AAF5H56wm1yAzHwbI9foh7lA-tr8WUwHfd0';
 const CHAT_ID = '330749449';
 
