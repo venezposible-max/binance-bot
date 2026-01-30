@@ -313,26 +313,7 @@ function App() {
                                     ${currentVal.toFixed(2)}
                                   </span>
                                 </div>
-                              </div >
-
-                                {/* High Visibility Investment Display */ }
-                                < div style = {{
-                              marginTop: '8px',
-                                padding: '4px 8px',
-                          background: 'rgba(245, 158, 11, 0.1)',
-                          border: '1px solid rgba(245, 158, 11, 0.3)',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                                }}>
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                                }}>
-                          <span style={{ fontSize: '0.75rem', color: '#FCD34D', fontWeight: 'bold' }}>💰 INVERSIÓN:</span>
-                          <span style={{ fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', fontFamily: 'monospace' }}>
-                            ${(t.investedAmount || (quantity * t.entryPrice)).toFixed(2)}
-                          </span>
+                              </span >
                         </div>
                               </>
                     );
