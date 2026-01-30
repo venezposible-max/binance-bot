@@ -13,7 +13,7 @@ function App() {
   const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
 
   const [timeframe, setTimeframe] = useState('4h');
-  const [activeStrategy, setActiveStrategy] = useState('SWING');
+  const [activeStrategy, setActiveStrategy] = useState(() => localStorage.getItem('sentinel_strategy') || 'SWING');
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
@@ -118,6 +118,7 @@ function App() {
       console.log(`🔄 Strategy Changed to ${config.strategy} -> Switching Charts to ${newTf}`);
       setTimeframe(newTf);
       setActiveStrategy(config.strategy);
+      localStorage.setItem('sentinel_strategy', config.strategy); // PERSIST SELECTION
       fetchData(newTf);
     } else {
       fetchData();
