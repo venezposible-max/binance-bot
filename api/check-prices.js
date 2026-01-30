@@ -237,11 +237,18 @@ export default async function handler(req, res) {
                         };
                         newActiveTrades.push(newTrade);
 
-                        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                            chat_id: CHAT_ID,
-                            text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentPrice}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
-                            parse_mode: 'Markdown'
-                        });
+                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentPrice} | Strategy: ${strategy}`);
+
+                        // Send Telegram alert (non-blocking)
+                        try {
+                            await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                                chat_id: CHAT_ID,
+                                text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentPrice}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
+                                parse_mode: 'Markdown'
+                            });
+                        } catch (telegramError) {
+                            console.warn('⚠️ Telegram notification failed:', telegramError.message);
+                        }
                         alertsSent.push(`${symbol} (${type})`);
                     }
                 }
