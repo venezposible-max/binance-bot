@@ -58,8 +58,12 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
     if (loading) return null;
     if (!wallet) return null;
 
-    const pnl = wallet.currentBalance - wallet.initialBalance;
-    const pnlPercent = ((pnl / wallet.initialBalance) * 100).toFixed(2);
+    // Defensive defaults for fresh/empty database
+    const currentBalance = wallet.currentBalance ?? 1000;
+    const initialBalance = wallet.initialBalance ?? 1000;
+
+    const pnl = currentBalance - initialBalance;
+    const pnlPercent = ((pnl / initialBalance) * 100).toFixed(2);
     const isPositive = pnl >= 0;
 
     // Calculate Equity (Balance + Unrealized PnL)
@@ -95,7 +99,7 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
     // Note: 'currentBalance' has open positions DEDUCTED.
     // So to get Equity we need: Cash (currentBalance) + Current Value of Positions.
 
-    let equity = wallet.currentBalance;
+    let equity = currentBalance;
     if (activeTrades && marketData) {
         activeTrades.forEach(t => {
             const currentPrice = marketData[t.symbol]?.price;
