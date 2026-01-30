@@ -166,11 +166,18 @@ export default async function handler(req, res) {
                         });
                         newActiveTrades.splice(tradeIndex, 1);
 
-                        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                            chat_id: CHAT_ID,
-                            text: `🏆 **CLOUD WIN (${strategy})** 🚀\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n📈 ROI: **+${netPnlPercent.toFixed(2)}%**\n💰 Cierre: $${currentPrice}\n\n_Auto-Close by Sentinel_`,
-                            parse_mode: 'Markdown'
-                        });
+                        console.log(`🏆 CIERRE AUTÓNOMO: ${symbol} | PnL: +${netPnlPercent.toFixed(2)}% | Profit: $${netProfit.toFixed(2)}`);
+
+                        // Send Telegram alert (non-blocking)
+                        try {
+                            await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                                chat_id: CHAT_ID,
+                                text: `🏆 **CLOUD WIN (${strategy})** 🚀\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n📈 ROI: **+${netPnlPercent.toFixed(2)}%**\n💰 Cierre: $${currentPrice}\n\n_Auto-Close by Sentinel_`,
+                                parse_mode: 'Markdown'
+                            });
+                        } catch (telegramError) {
+                            console.warn('⚠️ Telegram notification failed:', telegramError.message);
+                        }
                     }
                 }
 
