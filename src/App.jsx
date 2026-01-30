@@ -35,7 +35,7 @@ function App() {
   };
 
   const handleSimulate = (symbol, price, type) => {
-    handleManualAction('OPEN', { symbol, price, type });
+    handleManualAction('OPEN', { symbol, price, type, strategy: activeStrategy });
   };
 
   const handleCloseManual = (id) => {
@@ -214,7 +214,8 @@ function App() {
                           opportunities.push({
                             symbol: symbol,
                             type: 'LONG',
-                            price: data.price
+                            price: data.price,
+                            strategy: activeStrategy // Pass Current Strategy (SCALP/SWING)
                           });
                         }
                       }
