@@ -313,9 +313,9 @@ function App() {
                                     ${currentVal.toFixed(2)}
                                   </span>
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
-                                  <span>Inversión:</span>
-                                  <span>${t.investedAmount.toFixed(2)}</span>
+                                <div style={{ fontSize: '0.85rem', color: '#F59E0B', display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontWeight: 'bold' }}>
+                                  <span>💰 Inversión:</span>
+                                  <span style={{ color: '#FCD34D' }}>${t.investedAmount.toFixed(2)}</span>
                                 </div>
                               </>
                             );
