@@ -164,8 +164,13 @@ function App() {
     };
   }, [cloudStatus.active.length]);
 
+  import ParticlesBackground from './components/ParticlesBackground';
+
+  // ...
+
   return (
     <div className={styles.appContainer}>
+      <ParticlesBackground />
       <header className={styles.header}>
         <div className={styles.logo}>
           BINANCE <span>SENTINEL</span>
