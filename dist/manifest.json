@@ -1,0 +1,17 @@
+{
+    "name": "Binance Sentinel AI",
+    "short_name": "Sentinel",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1E2329",
+    "theme_color": "#1E2329",
+    "description": "Real-time Crypto Market Analysis & Signals",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}
