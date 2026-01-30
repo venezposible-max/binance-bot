@@ -167,8 +167,8 @@ function App() {
           <p className={styles.heroSubtitle}>
             Patrullando 24/7 de forma autónoma en la nube.
             <br />
-            <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block', color: 'var(--color-binance-yellow)' }}>
-              🔥 {stats.buy} Oportunidades Snipper detectadas ({activeStrategy})
+            <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block' }} className="text-glow-yellow">
+              🔥 {stats.buy} Oportunidades LONG detectadas (Solo Compras)
             </span>
           </p>
         </section>
