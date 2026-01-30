@@ -95,6 +95,7 @@ export default async function handler(req, res) {
                         timestamp: new Date().toISOString(),
                         entryPrice: trade.entryPrice,
                         exitPrice: exitPrice || trade.entryPrice,
+                        investedAmount: trade.investedAmount, // Critical for Value Amount display
                         isManual: true
                     });
 
