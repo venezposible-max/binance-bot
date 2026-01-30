@@ -204,12 +204,12 @@ function App() {
                     // PASO 1: Solo Detectar y ABRIR Nuevas
                     const opportunities = [];
                     Object.entries(marketData).forEach(([symbol, data]) => {
-                      if (data.prediction.signal !== 'NEUTRAL' && data.prediction.signal !== 'BULLISH' && data.prediction.signal !== 'BEARISH') {
+                      if (data.prediction.signal.includes('BUY')) {
                         // Solo si no está ya activa
                         if (!cloudStatus.active.find(at => at.symbol === symbol)) {
                           opportunities.push({
                             symbol: symbol,
-                            type: data.prediction.signal.includes('BUY') ? 'LONG' : 'SHORT',
+                            type: 'LONG',
                             price: data.price
                           });
                         }
