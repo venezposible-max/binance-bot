@@ -4,11 +4,16 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
         try {
             const configStr = await redis.get('sentinel_wallet_config');
-            const config = configStr ? JSON.parse(configStr) : {
+            const existingConfig = configStr ? JSON.parse(configStr) : {};
+
+            // Merge with defaults to ensure all required fields exist
+            const config = {
                 initialBalance: 1000,
                 currentBalance: 1000,
-                riskPercentage: 10
+                riskPercentage: 10,
+                ...existingConfig // Override with existing values if present
             };
+
             res.status(200).json(config);
         } catch (error) {
             res.status(500).json({ error: error.message });
