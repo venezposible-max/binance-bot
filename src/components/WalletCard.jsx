@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styles from './WalletCard.module.css';
 
-const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
+const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref) => {
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -63,6 +63,12 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
             }
         }
     };
+
+    // Expose configure function to parent via ref
+    useImperativeHandle(ref, () => ({
+        configure: handleConfigure
+    }));
+
 
     if (loading) return null;
     if (!wallet) return null;
@@ -259,4 +265,5 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
 };
 
 export default WalletCard;
+
 // Force rebuild Fri Jan 30 13:42:49 -04 2026

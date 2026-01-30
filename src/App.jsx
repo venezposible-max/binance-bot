@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import ParticlesBackground from './components/ParticlesBackground';
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
@@ -19,6 +19,9 @@ function App() {
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
+
+  // --- WALLET REF for mobile config ---
+  const walletRef = useRef(null);
 
   const handleManualAction = async (action, data) => {
     try {
@@ -168,12 +171,25 @@ function App() {
 
   // --- MOBILE NAV STATE ---
   const [mobileTab, setMobileTab] = useState('dashboard');
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
   const handleMobileNav = (tabId) => {
     setMobileTab(tabId);
-    if (tabId === 'dashboard') window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (tabId === 'wallet') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
-    // Config uses modal possibly, or scroll to specific area
+
+    if (tabId === 'dashboard') {
+      // Scroll to market grid
+      document.getElementById('market-grid-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (tabId === 'wallet') {
+      // Scroll to wallet and center it
+      document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    if (tabId === 'settings') {
+      // Trigger wallet configuration
+      setShowConfigModal(true);
+    }
   };
 
   return (
@@ -205,6 +221,7 @@ function App() {
 
         <div id="wallet-section">
           <WalletCard
+            ref={walletRef}
             onConfigChange={handleConfigChange}
             activeTrades={cloudStatus.active}
             marketData={marketData}
@@ -498,17 +515,21 @@ function App() {
           </button>
         </div>
 
-        <MarketGrid>
-          {TOP_PAIRS.map(symbol => (
-            <SentinelCard
-              key={symbol}
-              symbol={symbol}
-              data={marketData[symbol]}
-              loading={loading}
-              onSimulate={handleSimulate}
-            />
-          ))}
-        </MarketGrid>
+
+        <div id="market-grid-section">
+          <MarketGrid>
+            {TOP_PAIRS.map(symbol => (
+              <SentinelCard
+                key={symbol}
+                symbol={symbol}
+                data={marketData[symbol]}
+                loading={loading}
+                onSimulate={handleSimulate}
+              />
+            ))}
+          </MarketGrid>
+        </div>
+
 
 
         <footer style={{ textAlign: 'center', color: '#5E6673', padding: '40px 20px', fontSize: '0.8rem' }}>
