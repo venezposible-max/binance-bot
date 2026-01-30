@@ -18,33 +18,15 @@ const BASE_URL = 'https://api.binance.com/api/v3';
  */
 export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
     try {
-        let response;
-        try {
-            // Priority 1: Binance Global
-            response = await axios.get(`https://api.binance.com/api/v3/klines`, {
-                params: { symbol, interval, limit },
-                timeout: 5000 // 5s Timeout to fail fast
-            });
-        } catch (e) {
-            console.warn(`Global API failed for ${symbol}, trying US...`);
-            // Priority 2: Binance US (Fallback)
-            response = await axios.get(`https://api.binance.us/api/v3/klines`, {
-                params: { symbol, interval, limit }
-            });
-        }
+        // Use backend proxy to bypass browser geo-blocks
+        const response = await axios.get(`/api/candles`, {
+            params: { symbol, interval, limit },
+            timeout: 10000
+        });
 
-        // Binance format: [open_time, open, high, low, close, volume, ...]
-        // We mainly need Close prices for RSI
-        return response.data.map(c => ({
-            time: c[0],
-            open: parseFloat(c[1]),
-            high: parseFloat(c[2]),
-            low: parseFloat(c[3]),
-            close: parseFloat(c[4]),
-            volume: parseFloat(c[5])
-        }));
+        return response.data; // Already formatted by backend
     } catch (error) {
-        console.error(`Error fetching data for ${symbol}:`, error);
+        console.error(`Error fetching candles for ${symbol}:`, error);
         return [];
     }
 };

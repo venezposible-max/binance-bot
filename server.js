@@ -18,7 +18,8 @@ process.on('unhandledRejection', (reason, promise) => {
 import checkPrices from './api/check-prices.js';
 import manualTrade from './api/manual-trade.js';
 import getStatus from './api/get-status.js';
-import walletConfig from './api/wallet/config.js'; // Wallet Logic
+import walletConfig from './api/wallet/config.js';
+import candles from './api/candles.js'; // Chart Data Proxy
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -43,11 +44,12 @@ const vercelAdapter = (handler) => async (req, res) => {
 };
 
 app.post('/api/check-prices', vercelAdapter(checkPrices));
-app.get('/api/check-prices', vercelAdapter(checkPrices)); // Cron
+app.get('/api/check-prices', vercelAdapter(checkPrices));
 app.post('/api/manual-trade', vercelAdapter(manualTrade));
-app.get('/api/get-status', vercelAdapter(getStatus));     // Sync
-app.get('/api/wallet/config', vercelAdapter(walletConfig));  // Wallet Read
-app.post('/api/wallet/config', vercelAdapter(walletConfig)); // Wallet Write
+app.get('/api/get-status', vercelAdapter(getStatus));
+app.get('/api/wallet/config', vercelAdapter(walletConfig));
+app.post('/api/wallet/config', vercelAdapter(walletConfig));
+app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
 
 // --- SERVE FRONTEND (VITE BUILD) ---
 app.use(express.static(path.join(__dirname, 'dist')));
