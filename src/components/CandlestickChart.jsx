@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { createChart } from 'lightweight-charts';
+import { createChart, ColorType } from 'lightweight-charts';
 
 const CandlestickChart = ({ candles, emaData, color }) => {
     const chartContainerRef = useRef(null);
@@ -13,7 +13,7 @@ const CandlestickChart = ({ candles, emaData, color }) => {
             width: chartContainerRef.current.clientWidth,
             height: 150,
             layout: {
-                background: { color: 'transparent' },
+                background: { type: ColorType.Solid, color: 'transparent' },
                 textColor: '#64748B',
             },
             grid: {
@@ -21,7 +21,7 @@ const CandlestickChart = ({ candles, emaData, color }) => {
                 horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
             },
             crosshair: {
-                mode: 0, // Normal crosshair
+                mode: 0,
             },
             rightPriceScale: {
                 borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -35,8 +35,9 @@ const CandlestickChart = ({ candles, emaData, color }) => {
 
         chartRef.current = chart;
 
-        // Add candlestick series
-        const candlestickSeries = chart.addCandlestickSeries({
+        // Add candlestick series using v5 API
+        const candlestickSeries = chart.addSeries({
+            type: 'Candlestick',
             upColor: '#10B981',
             downColor: '#EF4444',
             borderUpColor: '#10B981',
@@ -62,7 +63,8 @@ const CandlestickChart = ({ candles, emaData, color }) => {
 
         // Add EMA line if available
         if (emaData && emaData.length > 0) {
-            const lineSeries = chart.addLineSeries({
+            const lineSeries = chart.addSeries({
+                type: 'Line',
                 color: '#F59E0B',
                 lineWidth: 2,
                 lineStyle: 2, // Dashed
