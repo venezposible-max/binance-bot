@@ -1,0 +1,17 @@
+name: Sentinel Bot Heartbeat
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  ping-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake up Sentinel Bot
+        run: |
+          curl -X POST https://binance-sooty.vercel.app/api/check-prices \
+          -H "Content-Type: application/json" \
+          -d '{"source":"github_cron"}'

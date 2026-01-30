@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* 🟡 Binance Brand & Cyber Palette */
+  --color-binance-yellow: #F0B90B;
+  --color-binance-gold: #FCD535;
+  --color-dark-bg: #0B0E11;
+  /* Binance Dark Background */
+  --color-card-bg: #1E2329;
+  /* Component Background */
+
+  /* Cyber Accents */
+  --color-neon-yellow: rgba(240, 185, 11, 0.8);
+  --color-neon-blue: #00D4FF;
+  /* Secondary cyber accent */
+
+  /* Text */
+  --text-primary: #EAECEF;
+  --text-secondary: #848E9C;
+
+  /* Glows */
+  --glow-gold: 0 0 20px rgba(240, 185, 11, 0.3);
+  --glow-intense: 0 0 40px rgba(240, 185, 11, 0.5);
+
+  /* Fonts */
+  --font-main: 'Space Grotesk', sans-serif;
+  --font-body: 'Outfit', sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-dark-bg);
+  background-image:
+    radial-gradient(circle at 50% -20%, rgba(240, 185, 11, 0.08) 0%, transparent 50%),
+    linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.4));
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-card-bg);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-binance-yellow);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-main);
+  margin: 0;
+  font-weight: 700;
+}

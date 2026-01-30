@@ -1,0 +1,443 @@
+import React, { useEffect, useState } from 'react';
+import styles from './App.module.css';
+import { TOP_PAIRS, fetchCandles } from './api/binance';
+import { analyzePair } from './utils/analysis';
+import MarketGrid from './components/MarketGrid';
+import SentinelCard from './components/SentinelCard';
+import WalletCard from './components/WalletCard';
+import { sendTelegramAlert } from './utils/telegram';
+
+function App() {
+  const [marketData, setMarketData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
+
+  const [timeframe, setTimeframe] = useState('4h');
+  const [activeStrategy, setActiveStrategy] = useState('SWING');
+
+  // --- CLOUD AUTONOMY STATE ---
+  const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
+
+  const handleManualAction = async (action, data) => {
+    try {
+      const res = await fetch('/api/manual-trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...data })
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setCloudStatus(prev => ({ ...prev, active: result.active }));
+      }
+    } catch (e) {
+      console.error("Manual Action Error:", e);
+    }
+  };
+
+  const handleSimulate = (symbol, price, type) => {
+    handleManualAction('OPEN', { symbol, price, type });
+  };
+
+  const handleCloseManual = (id) => {
+    // Find the trade to get the symbol and current price
+    const trade = cloudStatus.active.find(t => t.id === id);
+    const currentPrice = trade ? marketData[trade.symbol]?.price : null;
+
+    handleManualAction('CLOSE', { id, exitPrice: currentPrice });
+  };
+
+  const calculatePnL = (trade, currentPrice) => {
+    if (!currentPrice) return 0;
+    let rawPnL = 0;
+    if (trade.type === 'SHORT') {
+      rawPnL = ((trade.entryPrice - currentPrice) / trade.entryPrice) * 100;
+    } else {
+      rawPnL = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
+    }
+    // Realism: Deduct 0.1% Entry Fee (Visual Start at -0.1%)
+    return rawPnL - 0.1;
+  };
+
+  const fetchData = async (overrideTimeframe) => {
+    const currentTf = overrideTimeframe || timeframe;
+    const results = {};
+    let buyCount = 0;
+    let sellCount = 0;
+    let neutralCount = 0;
+
+    try {
+      // 1. Fetch Market Context (Binance)
+      const promises = TOP_PAIRS.map(async (symbol) => {
+        try {
+          // Dynamic Timeframe based on Strategy
+          const candles = await fetchCandles(symbol, currentTf, 100);
+          const analysis = analyzePair(candles);
+          const history = candles.slice(-20).map(c => parseFloat(c[4]));
+
+          if (analysis.prediction.signal.includes('BUY')) buyCount++;
+          else if (analysis.prediction.signal.includes('SELL')) sellCount++;
+          else neutralCount++;
+
+          return { symbol, analysis, history };
+        } catch (err) {
+          console.warn(`Error fetching ${symbol}:`, err);
+          return null;
+        }
+      });
+
+      const analyzedPairs = (await Promise.all(promises)).filter(p => p !== null);
+      analyzedPairs.forEach(({ symbol, analysis, history }) => {
+        results[symbol] = { ...analysis, history };
+      });
+
+      setMarketData(results);
+      setStats({ buy: buyCount, sell: sellCount, neutral: neutralCount });
+
+      // 2. Sync with Cloud Sniper (Vercel KV) - Non-blocking
+      try {
+        const res = await fetch('/api/get-status');
+        if (res.ok) {
+          const data = await res.json();
+          setCloudStatus(data);
+        }
+      } catch (e) {
+        console.warn("Cloud Sync not available yet (Normal if local):", e.message);
+      }
+    } catch (error) {
+      console.error("Critical Data Error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfigChange = (config) => {
+    if (config?.strategy) {
+      let newTf = '4h';
+      if (config.strategy === 'SCALP') newTf = '5m';
+      if (config.strategy === 'TRIPLE') newTf = '15m'; // Visual for Triple
+
+      console.log(`🔄 Strategy Changed to ${config.strategy} -> Switching Charts to ${newTf}`);
+      setTimeframe(newTf);
+      setActiveStrategy(config.strategy);
+      fetchData(newTf);
+    } else {
+      fetchData();
+    }
+  };
+
+  useEffect(() => {
+    fetchData(); // Initial load (defaults to 4h)
+    const interval = setInterval(() => fetchData(), 30000); // 30s Sync
+
+    // --- CRON SIMULATION (Auto-Check every 60s) ---
+    // Since Vercel Free lacks frequent Cron, we use the open tab to trigger checks.
+    const cronInterval = setInterval(async () => {
+      if (cloudStatus.active.length > 0) {
+        console.log("⏰ Auto-Scanning for Exits...");
+        try {
+          await fetch('/api/check-prices', { method: 'POST' }); // Trigger Backend Check
+        } catch (e) {
+          console.warn("Auto-Scan failed:", e);
+        }
+      }
+    }, 60000); // 1 Minute
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(cronInterval);
+    };
+  }, [cloudStatus.active.length]);
+
+  return (
+    <div className={styles.appContainer}>
+      <header className={styles.header}>
+        <div className={styles.logo}>
+          BINANCE <span>SENTINEL</span>
+        </div>
+        <nav style={{ display: 'flex', gap: '20px', color: '#EAECEF', fontWeight: '600', fontSize: '0.9rem' }}>
+          <span style={{ color: '#10B981' }}>● CLOUD SNIPER ACTIVE</span>
+          <span style={{ color: 'var(--color-binance-yellow)' }}>
+            {activeStrategy} ({timeframe})
+          </span>
+        </nav>
+      </header>
+
+      <main className={styles.main}>
+        <section className={styles.heroSection}>
+          <h1 className={styles.heroTitle}>MARKET SENTINEL AI</h1>
+          <p className={styles.heroSubtitle}>
+            Patrullando 24/7 de forma autónoma en la nube.
+            <br />
+            <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block', color: 'var(--color-binance-yellow)' }}>
+              🔥 {stats.buy} Oportunidades Snipper detectadas ({activeStrategy})
+            </span>
+          </p>
+        </section>
+
+        <WalletCard
+          onConfigChange={handleConfigChange}
+          activeTrades={cloudStatus.active}
+          marketData={marketData}
+        />
+
+        {/* --- Trades Autónomos --- */}
+        <section className={styles.portfolioSection}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <h2 className={styles.sectionTitle} style={{ margin: 0 }}>🎯 OPERACIONES ACTIVAS (NUBE)</h2>
+            <span style={{
+              background: 'rgba(16, 185, 129, 0.1)',
+              color: '#10B981',
+              fontSize: '0.6rem',
+              padding: '2px 8px',
+              borderRadius: '20px',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              fontWeight: 'bold'
+            }}>24/7 AUTONOMOUS</span>
+
+            <button
+              onClick={async () => {
+                if (confirm('¿Forzar Escaneo de Oportunidades? (Solo Entradas)')) {
+                  try {
+                    const btn = document.getElementById('forceScanBtn');
+                    btn.innerText = '⚡ Escaneando...';
+                    btn.disabled = true;
+
+                    // PASO 1: Solo Detectar y ABRIR Nuevas
+                    const opportunities = [];
+                    Object.entries(marketData).forEach(([symbol, data]) => {
+                      if (data.prediction.signal !== 'NEUTRAL' && data.prediction.signal !== 'BULLISH' && data.prediction.signal !== 'BEARISH') {
+                        // Solo si no está ya activa
+                        if (!cloudStatus.active.find(at => at.symbol === symbol)) {
+                          opportunities.push({
+                            symbol: symbol,
+                            type: data.prediction.signal.includes('BUY') ? 'LONG' : 'SHORT',
+                            price: data.price
+                          });
+                        }
+                      }
+                    });
+
+                    // Always trigger Backend Check (even if no local opportunities)
+                    // This forces the Cloud to check for EXITS (Profit Targets) immediately.
+                    const res = await fetch('/api/check-prices', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ opportunities })
+                    });
+                    const resData = await res.json();
+
+                    const logs = resData.newAlerts ? resData.newAlerts.join('\n') : 'No logs';
+                    alert(`✅ Escaneo Finalizado\n\n📋 REPORTE DE NUBE:\n${logs}\n\n🔄 Estado: ${resData.activeCount} Activas`);
+
+                    // Recargar datos locales
+                    const statusRes = await fetch('/api/get-status');
+                    const statusData = await statusRes.json();
+                    setCloudStatus(statusData);
+
+                    btn.innerText = '⚡ FORCE SCAN';
+                    btn.disabled = false;
+                  } catch (e) {
+                    alert('Error de sincronización: ' + e.message);
+                    const btn = document.getElementById('forceScanBtn');
+                    if (btn) {
+                      btn.innerText = '⚡ FORCE SCAN';
+                      btn.disabled = false;
+                    }
+                  }
+                }
+              }}
+              id="forceScanBtn"
+              style={{
+                background: 'var(--color-binance-yellow)',
+                color: '#000',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '5px 10px',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginLeft: 'auto'
+              }}
+            >
+              ⚡ FORCE SCAN
+            </button>
+          </div>
+
+          {cloudStatus.active.length > 0 ? (
+            <div className={styles.tradeGrid}>
+              {cloudStatus.active.map(t => {
+                const pnl = calculatePnL(t, marketData[t.symbol]?.price);
+                return (
+                  <div key={t.id} className={styles.tradeCard} style={{ borderLeft: `5px solid ${t.type === 'LONG' ? '#10B981' : '#EF4444'}` }}>
+                    <div className={styles.tradeCardHeader}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className={styles.tradeTag}>{t.type}{t.isManual ? ' (M)' : ''}</span>
+                        <span style={{
+                          fontSize: '0.7rem',
+                          color: '#E2E8F0',
+                          fontWeight: 'bold',
+                          marginLeft: '5px',
+                          letterSpacing: '0.5px'
+                        }}>
+                          {t.strategy || 'AUTO'}
+                        </span>
+                      </div>
+                      <span className={styles.tradeSymbol}>{t.symbol.replace('USDT', '')}</span>
+                      <button className={styles.closeBtn} onClick={() => handleCloseManual(t.id)}>×</button>
+                    </div>
+                    <div className={styles.tradePnL} style={{ color: pnl >= 0 ? '#10B981' : '#EF4444' }}>
+                      {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}%
+                    </div>
+                    <div className={styles.tradeEntry}>
+                      <div>Entrada: <span style={{ color: '#fff' }}>${t.entryPrice.toLocaleString()}</span></div>
+
+                      {t.investedAmount && marketData[t.symbol]?.price && (
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                          {/* Quantity Calculation */}
+                          {(() => {
+                            const quantity = t.investedAmount / t.entryPrice;
+                            const currentVal = quantity * marketData[t.symbol].price;
+                            const profit = currentVal - t.investedAmount;
+                            const isWin = profit >= 0;
+
+                            return (
+                              <>
+                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>Cantidad:</span>
+                                  <span style={{ color: '#E2E8F0', fontFamily: 'monospace' }}>
+                                    {quantity.toFixed(5)} {t.symbol.replace('USDT', '')}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                                  <span>Valor Actual:</span>
+                                  <span style={{ color: isWin ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                    ${currentVal.toFixed(2)}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                                  <span>Inversión:</span>
+                                  <span>${t.investedAmount.toFixed(2)}</span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className={styles.emptyPortfolio}>El Cloud Sniper está patrullando... Esperando señal fuerte para entrar.</div>
+          )}
+        </section>
+
+        {/* --- Historial de Victorias NUBE --- */}
+        {cloudStatus.history.length > 0 && (
+          <section className={styles.portfolioSection} style={{ marginTop: '-20px', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h2 className={styles.sectionTitle} style={{ color: '#10B981', opacity: 1, margin: 0 }}>🏆 HISTORIAL DE OPERACIONES</h2>
+              <button
+                onClick={async () => {
+                  if (confirm('¿Borrar todo el historial de victorias?')) {
+                    try {
+                      await fetch('/api/manual-trade', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'CLEAR_HISTORY' })
+                      });
+                      setCloudStatus(prev => ({ ...prev, history: [] }));
+                    } catch (e) {
+                      alert('Error al borrar historial');
+                    }
+                  }
+                }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#EF4444',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.7rem'
+                }}
+              >
+                🗑️ BORRAR HISTORIAL
+              </button>
+            </div>
+            <div className={styles.tradeGrid}>
+              {cloudStatus.history.map((h, i) => {
+                const isWin = h.pnl >= 0;
+                const statusColor = isWin ? '#10B981' : '#EF4444';
+                const bgStyle = isWin ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+                const borderStyle = isWin ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
+
+                return (
+                  <div key={i} className={styles.tradeCard} style={{
+                    border: borderStyle,
+                    background: bgStyle
+                  }}>
+                    <div className={styles.tradeCardHeader}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={styles.tradeTag} style={{ background: statusColor, color: '#fff', padding: '2px 6px', borderRadius: '4px' }}>
+                          {isWin ? 'WIN' : 'LOST'}
+                        </span>
+                        <span className={styles.tradeTag} style={{ color: statusColor }}>{h.type}</span>
+                        {/* Strategy Tag History */}
+                        <span style={{
+                          fontSize: '0.7rem',
+                          color: '#94A3B8',
+                          fontWeight: 'bold',
+                          letterSpacing: '0.5px'
+                        }}>
+                          {h.strategy || 'MANUAL'}
+                        </span>
+                      </div>
+                      <span className={styles.tradeSymbol}>{h.symbol.replace('USDT', '')}</span>
+                    </div>
+                    <div className={styles.tradePnL} style={{ color: statusColor, fontSize: '1.1rem' }}>
+                      {isWin ? '🚀' : '📉'} {isWin ? '+' : ''}{h.pnl.toFixed(2)}%
+                    </div>
+                    {h.profitUsd && (
+                      <div style={{ fontSize: '0.8rem', color: statusColor, marginTop: '5px', fontWeight: 'bold' }}>
+                        {isWin ? '+' : ''}${h.profitUsd.toFixed(2)} USD
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <button
+            onClick={() => sendTelegramAlert('TEST-CLOUD', 0, { label: 'TEST DESDE WEB', color: '#fff' })}
+            style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#848E9C', padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer' }}
+          >
+            PROBAR TELEGRAM
+          </button>
+        </div>
+
+        <MarketGrid>
+          {TOP_PAIRS.map(symbol => (
+            <SentinelCard
+              key={symbol}
+              symbol={symbol}
+              data={marketData[symbol]}
+              loading={loading}
+              onSimulate={handleSimulate}
+            />
+          ))}
+        </MarketGrid>
+
+        <footer style={{ textAlign: 'center', color: '#5E6673', padding: '40px 20px', fontSize: '0.8rem' }}>
+          Cloud Core Running on Vercel Edge • Redis Persistence Active • NFA
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+export default App;

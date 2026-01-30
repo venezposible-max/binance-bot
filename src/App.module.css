@@ -1,0 +1,107 @@
+.appContainer {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.header {
+    width: 100%;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(30, 35, 41, 0.6);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-family: var(--font-main);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--color-binance-yellow);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-shadow: var(--glow-gold);
+}
+
+.logo span {
+    color: #fff;
+}
+
+.portfolioSection {
+    margin-bottom: 50px;
+    width: 100%;
+}
+
+.sectionTitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    opacity: 0.7;
+    text-align: center;
+}
+
+.main {
+    width: 100%;
+    max-width: 1000px;
+    /* Balanced for 2 columns */
+    padding: 40px 20px;
+    flex: 1;
+}
+
+.tradeGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* Unified 2 columns */
+    gap: 12px;
+}
+
+.heroSubtitle {
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@media (max-width: 768px) {
+    .heroTitle {
+        font-size: 2.2rem;
+    }
+
+    .tradeGrid {
+        grid-template-columns: 1fr;
+        /* Mobile: 1 column */
+    }
+}

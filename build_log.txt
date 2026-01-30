@@ -1,0 +1,31 @@
+
+> binance@0.0.0 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 21 modules transformed.
+✗ Build failed in 142ms
+error during build:
+[vite:esbuild] Transform failed with 1 error:
+/Users/franklincolina/.gemini/antigravity/scratch/binance/src/components/WalletCard.jsx:147:9: ERROR: Expected "finally" but found ")"
+file: /Users/franklincolina/.gemini/antigravity/scratch/binance/src/components/WalletCard.jsx:147:9
+
+Expected "finally" but found ")"
+145 |                  })
+146 |              })
+147 |          });
+    |           ^
+148 |          if (onConfigChange) onConfigChange({ ...wallet, strategy: nextStrategy, multiFrameMode: nextStrategy === 'TRI...
+149 |      } catch (error) {
+
+    at failureErrorWithLog (/Users/franklincolina/.gemini/antigravity/scratch/binance/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/franklincolina/.gemini/antigravity/scratch/binance/node_modules/esbuild/lib/main.js:736:50
+    at responseCallbacks.<computed> (/Users/franklincolina/.gemini/antigravity/scratch/binance/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/franklincolina/.gemini/antigravity/scratch/binance/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/franklincolina/.gemini/antigravity/scratch/binance/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

@@ -1,0 +1,87 @@
+.card {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.balanceGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.label {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #F8FAFC;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.subValue {
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+.positive {
+    color: #10B981;
+}
+
+.negative {
+    color: #EF4444;
+}
+
+.configGroup {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.statItem {
+    text-align: right;
+}
+
+.configBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #E2E8F0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.configBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 600px) {
+    .card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .configGroup {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
