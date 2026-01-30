@@ -1,11 +1,41 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Activity, Minus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import styles from './SentinelCard.module.css';
+
+// Animated Number Component
+const NumberTicker = ({ value, decimals = 2, prefix = '', suffix = '', style }) => {
+    const ref = useRef(null);
+    const motionValue = useMotionValue(value);
+    const springValue = useSpring(motionValue, { stiffness: 50, damping: 15 }); // Soft spring
+
+    useEffect(() => {
+        motionValue.set(value);
+    }, [value]);
+
+    useEffect(() => {
+        const unsubscribe = springValue.on("change", (latest) => {
+            if (ref.current) {
+                ref.current.textContent = prefix + latest.toFixed(decimals) + suffix;
+            }
+        });
+        return () => unsubscribe();
+    }, [springValue, decimals, prefix, suffix]);
+
+    return <span ref={ref} style={style}>{prefix + value.toFixed(decimals) + suffix}</span>;
+};
 
 const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
     if (loading || !data) {
-        return <div className={`${styles.card} ${styles.loading}`}>Loading...</div>;
+        return (
+            <motion.div
+                className={`${styles.card} ${styles.loading}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+            >
+                Loading...
+            </motion.div>
+        );
     }
 
     const { price, prediction, indicators } = data;
@@ -22,7 +52,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
     // Dynamic Neon Style
     const glowStyle = {
         borderColor: color,
-        boxShadow: `0 0 ${intensity / 2}px ${color}`,
+        boxShadow: `0 0 ${intensity / 3}px ${color}40`, // softer glow
         '--card-accent': color
     };
 
@@ -34,79 +64,90 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
 
     const isSniper = signal.includes('STRONG');
 
+    // Advanced Animation Variants
+    const cardVariants = {
+        hidden: { opacity: 0, scale: 0.9, y: 20 },
+        visible: {
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            transition: { type: "spring", stiffness: 260, damping: 20 }
+        },
+        hover: {
+            scale: 1.03,
+            boxShadow: `0 0 40px ${color}60`,
+            zIndex: 10
+        }
+    };
+
     return (
         <motion.div
             className={`${styles.card} ${isSniper ? styles.sniperPulse : ''}`}
             style={glowStyle}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.02, boxShadow: `0 0 30px ${color}` }}
-            transition={{ duration: 0.3 }}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            whileHover="hover"
+            layoutId={symbol} // Shared Layout Animation
         >
             <div className={styles.header}>
                 <div className={styles.symbolWrapper}>
                     <span className={styles.symbol}>{symbol.replace('USDT', '')}</span>
                     <span className={styles.pair}>/USDT</span>
                 </div>
-                <div className={styles.price}>${price.toLocaleString()}</div>
-            </div>
-
-            <div className={styles.mainSignal} style={{ color: color }}>
-                {getIcon()}
-                <span className={styles.signalText}>{label}</span>
-            </div>
-
-            {/* Bollinger Radar */}
-            <div className={styles.radarContainer}>
-                <div className={styles.radarLabels}>
-                    <span className={styles.radarZone}>BUY ZONE</span>
-                    <span className={styles.radarZone}>SELL ZONE</span>
-                </div>
-                <div className={styles.radarBar}>
-                    <div className={styles.radarTrack}></div>
-                    <motion.div
-                        className={styles.radarDot}
-                        initial={false}
-                        animate={{
-                            left: `${Math.min(100, Math.max(0, ((price - parseFloat(indicators.bb.lower)) / (parseFloat(indicators.bb.upper) - parseFloat(indicators.bb.lower))) * 100))}%`
-                        }}
-                    />
+                <div className={styles.iconWrapper} style={{ color }}>
+                    {getIcon()}
                 </div>
             </div>
 
-            {/* Detail Overlay */}
-            <div className={styles.details}>
-                <div className={styles.metric}>
-                    <span className={styles.metricLabel}>RSI (14)</span>
-                    <span className={styles.metricValue} style={{
-                        color: indicators.rsi > 70 ? '#ff0055' : indicators.rsi < 30 ? '#00ffaa' : '#EAECEF'
+            <div className={styles.priceSection}>
+                <div className={styles.priceLabel}>PRECIO ACTUAL</div>
+                <div className={styles.priceValue} style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>
+                    <NumberTicker value={parseFloat(price)} decimals={price < 1 ? 4 : 2} prefix="$" />
+                </div>
+            </div>
+
+            <div className={styles.indicatorsGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                <div className={styles.indicator}>
+                    <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>RSI (14)</span>
+                    <div className={styles.indValue} style={{
+                        fontSize: '1.1rem', fontWeight: 'bold',
+                        color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#94A3B8'
                     }}>
-                        {indicators.rsi}
-                    </span>
+                        <NumberTicker value={parseFloat(indicators.rsi)} decimals={1} />
+                    </div>
                 </div>
-                <div className={styles.metric}>
-                    <span className={styles.metricLabel}>BB Range</span>
-                    <span className={styles.metricValue} style={{ fontSize: '0.65rem' }}>
-                        ${indicators.bb.lower} - ${indicators.bb.upper}
-                    </span>
+                <div className={styles.indicator}>
+                    <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>EMA (200)</span>
+                    <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
+                        {indicators.ema !== '---' && !isNaN(indicators.ema) ?
+                            <NumberTicker value={parseFloat(indicators.ema)} decimals={price < 1 ? 4 : 2} prefix="$" />
+                            : 'LOADING...'}
+                    </div>
                 </div>
             </div>
 
-            <div className={styles.footer}>
-                <button
-                    className={`${styles.simulateBtn} ${styles.buyBtn}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onSimulate(symbol, price, 'LONG');
+            <div className={styles.signalBadge} style={{
+                background: color, color: '#000', boxShadow: `0 0 15px ${color}`,
+                textAlign: 'center', padding: '5px', borderRadius: '4px', marginTop: '15px', fontWeight: 'bold', fontSize: '0.8rem'
+            }}>
+                {label}
+            </div>
+
+            {/* Simulated Trading Button */}
+            {signal.includes('BUY') && (
+                <motion.button
+                    className={styles.actionButton}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onSimulate(symbol.replace('USDT', ''), price)}
+                    style={{
+                        background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', border: '1px solid #10B981',
+                        width: '100%', padding: '10px', marginTop: '10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
                     }}
                 >
-                    <TrendingUp size={14} /> COMPRA
-                </button>
-
-            </div>
-
-            {/* Ambient Background Glow */}
-            <div className={styles.bgGlow} style={{ background: color }} />
+                    🚀 EJECUTAR LONG
+                </motion.button>
+            )}
 
             {/* Sparkline Chart */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60px', overflow: 'hidden', opacity: 0.5, zIndex: 0 }}>
