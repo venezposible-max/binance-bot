@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RSI } from 'technicalindicators';
+import { RSI, EMA } from 'technicalindicators';
 import redis from '../src/utils/redisClient.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -201,17 +201,24 @@ export default async function handler(req, res) {
                     // SMART REGION SWITCHING FOR KLINES
                     let klinesUrl = '';
                     if (REGION === 'EU') {
-                        klinesUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=100`;
+                        klinesUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=250`;
                     } else {
                         // Default to US for Vercel Free
-                        klinesUrl = `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=100`;
+                        klinesUrl = `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=250`;
                     }
 
                     const { data: klines } = await axios.get(klinesUrl);
                     const closes = klines.map(candle => parseFloat(candle[4]));
                     const rsi = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
-                    let isStrongBuy = rsi < 30;
+                    // EMA 200 Calculation (Trend Filter)
+                    // If not enough data, assume bullish (avoid blocking starter coins)
+                    const ema200Val = EMA.calculate({ values: closes, period: 200 }).slice(-1)[0];
+                    const currentClose = closes[closes.length - 1];
+                    const isBullishTrend = ema200Val ? currentClose > ema200Val : true;
+
+                    let isStrongBuy = (rsi < 30 && isBullishTrend); // MAIN LOGIC: Oversold + Uptrend
+
                     if (strategy === 'TRIPLE') {
                         try {
                             // --- TRIPLE LOUPE (15m + 1h + 4h) ---
