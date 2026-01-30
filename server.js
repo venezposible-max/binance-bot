@@ -8,17 +8,17 @@ console.log('🔥 SERVER STARTING... Catching all errors.');
 
 process.on('uncaughtException', (err) => {
     console.error('💥 CRITICAL ERROR (Uncaught Exception):', err);
-    // Do not exit immediately to allow logs to flush
 });
 
 process.on('unhandledRejection', (reason, promise) => {
     console.error('💥 CRITICAL ERROR (Unhandled Rejection):', reason);
 });
 
-// Import handlers after setting up error listeners
+// Import handlers 
 import checkPrices from './api/check-prices.js';
 import manualTrade from './api/manual-trade.js';
 import getStatus from './api/get-status.js';
+import walletConfig from './api/wallet/config.js'; // Wallet Logic
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -33,8 +33,6 @@ app.use(cors());
 app.use(express.json());
 
 // --- API ROUTES (Adapter) ---
-// We wrap the Vercel-style handlers (req, res) to work with Express
-
 const vercelAdapter = (handler) => async (req, res) => {
     try {
         await handler(req, res);
@@ -44,11 +42,12 @@ const vercelAdapter = (handler) => async (req, res) => {
     }
 };
 
-app.post('/api/check-prices', vercelAdapter(checkPrices)); // Supports POST (Force)
-app.get('/api/check-prices', vercelAdapter(checkPrices));  // Supports GET (Cron)
+app.post('/api/check-prices', vercelAdapter(checkPrices));
+app.get('/api/check-prices', vercelAdapter(checkPrices)); // Cron
 app.post('/api/manual-trade', vercelAdapter(manualTrade));
-// Add other routes here if needed
-// app.get('/api/get-status', vercelAdapter(getStatus)); 
+app.get('/api/get-status', vercelAdapter(getStatus));     // Sync
+app.get('/api/wallet/config', vercelAdapter(walletConfig));  // Wallet Read
+app.post('/api/wallet/config', vercelAdapter(walletConfig)); // Wallet Write
 
 // --- SERVE FRONTEND (VITE BUILD) ---
 app.use(express.static(path.join(__dirname, 'dist')));
