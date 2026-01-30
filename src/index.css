@@ -1,74 +1,116 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-
 :root {
-  /* 🟡 Binance Brand & Cyber Palette */
-  --color-binance-yellow: #F0B90B;
-  --color-binance-gold: #FCD535;
-  --color-dark-bg: #0B0E11;
-  /* Binance Dark Background */
-  --color-card-bg: #1E2329;
-  /* Component Background */
-
-  /* Cyber Accents */
-  --color-neon-yellow: rgba(240, 185, 11, 0.8);
-  --color-neon-blue: #00D4FF;
-  /* Secondary cyber accent */
-
-  /* Text */
-  --text-primary: #EAECEF;
-  --text-secondary: #848E9C;
-
-  /* Glows */
-  --glow-gold: 0 0 20px rgba(240, 185, 11, 0.3);
-  --glow-intense: 0 0 40px rgba(240, 185, 11, 0.5);
-
-  /* Fonts */
-  --font-main: 'Space Grotesk', sans-serif;
-  --font-body: 'Outfit', sans-serif;
+  --bg-dark: #050505;
+  --card-bg: rgba(20, 20, 30, 0.6);
+  --neon-green: #00FFA3;
+  --neon-red: #FF0055;
+  --neon-cyan: #00F0FF;
+  --neon-yellow: #FFD600;
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-dark-bg);
-  background-image:
-    radial-gradient(circle at 50% -20%, rgba(240, 185, 11, 0.08) 0%, transparent 50%),
-    linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.4));
+  background-color: var(--bg-dark);
   color: var(--text-primary);
-  font-family: var(--font-body);
-  overflow-x: hidden;
+  font-family: var(--font-main);
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 0, 85, 0.05) 0%, transparent 40%);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar */
+/* Scrollbar moderna */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-dark-bg);
+  background: #0a0a0a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-card-bg);
-  border-radius: 3px;
+  background: #333;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-binance-yellow);
+  background: var(--neon-cyan);
 }
 
-* {
-  box-sizing: border-box;
+/* Efecto Glassmorphism */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-main);
-  margin: 0;
-  font-weight: 700;
+.glass-card:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Botones Neon */
+.btn-neon {
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
+}
+
+.btn-neon:hover {
+  background: var(--neon-cyan);
+  color: #000;
+  box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+/* Textos Especiales */
+.text-glow-green {
+  color: var(--neon-green);
+  text-shadow: 0 0 10px rgba(0, 255, 163, 0.5);
+}
+
+.text-glow-red {
+  color: var(--neon-red);
+  text-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+}
+
+.text-glow-cyan {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+/* Animaciones */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+  }
+
+  100% {
+    box-shadow: 0 0 5px rgba(0, 240, 255, 0.2);
+  }
+}
+
+.scanning-pulse {
+  animation: pulse-glow 2s infinite;
 }
