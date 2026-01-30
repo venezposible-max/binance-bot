@@ -49,6 +49,14 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
                 if (res.ok) {
                     fetchWallet();
                     alert('✅ Billetera Reconfigurada Exitosamente');
+                    // FORCE PARENT UPDATE TO STAY ON CURRENT STRATEGY
+                    if (onConfigChange) {
+                        onConfigChange({
+                            initialBalance: parseFloat(newBalance),
+                            riskPercentage: parseFloat(newRisk),
+                            strategy: currentStrategy // La que tengo en variable local
+                        });
+                    }
                 }
             } catch (error) {
                 alert('Error al guardar configuración');
