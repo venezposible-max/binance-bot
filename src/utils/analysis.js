@@ -5,12 +5,20 @@ import { RSI, EMA, BollingerBands } from 'technicalindicators';
  * @param {Array} candles - Array of candle objects { close: number, ... }
  */
 export const analyzePair = (candles) => {
-    if (!candles || candles.length < 20) return { signal: 'NEUTRAL', score: 0 };
+    if (!candles || candles.length === 0) return { signal: 'NEUTRAL', score: 0, prediction: { signal: 'NEUTRAL', color: '#888' } };
 
+    // Always extract price first
     const closes = candles.map(c => c.close);
     const lastPrice = closes[closes.length - 1];
 
-    // 1. Calculate RSI (14 period)
+    if (candles.length < 20) {
+        return {
+            price: lastPrice, // CRITICAL: RETURN PRICE
+            signal: 'NEUTRAL',
+            prediction: { signal: 'NEUTRAL', label: 'BAJA LIQUIDEZ', color: '#64748B' }
+        };
+    }
+
     const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
     // 2. Calculate EMA (50 period - trend)
