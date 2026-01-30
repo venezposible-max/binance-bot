@@ -7,7 +7,7 @@ const CHAT_ID = '330749449';
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { action, symbol, price, type, id, exitPrice } = req.body;
+    const { action, symbol, price, type, id, exitPrice, strategy } = req.body;
 
     try {
         // 1. Load Data
@@ -39,7 +39,8 @@ export default async function handler(req, res) {
                 type, // 'LONG' or 'SHORT'
                 timestamp: new Date().toISOString(),
                 isManual: true,
-                investedAmount: investedAmount // Track investment
+                investedAmount: investedAmount, // Track investment
+                strategy: strategy || 'SWING'
             };
             activeTrades.push(newTrade);
 
