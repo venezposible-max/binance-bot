@@ -13,14 +13,20 @@
   "dependencies": {
     "@vercel/kv": "^3.0.0",
     "axios": "^1.13.4",
+    "cors": "^2.8.6",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
     "framer-motion": "^12.29.2",
     "ioredis": "^5.9.2",
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "technicalindicators": "^3.1.0",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
