@@ -9,7 +9,15 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
     }
 
     const { price, prediction, indicators } = data;
-    const { signal, label, color, intensity } = prediction;
+
+    // Override SELL to NEUTRAL for Long-Only visual clarity
+    let { signal, label, color, intensity } = prediction;
+    if (signal.includes('SELL')) {
+        signal = 'NEUTRAL';
+        label = 'NEUTRAL (WAIT)';
+        color = '#94A3B8'; // Slate Gray
+        intensity = 1; // Low intensity
+    }
 
     // Dynamic Neon Style
     const glowStyle = {
