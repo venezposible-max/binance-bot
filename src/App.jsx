@@ -83,7 +83,7 @@ function App() {
           else if (analysis.prediction.signal.includes('SELL')) sellCount++;
           else neutralCount++;
 
-          return { symbol, analysis, history };
+          return { symbol, analysis, history, candles: candles.slice(-50) };
         } catch (err) {
           console.warn(`Error fetching ${symbol}:`, err);
           return null;
@@ -95,12 +95,12 @@ function App() {
       // 1.5 FETCH REAL-TIME PRICES (Ticker API) - More accurate than candles
       const realTimePrices = await fetchTickerPrices(TOP_PAIRS);
 
-      analyzedPairs.forEach(({ symbol, analysis, history }) => {
+      analyzedPairs.forEach(({ symbol, analysis, history, candles }) => {
         // OVERRIDE Price with Ticker Price if available
         if (realTimePrices[symbol]) {
           analysis.price = realTimePrices[symbol];
         }
-        results[symbol] = { ...analysis, history };
+        results[symbol] = { ...analysis, history, candles };
       });
 
       setMarketData(results);
