@@ -42,6 +42,7 @@ const WalletCard = ({ onConfigChange, activeTrades, marketData }) => {
                     body: JSON.stringify({
                         initialBalance: parseFloat(newBalance),
                         riskPercentage: parseFloat(newRisk),
+                        strategy: wallet?.strategy || 'SWING', // Preserve active strategy
                         reset: true
                     })
                 });
