@@ -49,7 +49,13 @@ app.post('/api/manual-trade', vercelAdapter(manualTrade));
 app.get('/api/get-status', vercelAdapter(getStatus));
 app.get('/api/wallet/config', vercelAdapter(walletConfig));
 app.post('/api/wallet/config', vercelAdapter(walletConfig));
+import candles from './api/candles.js'; // Chart Data Proxy
+import ticker from './api/ticker.js'; // Real-time Price Proxy
+
+// ... (existing code)
+
 app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
+app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 
 // --- SERVE FRONTEND (VITE BUILD) ---
 app.use(express.static(path.join(__dirname, 'dist')));

@@ -34,13 +34,20 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
 /**
  * Fetch 24hr Ticker for current price and change %
  */
-export const fetchTicker24h = async () => {
+/**
+ * Fetch Real-Time Prices via Backend Proxy
+ * @param {Array} symbols - List of symbols (e.g. ['BTCUSDT', 'ETHUSDT'])
+ */
+export const fetchTickerPrices = async (symbols) => {
     try {
-        const response = await axios.get(`${BASE_URL}/ticker/24hr`);
-        // Filter only our top pairs to optimize
-        return response.data.filter(t => TOP_PAIRS.includes(t.symbol));
+        const symbolsParam = symbols.join(',');
+        const response = await axios.get(`/api/ticker`, {
+            params: { symbols: symbolsParam },
+            timeout: 5000
+        });
+        return response.data; // { "BTCUSDT": 100000, ... }
     } catch (error) {
-        console.error("Error fetching ticker:", error);
-        return [];
+        console.error("Error fetching ticker prices:", error);
+        return {};
     }
 };
