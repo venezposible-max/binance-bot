@@ -1,6 +1,4 @@
-import Redis from 'ioredis';
-
-const redis = new Redis(process.env.REDIS_URL);
+import redis from '../../src/utils/redisClient.js';
 
 export default async function handler(req, res) {
     if (req.method === 'GET') {
