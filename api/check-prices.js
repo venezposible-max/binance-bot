@@ -54,10 +54,15 @@ export default async function handler(req, res) {
 
         let activeTradesStr = await redis.get('sentinel_active_trades');
         let winHistoryStr = await redis.get('sentinel_win_history');
-        let walletConfigStr = await redis.get('sentinel_wallet_config');
+        let walletConfig = walletConfigStr ? JSON.parse(walletConfigStr) : {
+            currentBalance: 1000, riskPercentage: 10, isBotActive: true
+        };
 
-        let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-        const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+        // --- GLOBAL KILL SWITCH ---
+        if (walletConfig.isBotActive === false) {
+            console.log('💤 Bot is PAUSED by User. Skipping Scan.');
+            return res.status(200).json({ status: 'PAUSED', message: 'Bot Desactivado', alerts: [] });
+        }
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
             currentBalance: 1000,
@@ -165,6 +170,7 @@ export default async function handler(req, res) {
                             timestamp: new Date().toISOString(),
                             entryPrice: trade.entryPrice,
                             exitPrice: currentPrice,
+                            investedAmount: trade.investedAmount, // Critical Fix for Final Value
                             strategy: tradeStrategy
                         });
                         newActiveTrades.splice(tradeIndex, 1);
