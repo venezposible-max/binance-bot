@@ -1,12 +1,6 @@
 import axios from 'axios';
 import { RSI } from 'technicalindicators';
-import Redis from 'ioredis';
-import { v4 as uuidv4 } from 'uuid';
-
-console.log(`Connecting to Redis... ${process.env.REDIS_URL ? 'URL Provided' : 'MISSING URL'}`);
-const redis = new Redis(process.env.REDIS_URL, {
-    family: 6 // Railway Private Network uses IPv6
-});
+import redis from '../src/utils/redisClient.js';
 
 // --- Shared Logic ---
 const TOP_PAIRS = [
