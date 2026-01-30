@@ -18,13 +18,20 @@ const BASE_URL = 'https://api.binance.com/api/v3';
  */
 export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
     try {
-        const response = await axios.get(`${BASE_URL}/klines`, {
-            params: {
-                symbol,
-                interval,
-                limit
-            }
-        });
+        let response;
+        try {
+            // Priority 1: Binance Global
+            response = await axios.get(`https://api.binance.com/api/v3/klines`, {
+                params: { symbol, interval, limit },
+                timeout: 5000 // 5s Timeout to fail fast
+            });
+        } catch (e) {
+            console.warn(`Global API failed for ${symbol}, trying US...`);
+            // Priority 2: Binance US (Fallback)
+            response = await axios.get(`https://api.binance.us/api/v3/klines`, {
+                params: { symbol, interval, limit }
+            });
+        }
 
         // Binance format: [open_time, open, high, low, close, volume, ...]
         // We mainly need Close prices for RSI
