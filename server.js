@@ -20,6 +20,7 @@ import manualTrade from './api/manual-trade.js';
 import getStatus from './api/get-status.js';
 import walletConfig from './api/wallet/config.js';
 import candles from './api/candles.js'; // Chart Data Proxy
+import ticker from './api/ticker.js'; // Real-time Price Proxy
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -49,8 +50,7 @@ app.post('/api/manual-trade', vercelAdapter(manualTrade));
 app.get('/api/get-status', vercelAdapter(getStatus));
 app.get('/api/wallet/config', vercelAdapter(walletConfig));
 app.post('/api/wallet/config', vercelAdapter(walletConfig));
-import candles from './api/candles.js'; // Chart Data Proxy
-import ticker from './api/ticker.js'; // Real-time Price Proxy
+
 
 // ... (existing code)
 
