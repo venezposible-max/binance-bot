@@ -69,10 +69,9 @@ function App() {
       // 1. Fetch Market Context (Binance)
       const promises = TOP_PAIRS.map(async (symbol) => {
         try {
-          // Dynamic Timeframe based on Strategy
           const candles = await fetchCandles(symbol, currentTf, 100);
           const analysis = analyzePair(candles);
-          const history = candles.slice(-20).map(c => parseFloat(c[4]));
+          const history = candles.slice(-20).map(c => c.close || parseFloat(c[4])); // Support both formats
 
           if (analysis.prediction.signal.includes('BUY')) buyCount++;
           else if (analysis.prediction.signal.includes('SELL')) sellCount++;
