@@ -239,12 +239,34 @@ export default async function handler(req, res) {
                     // ALIGNMENT WITH FRONTEND (analysis.js):
                     // Frontend 'BUY' signal is purely based on RSI < 30 (Oversold).
                     // We remove 'isBullishTrend' check to ensure "detected opportunities" are executed.
-                    let isStrongBuy = (rsi < 30);
+                    let isStrongBuy = false;
 
-                    if (strategy === 'TRIPLE') {
+                    // --- STRATEGY LOGIC SELECTOR ---
+                    if (strategy === 'FLOW') {
+                        // 🌊 FLOW MODE: Order Book Imbalance
+                        try {
+                            const depthResponse = await axios.get((REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us') + `/api/v3/depth?symbol=${symbol}&limit=50`, {
+                                timeout: 4000
+                            });
+                            const depth = depthResponse.data;
+                            if (depth && depth.bids && depth.asks) {
+                                // Calculate Imbalance
+                                const bidVol = depth.bids.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+                                const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+                                const buyPressure = askVol > 0 ? bidVol / askVol : 1;
+
+                                // Criterion: 2.0x More Buyers than Sellers
+                                isStrongBuy = (buyPressure >= 2.0);
+                                console.log(`🌊 ${symbol} | FLOW: ${buyPressure.toFixed(2)}x Pressure | Buy: ${isStrongBuy}`);
+                            }
+                        } catch (depthErr) {
+                            console.warn(`Depth check failed for ${symbol}:`, depthErr.message);
+                        }
+                    }
+                    else if (strategy === 'TRIPLE') {
                         try {
                             // --- TRIPLE LOUPE (15m + 1h + 4h) ---
-                            // Respect Region
+                            // Respect Region -- Existing Logic
                             const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
 
                             const [res1h, res15m] = await Promise.all([
@@ -259,9 +281,13 @@ export default async function handler(req, res) {
                             isStrongBuy = (rsi < 30 && rsi1h < 30 && rsi15m < 30);
                         } catch (e) { console.warn('Triple Check Fail', e.message); }
                     }
+                    else {
+                        // DEFAULT: SCALP or SWING (RSI < 30)
+                        isStrongBuy = (rsi < 30);
+                    }
 
-                    // DEBUG: Log RSI and decision
-                    console.log(`📊 ${symbol} | RSI: ${rsi.toFixed(2)} | isStrongBuy: ${isStrongBuy} | Strategy: ${strategy}`);
+                    // DEBUG: Log Decision
+                    if (strategy !== 'FLOW') console.log(`📊 ${symbol} | RSI: ${rsi.toFixed(2)} | isStrongBuy: ${isStrongBuy} | Strategy: ${strategy}`);
 
                     if (isStrongBuy) {
                         const type = 'LONG';

@@ -117,23 +117,47 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 position: 'relative',
                 zIndex: 2
             }}>
-                <div className={styles.indicator}>
-                    <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>RSI (14)</span>
-                    <div className={styles.indValue} style={{
-                        fontSize: '1.1rem', fontWeight: 'bold',
-                        color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#94A3B8'
-                    }}>
-                        <NumberTicker value={parseFloat(indicators.rsi)} decimals={1} />
-                    </div>
-                </div>
-                <div className={styles.indicator}>
-                    <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>EMA (200)</span>
-                    <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
-                        {indicators.ema !== '---' && !isNaN(indicators.ema) ?
-                            <NumberTicker value={parseFloat(indicators.ema)} decimals={price < 1 ? 4 : 2} prefix="$" />
-                            : 'LOADING...'}
-                    </div>
-                </div>
+                {indicators.flow ? (
+                    /* FLOW STRATEGY VISUALIZATION */
+                    <>
+                        <div className={styles.indicator}>
+                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>BID PRESSURE</span>
+                            <div className={styles.indValue} style={{
+                                fontSize: '1.1rem', fontWeight: 'bold',
+                                color: parseFloat(indicators.flow.ratio) > 1.5 ? '#10B981' : parseFloat(indicators.flow.ratio) < 0.7 ? '#EF4444' : '#94A3B8'
+                            }}>
+                                {indicators.flow.ratio}x
+                            </div>
+                        </div>
+                        <div className={styles.indicator}>
+                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>BUY VOL %</span>
+                            <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
+                                {indicators.flow.bidPercent}%
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    /* STANDARD TECHNICALS */
+                    <>
+                        <div className={styles.indicator}>
+                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>RSI (14)</span>
+                            <div className={styles.indValue} style={{
+                                fontSize: '1.1rem', fontWeight: 'bold',
+                                color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#94A3B8'
+                            }}>
+                                <NumberTicker value={parseFloat(indicators.rsi)} decimals={1} />
+                            </div>
+                        </div>
+                        <div className={styles.indicator}>
+                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>EMA (200)</span>
+                            <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
+                                {indicators.ema !== '---' && !isNaN(indicators.ema) ?
+                                    <NumberTicker value={parseFloat(indicators.ema)} decimals={price < 1 ? 4 : 2} prefix="$" />
+                                    : 'LOADING...'}
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
 

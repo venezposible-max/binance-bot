@@ -104,3 +104,76 @@ export const analyzePair = (candles) => {
         }
     };
 };
+
+/**
+ * STRATEGY: FLOW (Order Book Imbalance)
+ * Ignores technicals. Looks for Walls and Pressure.
+ * @param {Object} depth - { bids: [[price, qty], ...], asks: [...] }
+ * @param {number} currentPrice - Last traded price
+ */
+export const analyzeFlow = (depth, currentPrice) => {
+    if (!depth || !depth.bids || !depth.asks) {
+        return { signal: 'NEUTRAL', label: 'NO DATA', color: '#64748B', pressure: 1.0 };
+    }
+
+    // 1. Calculate Buying Pressure (Sum of Bid Volume) vs Selling Pressure
+    // We only care about the "active" zone (e.g., closest 20 levels)
+    const bidVol = depth.bids.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+    const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+
+    // Prevent division by zero
+    const buyPressure = askVol > 0 ? bidVol / askVol : 1;
+    const totalVol = bidVol + askVol;
+    const bidPercent = (bidVol / totalVol) * 100;
+
+    let signal = 'NEUTRAL';
+    let label = 'EQUILIBRIO FLOW';
+    let color = '#94A3B8';
+    let intensity = 0;
+
+    // THRESHOLDS (Aggressive Flow Logic)
+    if (buyPressure >= 2.0) {
+        // Double the buyers than sellers
+        signal = 'STRONG_BUY';
+        label = `🌊 MURO DE COMPRA (${bidPercent.toFixed(0)}%)`;
+        color = '#00ffaa'; // Neon Green
+        intensity = 100;
+    } else if (buyPressure >= 1.5) {
+        signal = 'BUY';
+        label = `PRESION ALCISTA (${bidPercent.toFixed(0)}%)`;
+        color = '#10B981';
+        intensity = 60;
+    } else if (buyPressure <= 0.5) {
+        // Double the sellers
+        signal = 'STRONG_SELL'; // Or NEUTRAL if long-only
+        label = `🧱 MURO DE VENTA (${(100 - bidPercent).toFixed(0)}%)`;
+        color = '#EF4444';
+        intensity = 100;
+    } else if (buyPressure <= 0.75) {
+        signal = 'SELL';
+        label = `PRESION BAJISTA (${(100 - bidPercent).toFixed(0)}%)`;
+        color = '#F87171';
+        intensity = 60;
+    }
+
+    return {
+        price: currentPrice,
+        // Override Indicators for Flow Visualization
+        indicators: {
+            rsi: '---', // Ignored
+            ema: '---',
+            flow: {
+                bidVol: bidVol.toFixed(2),
+                askVol: askVol.toFixed(2),
+                ratio: buyPressure.toFixed(2),
+                bidPercent: bidPercent.toFixed(1)
+            }
+        },
+        prediction: {
+            signal,
+            label,
+            color,
+            intensity
+        }
+    };
+};

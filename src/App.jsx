@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 // import ParticlesBackground from './components/ParticlesBackground';
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
-import { TOP_PAIRS, fetchCandles, fetchTickerPrices } from './api/binance';
-import { analyzePair } from './utils/analysis';
+import { TOP_PAIRS, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
+import { analyzePair, analyzeFlow } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
@@ -84,10 +84,25 @@ function App() {
       setLoading(false); // Quick UI feedback
 
       // 1. Fetch Market Context (Binance)
+      // 1. Fetch Market Context (Binance)
       const promises = TOP_PAIRS.map(async (symbol) => {
         try {
+          // Standard Fetch (Price History) - Needed for chart visualization even in Flow mode
           const candles = await fetchCandles(symbol, currentTf, 250);
-          const analysis = analyzePair(candles);
+
+          let analysis;
+
+          // BRANCHING LOGIC: STRATEGY SELECTION
+          if (activeStrategy === 'FLOW') {
+            // 🌊 FLOW MODE: Order Book Imbalance
+            const depth = await fetchDepth(symbol); // Using New Backend Proxy
+            const lastPrice = candles.length > 0 ? candles[candles.length - 1].close : 0;
+            analysis = analyzeFlow(depth, lastPrice);
+          } else {
+            // 📊 STANDARD MODE: Technicals (RSI/EMA/BB)
+            analysis = analyzePair(candles);
+          }
+
           const history = candles.slice(-50).map(c => c.close || parseFloat(c[4]));
           // Note: analysis.price comes from candles, might be slightly old.
           // We will override it below with Ticker Price.

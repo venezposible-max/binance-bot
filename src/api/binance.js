@@ -106,3 +106,20 @@ export const fetchTicker24h = async () => {
         return [];
     }
 };
+/**
+ * Fetch Order Book Depth (Bids/Asks) via Backend Proxy
+ * @param {string} symbol - Pair symbol (e.g., BTCUSDT)
+ * @param {number} limit - Depth limit (default 50)
+ */
+export const fetchDepth = async (symbol, limit = 50) => {
+    try {
+        const response = await axios.get(`/api/depth`, {
+            params: { symbol, limit },
+            timeout: 5000
+        });
+        return response.data;
+    } catch (error) {
+        console.error(`Error fetching depth for ${symbol}:`, error);
+        return null;
+    }
+};
