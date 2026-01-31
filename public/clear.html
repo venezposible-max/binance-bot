@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpiando Sistema Sentinel...</title>
+    <style>
+        body { background-color: #0d1117; color: #10B981; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .loader { border: 4px solid #333; border-top: 4px solid #10B981; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="loader"></div>
+    <div id="status">Iniciando protocolo de limpieza...</div>
+    <div id="log" style="color: #666; font-size: 10px; margin-top: 20px;"></div>
+
+    <script>
+        async function nukeAndReload() {
+            const log = document.getElementById('log');
+            const status = document.getElementById('status');
+            
+            function addLog(msg) {
+                console.log(msg);
+                log.innerHTML += msg + '<br>';
+            }
+
+            try {
+                addLog('1. Desregistrando Service Workers...');
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
+                        addLog('   - SW Eliminado: ' + registration.scope);
+                    }
+                }
+
+                addLog('2. Eliminando Cache Storage...');
+                if ('caches' in window) {
+                    const keys = await caches.keys();
+                    for (const key of keys) {
+                        await caches.delete(key);
+                        addLog('   - Cache Borrado: ' + key);
+                    }
+                }
+
+                addLog('3. Limpiando LocalStorage (Opcional)...');
+                // localStorage.clear(); // Keep user settings to be nice, or clear if needed.
+                // localStorage.removeItem('sentinel_strategy'); 
+
+                status.innerText = "✅ Sistema Limpio. Redirigiendo...";
+                status.style.color = "#FCD535";
+                
+                setTimeout(() => {
+                    window.location.href = '/?t=' + Date.now(); // Force fresh load with timestamp
+                }, 1500);
+
+            } catch (e) {
+                addLog('ERROR: ' + e.message);
+                status.innerText = "❌ Error en limpieza. Intenta recargar manual.";
+                status.style.color = "red";
+            }
+        }
+
+        nukeAndReload();
+    </script>
+</body>
+</html>
