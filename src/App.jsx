@@ -20,6 +20,16 @@ function App() {
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
 
+  // --- MOBILE NAV STATE ---
+  const [mobileTab, setMobileTab] = useState('DASHBOARD');
+
+  const handleMobileNav = (tab) => {
+    setMobileTab(tab);
+    if (tab === 'DASHBOARD') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tab === 'WALLET') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (tab === 'MARKET') document.getElementById('market-grid-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   // --- WALLET REF for mobile config ---
   const walletRef = useRef(null);
 
