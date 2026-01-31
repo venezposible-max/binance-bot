@@ -186,16 +186,25 @@ function App() {
 
   const handleConfigChange = (newConfig) => {
     // Sync activeStrategy if changed from WalletCard
-    if (newConfig?.strategy) {
+    if (newConfig?.strategy && newConfig.strategy !== activeStrategy) {
+      console.log(`🔄 Strategy Changed: ${activeStrategy} -> ${newConfig.strategy}`);
+
+      // CRITICAL: Clear all previous strategy data to ensure independence
+      setMarketData({});
+      setStats({ buy: 0, sell: 0, neutral: 0, taken: 0 });
+      setLoading(true);
+
       let newTf = '4h';
       if (newConfig.strategy === 'SCALP') newTf = '5m';
-      if (newConfig.strategy === 'TRIPLE') newTf = '15m'; // Visual for Triple
+      if (newConfig.strategy === 'TRIPLE') newTf = '15m';
+      // FLOW uses 4h for chart visualization (even though it reads Order Book)
 
-      console.log(`🔄 Strategy Changed to ${newConfig.strategy} -> Switching Charts to ${newTf}`);
       setTimeframe(newTf);
       setActiveStrategy(newConfig.strategy);
       localStorage.setItem('sentinel_strategy', newConfig.strategy);
-      fetchData(newTf);
+
+      // Reload data with new strategy
+      setTimeout(() => fetchData(newTf), 100); // Small delay to ensure state is cleared
     } else {
       fetchData();
     }
