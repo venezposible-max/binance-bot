@@ -1,14 +1,45 @@
 import axios from 'axios';
 
-// Top 20 Pairs by typical volume/relevance
-export const TOP_PAIRS = [
+const BASE_URL = 'https://api.binance.com/api/v3';
+
+// Initial fallback until dynamic fetch loads
+export let TOP_PAIRS = [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT',
-    'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT', 'TRXUSDT', 'DOTUSDT',
-    'MATICUSDT', 'LTCUSDT', 'LINKUSDT', 'UNIUSDT', 'ATOMUSDT',
-    'ETCUSDT', 'FILUSDT', 'XLMUSDT', 'BCHUSDT', 'NEARUSDT', 'HBARUSDT'
+    'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'TRXUSDT', 'DOTUSDT'
 ];
 
-const BASE_URL = 'https://api.binance.com/api/v3';
+/**
+ * Fetch Top 10 Pairs by Volume (Dynamic)
+ */
+export const fetchTopPairs = async () => {
+    try {
+        const res = await axios.get(`${BASE_URL}/ticker/24hr`);
+        const allPairs = res.data;
+
+        // Filter valid USDT pairs (exclude stablecoins pairs like USDCUSDT)
+        const relevant = allPairs.filter(p =>
+            p.symbol.endsWith('USDT') &&
+            !p.symbol.includes('USDC') &&
+            !p.symbol.includes('FUSD') &&
+            !p.symbol.includes('TUSD') &&
+            !p.symbol.includes('DAI') &&
+            parseFloat(p.quoteVolume) > 10000000 // Min 10M volume filter
+        );
+
+        // Sort by Volume (quoteVolume = Volume in USDT)
+        relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
+
+        // Get Top 10
+        const top10 = relevant.slice(0, 10).map(p => p.symbol);
+
+        // Update local reference
+        TOP_PAIRS = top10;
+        return top10;
+    } catch (e) {
+        console.error('Error fetching Top Pairs:', e);
+        return TOP_PAIRS; // Return fallback on error
+    }
+};
 
 /**
  * Fetch K-Line data (Candlesticks)

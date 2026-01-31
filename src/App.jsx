@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 // import ParticlesBackground from './components/ParticlesBackground';
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
-import { TOP_PAIRS, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
+import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
 import { analyzePair, analyzeFlow } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
@@ -10,6 +10,7 @@ import WalletCard from './components/WalletCard';
 import { sendTelegramAlert } from './utils/telegram';
 
 function App() {
+  const [pairs, setPairs] = useState(INITIAL_PAIRS); // Dynamic Top 10 Pairs
   const [marketData, setMarketData] = useState({});
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
@@ -84,8 +85,25 @@ function App() {
       setLoading(false); // Quick UI feedback
 
       // 1. Fetch Market Context (Binance)
+      // 0. Dynamic Pair Selection (Top Volume + Active Trades)
+      let currentPairs = pairs;
+      if (loading) { // Only fetch new list on initial load or manual refresh
+        try {
+          const topVolume = await fetchTopPairs();
+
+          // Merge with active cloud trades so we don't lose visibility of open positions
+          const activeSymbols = cloudStatus.active.map(t => t.symbol);
+          const merged = Array.from(new Set([...topVolume, ...activeSymbols]));
+
+          setPairs(merged);
+          currentPairs = merged;
+        } catch (e) {
+          console.warn('Failed to fetch top pairs, using fallback', e);
+        }
+      }
+
       // 1. Fetch Market Context (Binance)
-      const promises = TOP_PAIRS.map(async (symbol) => {
+      const promises = currentPairs.map(async (symbol) => {
         try {
           // Standard Fetch (Price History) - Needed for chart visualization even in Flow mode
           const candles = await fetchCandles(symbol, currentTf, 250);
@@ -553,7 +571,7 @@ function App() {
 
         <div id="market-grid-section">
           <MarketGrid>
-            {TOP_PAIRS.map(symbol => (
+            {pairs.map(symbol => (
               <SentinelCard
                 key={symbol}
                 symbol={symbol}
