@@ -27,6 +27,7 @@ import getStatus from './api/get-status.js';
 import walletConfig from './api/wallet/config.js';
 import candles from './api/candles.js'; // Chart Data Proxy
 import ticker from './api/ticker.js'; // Real-time Price Proxy
+import walletBalance from './api/wallet/balance.js'; // New
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -47,94 +48,91 @@ const vercelAdapter = (handler) => async (req, res) => {
     } catch (error) {
         console.error('API Error:', error);
         res.status(500).json({ error: error.message });
-        import checkPrices from './api/check-prices.js';
-        import manualTrade from './api/manual-trade.js';
-        import getStatus from './api/get-status.js';
-        import walletConfig from './api/wallet/config.js';
-        import walletBalance from './api/wallet/balance.js'; // New
+    }
+};
 
-        // ... (middleware setup)
+// ... (middleware setup)
 
-        app.post('/api/check-prices', vercelAdapter(checkPrices));
-        app.get('/api/check-prices', vercelAdapter(checkPrices));
-        app.post('/api/manual-trade', vercelAdapter(manualTrade));
-        app.get('/api/get-status', vercelAdapter(getStatus));
-        app.get('/api/wallet/config', vercelAdapter(walletConfig));
-        app.post('/api/wallet/config', vercelAdapter(walletConfig));
-        app.get('/api/wallet/balance', vercelAdapter(walletBalance)); // New Route
+app.post('/api/check-prices', vercelAdapter(checkPrices));
+app.get('/api/check-prices', vercelAdapter(checkPrices));
+app.post('/api/manual-trade', vercelAdapter(manualTrade));
+app.get('/api/get-status', vercelAdapter(getStatus));
+app.get('/api/wallet/config', vercelAdapter(walletConfig));
+app.post('/api/wallet/config', vercelAdapter(walletConfig));
+app.get('/api/wallet/balance', vercelAdapter(walletBalance)); // New Route
 
 
-        // ... (existing code)
+// ... (existing code)
 
-        app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
-        app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
+app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
+app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 
-        // --- SERVE FRONTEND (VITE BUILD) ---
-        app.use(express.static(path.join(__dirname, 'dist')));
+// --- SERVE FRONTEND (VITE BUILD) ---
+app.use(express.static(path.join(__dirname, 'dist')));
 
-        // Handle React Routing (SPA) with explicit NO-CACHE for index.html
-        app.get('*', (req, res) => {
-            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-            res.setHeader('Surrogate-Control', 'no-store');
-            res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// Handle React Routing (SPA) with explicit NO-CACHE for index.html
+app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+
+// --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
+const runInternalScan = async (source = 'TIMER') => {
+    console.log(`\n⏰ [${new Date().toISOString()}] INTERNAL CRON (${source}): Executing Scan...`);
+
+    try {
+        const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
+            timeout: 15000
         });
 
+        const activeCount = response.data.activeCount || 0;
+        const alerts = response.data.newAlerts?.length || 0;
+        console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts | Code ${response.status}`);
 
-        // --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
-        const runInternalScan = async (source = 'TIMER') => {
-            console.log(`\n⏰ [${new Date().toISOString()}] INTERNAL CRON (${source}): Executing Scan...`);
+        // Keep heartbeat alive in Redis
+        import('./src/utils/redisClient.js').then(m => {
+            m.default.set('sentinel_last_heartbeat', new Date().toISOString());
+        }).catch(() => { }); // Silent fail if Redis unavailable
 
-            try {
-                const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
-                    timeout: 15000
-                });
+    } catch (e) {
+        console.error('❌ INTERNAL CRON ERROR:', e.message);
+    }
+};
 
-                const activeCount = response.data.activeCount || 0;
-                const alerts = response.data.newAlerts?.length || 0;
-                console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts | Code ${response.status}`);
+// START SERVER
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('='.repeat(60));
+    console.log('🚀 SENTINEL BOT SYSTEMS ONLINE & STABLE | PORT', PORT);
+    console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
+    console.log('🔐 VIP DATA MODE:', process.env.BINANCE_API_KEY ? 'ENABLED' : 'DISABLED');
+    console.log('💓 Heartbeat: ENABLED (Direct Internal Execution)');
+    console.log('='.repeat(60));
 
-                // Keep heartbeat alive in Redis
-                import('./src/utils/redisClient.js').then(m => {
-                    m.default.set('sentinel_last_heartbeat', new Date().toISOString());
-                }).catch(() => { }); // Silent fail if Redis unavailable
+    // FORCE IMMEDIATE RUN
+    setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
+});
 
-            } catch (e) {
-                console.error('❌ INTERNAL CRON ERROR:', e.message);
-            }
-        };
+// Loop every 45 seconds (Faster Cycle)
+setInterval(() => runInternalScan('HEARTBEAT'), 45000);
 
-        // START SERVER
-        const server = app.listen(PORT, '0.0.0.0', () => {
-            console.log('='.repeat(60));
-            console.log('🚀 SENTINEL BOT SYSTEMS ONLINE & STABLE | PORT', PORT);
-            console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
-            console.log('🔐 VIP DATA MODE:', process.env.BINANCE_API_KEY ? 'ENABLED' : 'DISABLED');
-            console.log('💓 Heartbeat: ENABLED (Direct Internal Execution)');
-            console.log('='.repeat(60));
+// --- KEEPALIVE LOG (Every 2 minutes to reduce noise but show life) ---
+setInterval(() => {
+    const memUsage = process.memoryUsage();
+    console.log(`🟢 [${new Date().toISOString()}] SYSTEM HEARTBEAT | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB | Uptime: ${process.uptime().toFixed(0)}s`);
+}, 120000);
 
-            // FORCE IMMEDIATE RUN
-            setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
-        });
+// Handle server errors
+server.on('error', (error) => {
+    console.error('❌ SERVER ERROR:', error);
+    if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+        process.exit(1);
+    }
+});
 
-        // Loop every 45 seconds (Faster Cycle)
-        setInterval(() => runInternalScan('HEARTBEAT'), 45000);
-
-        // --- KEEPALIVE LOG (Every 2 minutes to reduce noise but show life) ---
-        setInterval(() => {
-            const memUsage = process.memoryUsage();
-            console.log(`🟢 [${new Date().toISOString()}] SYSTEM HEARTBEAT | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB | Uptime: ${process.uptime().toFixed(0)}s`);
-        }, 120000);
-
-        // Handle server errors
-        server.on('error', (error) => {
-            console.error('❌ SERVER ERROR:', error);
-            if (error.code === 'EADDRINUSE') {
-                console.error(`Port ${PORT} is already in use`);
-                process.exit(1);
-            }
-        });
-
-        console.log('✅ Server initialization complete');
+console.log('✅ Server initialization complete');
 
