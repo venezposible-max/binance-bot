@@ -82,8 +82,15 @@ function App() {
           // Note: analysis.price comes from candles, might be slightly old.
           // We will override it below with Ticker Price.
 
-          if (analysis.prediction.signal.includes('BUY')) buyCount++;
-          else if (analysis.prediction.signal.includes('SELL')) sellCount++;
+          // LOGIC FIX: Only count as "Opportunity" if we are NOT already in a trade for this symbol
+          const isActive = cloudStatus.active.some(t => t.symbol === symbol);
+
+          if (analysis.prediction.signal.includes('BUY')) {
+            if (!isActive) buyCount++;
+          }
+          else if (analysis.prediction.signal.includes('SELL')) {
+            sellCount++; // Sells might be exits, keeping count for reference
+          }
           else neutralCount++;
 
           return { symbol, analysis, history, candles: candles.slice(-50) };
