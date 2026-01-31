@@ -421,7 +421,7 @@ export default async function handler(req, res) {
                     if (strategy === 'FLOW') reason = `Pressure: ${typeof buyPressure !== 'undefined' ? buyPressure.toFixed(2) : 'N/A'}`;
                     else reason = `RSI: ${rsi.toFixed(2)}`;
 
-                    if (strategy !== 'FLOW') console.log(`📊 ${symbol} | ${reason} | Buy: ${isStrongBuy} | ${strategy}`);
+                    if (strategy !== 'FLOW') console.log(`📊 ${symbol} | ${reason} | Buy: ${isStrongBuy}`);
 
                     // LOGIC: EXECUTE TRADE
                     if (isStrongBuy) {
