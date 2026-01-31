@@ -112,14 +112,14 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
 });
 
-// Loop every 60 seconds
-setInterval(() => runInternalScan('HEARTBEAT'), 60000);
+// Loop every 45 seconds (Faster Cycle)
+setInterval(() => runInternalScan('HEARTBEAT'), 45000);
 
-// --- KEEPALIVE LOG (Every 1 minute to show server is alive visually) ---
+// --- KEEPALIVE LOG (Every 2 minutes to reduce noise but show life) ---
 setInterval(() => {
     const memUsage = process.memoryUsage();
-    console.log(`🟢 [${new Date().toISOString()}] Server OK | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`);
-}, 60000); // Every 1 minute
+    console.log(`🟢 [${new Date().toISOString()}] SYSTEM HEARTBEAT | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB | Uptime: ${process.uptime().toFixed(0)}s`);
+}, 120000);
 
 // Handle server errors
 server.on('error', (error) => {
