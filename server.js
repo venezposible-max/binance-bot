@@ -82,24 +82,27 @@ app.get('*', (req, res) => {
 
 // --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
 const runInternalScan = async (source = 'TIMER') => {
-    console.log(`\n⏰ [${new Date().toISOString()}] INTERNAL CRON (${source}): Executing Scan...`);
+    console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
 
     try {
         const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
-            timeout: 15000
+            timeout: 20000 // Aumentado a 20s para permitir API calls lentas
         });
 
         const activeCount = response.data.activeCount || 0;
         const alerts = response.data.newAlerts?.length || 0;
-        console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts | Code ${response.status}`);
+        console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts | Status ${response.status}`);
 
         // Keep heartbeat alive in Redis
         import('./src/utils/redisClient.js').then(m => {
             m.default.set('sentinel_last_heartbeat', new Date().toISOString());
-        }).catch(() => { }); // Silent fail if Redis unavailable
+        }).catch(() => { });
 
     } catch (e) {
-        console.error('❌ INTERNAL CRON ERROR:', e.message);
+        console.error(`❌ CRON FAIL [${source}]:`, e.message);
+        if (e.code === 'ECONNREFUSED') {
+            console.error('   -> Server might be restarting or port is blocked.');
+        }
     }
 };
 
@@ -116,8 +119,8 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
 });
 
-// Loop every 45 seconds (Faster Cycle)
-setInterval(() => runInternalScan('HEARTBEAT'), 45000);
+// Loop every 30 seconds (High Frequency Patrol)
+setInterval(() => runInternalScan('HEARTBEAT'), 30000);
 
 // --- KEEPALIVE LOG (Every 2 minutes to reduce noise but show life) ---
 setInterval(() => {
