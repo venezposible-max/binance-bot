@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import ParticlesBackground from './components/ParticlesBackground';
+// import ParticlesBackground from './components/ParticlesBackground';
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
 import { TOP_PAIRS, fetchCandles, fetchTickerPrices } from './api/binance';
@@ -175,7 +175,7 @@ function App() {
   return (
     <div className={styles.appContainer}>
       {/* ... Header ... */}
-      <ParticlesBackground />
+      {/* <ParticlesBackground /> */}
       <header className={styles.header}>
         <div className={styles.logo}>
           BINANCE <span>SENTINEL</span>
