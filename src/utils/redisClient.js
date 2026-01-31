@@ -28,9 +28,17 @@ if (REDIS_URL) {
         console.error('❌ Redis Client Error (Handled):', err.message);
     });
 } else {
-    console.warn('⚠️ WARNING: No REDIS_URL provided. Redis will not work.');
-    // Mock Redis to prevent crash if env is missing (optional fallback)
-    redis = new Redis({ lazyConnect: true });
+    console.warn('⚠️ WARNING: No REDIS_URL provided. using IN-MEMORY FALLBACK (Data lost on restart).');
+    // Mock Redis using a simple Map to keep app alive without external DB
+    const memoryStore = new Map();
+    redis = {
+        status: 'ready',
+        get: async (key) => memoryStore.get(key) || null,
+        set: async (key, val) => { memoryStore.set(key, val); return 'OK'; },
+        del: async (key) => { return memoryStore.delete(key) ? 1 : 0; },
+        on: (event, callback) => { /* No-op for events */ },
+        quit: async () => { /* No-op */ }
+    };
 }
 
 export default redis;
