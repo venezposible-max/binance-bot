@@ -75,6 +75,19 @@ try {
         console.log('💓 Heartbeat: ENABLED (Every 60 seconds)');
         console.log('='.repeat(60));
 
+        // --- IMMEDIATE FIRST SCAN (Catch opportunities on startup) ---
+        console.log('🔍 Running immediate first scan on startup...');
+        setTimeout(async () => {
+            try {
+                const redis = (await import('./src/utils/redisClient.js')).default;
+                await redis.set('sentinel_last_heartbeat', new Date().toISOString());
+                const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
+                console.log(`✅ Startup scan completed - ${response.data.activeCount} active trades, ${response.data.newAlerts?.length || 0} alerts`);
+            } catch (e) {
+                console.error('❌ Startup scan error:', e.message);
+            }
+        }, 5000); // Wait 5 seconds for server to be fully ready
+
         // --- AUTONOMOUS HEARTBEAT (For Paid Plans / VPS) ---
         // If the server stays alive, this loop ensures trading happens 24/7 without external triggers.
         setInterval(async () => {
