@@ -67,46 +67,61 @@ app.get('*', (req, res) => {
 });
 
 // START SERVER
-try {
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log('='.repeat(60));
-        console.log('🚀 SENTINEL BOT SERVER IS ALIVE ON PORT', PORT);
-        console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
-        console.log('🇪🇺 Region:', process.env.REGION || 'Default (US)');
-        console.log('💓 Heartbeat: ENABLED (Every 60 seconds)');
-        console.log('='.repeat(60));
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('='.repeat(60));
+    console.log('🚀 SENTINEL BOT SERVER IS ALIVE ON PORT', PORT);
+    console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
+    console.log('🇪🇺 Region:', process.env.REGION || 'Default (US)');
+    console.log('💓 Heartbeat: ENABLED (Every 60 seconds)');
+    console.log('='.repeat(60));
 
-        // --- IMMEDIATE FIRST SCAN (Catch opportunities on startup) ---
-        console.log('🔍 Running immediate first scan on startup...');
-        setTimeout(async () => {
-            try {
-                const redis = (await import('./src/utils/redisClient.js')).default;
-                await redis.set('sentinel_last_heartbeat', new Date().toISOString());
-                const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
-                console.log(`✅ Startup scan completed - ${response.data.activeCount} active trades, ${response.data.newAlerts?.length || 0} alerts`);
-            } catch (e) {
-                console.error('❌ Startup scan error:', e.message);
-            }
-        }, 5000); // Wait 5 seconds for server to be fully ready
+    // --- IMMEDIATE FIRST SCAN (Catch opportunities on startup) ---
+    console.log('🔍 Running immediate first scan on startup...');
+    setTimeout(async () => {
+        try {
+            const redis = (await import('./src/utils/redisClient.js')).default;
+            await redis.set('sentinel_last_heartbeat', new Date().toISOString());
+            const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
+            console.log(`✅ Startup scan completed - ${response.data.activeCount} active trades, ${response.data.newAlerts?.length || 0} alerts`);
+        } catch (e) {
+            console.error('❌ Startup scan error:', e.message);
+            // Don't crash the server if startup scan fails
+        }
+    }, 5000); // Wait 5 seconds for server to be fully ready
 
-        // --- AUTONOMOUS HEARTBEAT (For Paid Plans / VPS) ---
-        // If the server stays alive, this loop ensures trading happens 24/7 without external triggers.
-        setInterval(async () => {
-            const now = new Date().toISOString();
-            console.log(`\n💓 [${now}] Heartbeat: Triggering autonomous check...`);
-            try {
-                // Save heartbeat timestamp to Redis for status monitoring
-                const redis = (await import('./src/utils/redisClient.js')).default;
-                await redis.set('sentinel_last_heartbeat', now);
+    // --- AUTONOMOUS HEARTBEAT (For Paid Plans / VPS) ---
+    // If the server stays alive, this loop ensures trading happens 24/7 without external triggers.
+    setInterval(async () => {
+        const now = new Date().toISOString();
+        console.log(`\n💓 [${now}] Heartbeat: Triggering autonomous check...`);
+        try {
+            // Save heartbeat timestamp to Redis for status monitoring
+            const redis = (await import('./src/utils/redisClient.js')).default;
+            await redis.set('sentinel_last_heartbeat', now);
 
-                // Call itself locally to trigger the check-prices logic
-                const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
-                console.log(`✅ [${now}] Heartbeat: Check completed - ${response.data.activeCount} active trades`);
-            } catch (e) {
-                console.error(`💔 [${now}] Heartbeat Error:`, e.message);
-            }
-        }, 60000); // Every 60 seconds
-    });
-} catch (e) {
-    console.error('❌ FATAL ERROR STARTING SERVER:', e);
-}
+            // Call itself locally to trigger the check-prices logic
+            const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
+            console.log(`✅ [${now}] Heartbeat: Check completed - ${response.data.activeCount} active trades`);
+        } catch (e) {
+            console.error(`💔 [${now}] Heartbeat Error:`, e.message);
+            // Don't crash the server if heartbeat fails
+        }
+    }, 60000); // Every 60 seconds
+
+    // --- KEEPALIVE LOG (Every 5 minutes to show server is alive) ---
+    setInterval(() => {
+        console.log(`🟢 [${new Date().toISOString()}] Server keepalive - Still running...`);
+    }, 300000); // Every 5 minutes
+});
+
+// Handle server errors
+server.on('error', (error) => {
+    console.error('❌ SERVER ERROR:', error);
+    if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+        process.exit(1);
+    }
+});
+
+console.log('✅ Server initialization complete');
+
