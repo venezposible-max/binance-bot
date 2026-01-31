@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { RSI, EMA, BollingerBands } from 'technicalindicators';
 import redis from '../src/utils/redisClient.js';
+import binanceClient from './utils/binance-client.js'; // Import Unified Client
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Shared Logic ---
@@ -236,46 +237,75 @@ export default async function handler(req, res) {
 
                     // EXIT CONDITION
                     if (pnl >= dynamicTarget) {
-                        console.log(`🎯 CLOUD WIN (${tradeStrategy}): ${symbol} hit ${pnl.toFixed(2)}%`);
-                        alertsSent.push(`✅ CLOSING ${symbol} (Hit Target) at $${currentPrice}`);
+                        const isLive = trade.mode === 'LIVE';
+                        console.log(`🎯 TARGET HIT (${tradeStrategy}): ${symbol} ${pnl.toFixed(2)}% | Executing SELL (${isLive ? 'LIVE' : 'SIM'})`);
 
-                        // Wallet Credit Logic...
-                        let profitUsd = trade.investedAmount * (pnl / 100);
-                        const grossReturn = trade.investedAmount + profitUsd;
-                        const closeFee = grossReturn * 0.001;
-                        const netReturn = grossReturn - closeFee;
-                        wallet.currentBalance += netReturn;
-
-                        // Net PnL % calculation
-                        const estimatedOpenFee = trade.investedAmount * 0.001;
-                        const netProfit = netReturn - trade.investedAmount - estimatedOpenFee;
-                        const netPnlPercent = (netProfit / trade.investedAmount) * 100;
-
-                        newWins.push({
-                            symbol,
-                            pnl: netPnlPercent,
-                            profitUsd: netProfit,
-                            fees: closeFee,
-                            type: trade.type,
-                            timestamp: new Date().toISOString(),
-                            entryPrice: trade.entryPrice,
-                            exitPrice: currentPrice, // Simple Exit Price
-                            investedAmount: trade.investedAmount,
-                            strategy: tradeStrategy
-                        });
-                        newActiveTrades.splice(tradeIndex, 1);
-
-                        console.log(`🏆 CIERRE AUTÓNOMO: ${symbol} | PnL: +${netPnlPercent.toFixed(2)}% | Profit: $${netProfit.toFixed(2)}`);
-
-                        // Send Telegram alert (non-blocking)
                         try {
+                            // Determine Qty to Sell
+                            // Fallback for old trades: invested / entry
+                            const qtyToSell = trade.quantity || (trade.investedAmount / trade.entryPrice);
+
+                            // EXECUTE SELL
+                            const order = await binanceClient.executeOrder(symbol, 'SELL', qtyToSell, currentPrice);
+
+                            // Parse Result
+                            const executedQty = parseFloat(order.executedQty);
+                            const receivedUsd = parseFloat(order.cummulativeQuoteQty);
+                            const exitPrice = receivedUsd / executedQty || currentPrice;
+
+                            // Wallet Logic
+                            let netProfit = 0;
+                            let fees = 0;
+
+                            if (isLive) {
+                                // LIVE PnL
+                                fees = receivedUsd * 0.001; // Est. Fee
+                                netProfit = receivedUsd - trade.investedAmount - fees;
+                                // In LIVE, we don't update wallet.currentBalance for the bot logic, we just log it.
+                                // But maybe users want to see "Bot Balance" grow?
+                                // Let's Sync it roughly just for UI fun, but trust Binance Balance mostly.
+                            } else {
+                                // SIM PnL
+                                let profitUsd = trade.investedAmount * (pnl / 100);
+                                const grossReturn = trade.investedAmount + profitUsd;
+                                fees = grossReturn * 0.001;
+                                const netReturn = grossReturn - fees;
+                                wallet.currentBalance += netReturn;
+                                netProfit = netReturn - trade.investedAmount;
+                            }
+
+                            const pnlPercent = (netProfit / trade.investedAmount) * 100;
+
+                            alertsSent.push(`✅ CLOSING ${symbol} (Hit Target) at $${exitPrice.toFixed(4)}`);
+
+                            newWins.push({
+                                symbol,
+                                pnl: pnlPercent,
+                                profitUsd: netProfit,
+                                fees: fees,
+                                type: trade.type,
+                                timestamp: new Date().toISOString(),
+                                entryPrice: trade.entryPrice,
+                                exitPrice: exitPrice,
+                                investedAmount: trade.investedAmount,
+                                strategy: tradeStrategy,
+                                mode: isLive ? 'LIVE' : 'SIMULATION',
+                                orderId: order.orderId
+                            });
+                            newActiveTrades.splice(tradeIndex, 1);
+
+                            console.log(`🏆 WIN: ${symbol} | PnL: +${pnlPercent.toFixed(2)}% | Profit: $${netProfit.toFixed(2)}`);
+
+                            // Telegram Alert
                             await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                                 chat_id: CHAT_ID,
-                                text: `🏆 **CLOUD WIN (${strategy})** 🚀\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n📈 ROI: **+${netPnlPercent.toFixed(2)}%**\n💰 Cierre: $${currentPrice}\n\n_Auto-Close by Sentinel_`,
+                                text: `🏆 **CLOUD WIN (${strategy})** 🚀\n\n💎 **${symbol}**\n📈 ROI: **+${pnlPercent.toFixed(2)}%**\n💰 Cierre: $${exitPrice.toFixed(4)}\n💵 Profit: $${netProfit.toFixed(2)}\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`,
                                 parse_mode: 'Markdown'
-                            });
-                        } catch (telegramError) {
-                            console.warn('⚠️ Telegram notification failed:', telegramError.message);
+                            }).catch(e => { });
+
+                        } catch (err) {
+                            console.error(`🚨 SELL FAILED (${symbol}):`, err.message);
+                            alertsSent.push(`⚠️ SELL ERROR ${symbol}: ${err.message}`);
                         }
                     }
                 }
@@ -378,46 +408,75 @@ export default async function handler(req, res) {
 
                     // LOGIC: EXECUTE TRADE
                     if (isStrongBuy) {
-                        // 1. BALANCE CHECK
-                        if (wallet.currentBalance < 10) {
-                            console.warn(`⚠️ SKIPPING ${symbol}: Insufficient Balance ($${wallet.currentBalance.toFixed(2)})`);
-                            alertsSent.push(`⚠️ ${symbol}: Saldo insuficiente ($${wallet.currentBalance.toFixed(2)})`);
-                            return; // Fixed: Use return instead of continue in map callback
+                        const isLive = wallet.tradingMode === 'LIVE';
+
+                        // 1. BALANCE / CAPITAL CHECK
+                        // In Sim, use currentBalance. In Live, use allocatedCapital limit.
+                        const capitalBase = isLive ? (wallet.allocatedCapital || 500) : wallet.currentBalance;
+                        const risk = wallet.riskPercentage || 10;
+                        let investedAmount = capitalBase * (risk / 100);
+
+                        // Safety: Min Order Size (Binance usually 5-10 USDT)
+                        if (investedAmount < 6) {
+                            if (!isLive) console.warn(`⚠️ Skipping: Investment $${investedAmount.toFixed(2)} too low`);
+                            return;
                         }
 
+                        // Simulation Balance Check
+                        if (!isLive && wallet.currentBalance < investedAmount) {
+                            console.warn(`⚠️ SIM SKIPPING ${symbol}: Insufficient Balance`);
+                            alertsSent.push(`⚠️ ${symbol}: Saldo virtual insuficiente`);
+                            return;
+                        }
+
+                        // EXECUTE ORDER (REAL OR SIM)
                         const type = 'LONG';
-                        // Wallet Logic
-                        const risk = wallet.riskPercentage || 10;
-                        const investedAmount = wallet.currentBalance * (risk / 100);
-                        const openFee = investedAmount * 0.001;
+                        console.log(`🚀 EXECUTING ${isLive ? 'LIVE 💸' : 'SIM 🧪'} BUY: ${symbol} $${investedAmount.toFixed(2)}`);
 
-                        // Deduct Balance
-                        wallet.currentBalance -= (investedAmount + openFee);
-
-                        const newTrade = {
-                            id: uuidv4(),
-                            symbol,
-                            entryPrice: currentPrice, // SIMPLE ENTRY: Mid Price
-                            type,
-                            timestamp: new Date().toISOString(),
-                            investedAmount: investedAmount,
-                            strategy: strategy
-                        };
-                        newActiveTrades.push(newTrade);
-
-                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentPrice} | Inv: $${investedAmount.toFixed(2)}`);
-
-                        // Send Telegram alert (non-blocking)
                         try {
+                            // Pass currentPrice for Sim Math accuracy
+                            const order = await binanceClient.executeOrder(symbol, 'BUY', investedAmount, currentPrice);
+
+                            // Parse Result
+                            const executedQty = parseFloat(order.executedQty);
+                            const spentUsd = parseFloat(order.cummulativeQuoteQty);
+                            const fillPrice = spentUsd / executedQty || currentPrice;
+
+                            // Update Virtual Wallet if Sim
+                            if (!isLive) {
+                                wallet.currentBalance -= (spentUsd + (spentUsd * 0.001)); // Fee sim
+                            }
+
+                            // Record Trade
+                            const newTrade = {
+                                id: uuidv4(),
+                                symbol,
+                                entryPrice: fillPrice,
+                                type,
+                                timestamp: new Date().toISOString(),
+                                investedAmount: spentUsd,
+                                quantity: executedQty, // Save COIN Qty for Selling
+                                strategy: strategy,
+                                mode: isLive ? 'LIVE' : 'SIMULATION',
+                                orderId: order.orderId
+                            };
+                            newActiveTrades.push(newTrade);
+
+                            console.log(`✅ ${isLive ? 'LIVE' : 'SIM'} ENTRADA: ${symbol} @ $${fillPrice.toFixed(4)} | Qty: ${executedQty.toFixed(4)}`);
+
+                            // Telegram Alert
                             await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                                 chat_id: CHAT_ID,
-                                text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentPrice}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
+                                text: `${isLive ? '💸 **LIVE TRADE**' : '🔵 **SIM TRADE**'} (${strategy}) 🐂\n\n💎 **${symbol}**\n💰 Entrada: $${fillPrice.toFixed(4)}\n💸 Inv: $${spentUsd.toFixed(2)}\n⏱️ 1H Candles\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`,
                                 parse_mode: 'Markdown'
-                            });
-                        } catch (telegramError) {
-                            console.warn('⚠️ Telegram notification failed:', telegramError.message);
+                            }).catch(e => console.warn('Telegram Fail'));
+
+                            alertsSent.push(`${symbol} (LONG)`);
+
+                        } catch (err) {
+                            console.error(`🚨 EXECUTION FAILED (${symbol}):`, err.message);
+                            alertsSent.push(`⚠️ ERROR ${symbol}: ${err.message}`);
                         }
-                        alertsSent.push(`${symbol} (${type})`);
                     }
                 }
             } catch (err) {
