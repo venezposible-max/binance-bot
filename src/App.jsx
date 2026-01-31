@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 // import ParticlesBackground from './components/ParticlesBackground';
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
@@ -49,17 +49,17 @@ function App() {
     }
   };
 
-  const handleSimulate = (symbol, price, type) => {
+  const handleSimulate = useCallback((symbol, price, type) => {
     handleManualAction('OPEN', { symbol, price, type, strategy: activeStrategy });
-  };
+  }, [activeStrategy]);
 
-  const handleCloseManual = (id) => {
+  const handleCloseManual = useCallback((id) => {
     // Find the trade to get the symbol and current price
     const trade = cloudStatus.active.find(t => t.id === id);
     const currentPrice = trade ? marketData[trade.symbol]?.price : null;
 
     handleManualAction('CLOSE', { id, exitPrice: currentPrice });
-  };
+  }, [cloudStatus.active, marketData]);
 
   const calculatePnL = (trade, currentPrice) => {
     if (!currentPrice) return 0;
@@ -73,7 +73,17 @@ function App() {
     return rawPnL - 0.1;
   };
 
+  const walletRef = useRef(null);
+  const isLoadingRef = useRef(false); // Prevent duplicate fetches
+
   const fetchData = async (overrideTimeframe) => {
+    // Prevent duplicate calls
+    if (isLoadingRef.current) {
+      console.log('⏭️ Skipping fetchData (already loading)');
+      return;
+    }
+
+    isLoadingRef.current = true;
     const currentTf = overrideTimeframe || timeframe;
     const results = {};
     let buyCount = 0;
@@ -149,8 +159,9 @@ function App() {
         console.warn("Cloud Sync not available yet (Normal if local):", e.message);
       }
     } catch (error) {
-      console.error("Critical Data Error:", error);
+      console.error('Error fetching data:', error);
     } finally {
+      isLoadingRef.current = false; // Always release lock
       setLoading(false);
     }
   };
@@ -213,8 +224,8 @@ function App() {
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
     fetchData();
-    // Set up auto-refresh interval (every 60s)
-    const interval = setInterval(() => fetchData(), 60000);
+    // Set up auto-refresh interval (every 90s - optimized)
+    const interval = setInterval(() => fetchData(), 90000);
     return () => clearInterval(interval);
   }, [timeframe]); // Re-fetch when timeframe changes
 

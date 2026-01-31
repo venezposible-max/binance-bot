@@ -254,4 +254,4 @@ const MiniChart = ({ data, ema, color }) => {
     );
 };
 
-export default SentinelCard;
+export default React.memo(SentinelCard);

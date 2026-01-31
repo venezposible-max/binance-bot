@@ -9,4 +9,4 @@ const MarketGrid = ({ children }) => {
     );
 };
 
-export default MarketGrid;
+export default React.memo(MarketGrid);
