@@ -4,10 +4,43 @@ import redis from '../src/utils/redisClient.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Shared Logic ---
-const TOP_PAIRS = [
-    'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOGEUSDT', 'DOTUSDT', 'TRXUSDT',
-    'LINKUSDT', 'MATICUSDT', 'LTCUSDT', 'BCHUSDT', 'ATOMUSDT', 'XLMUSDT', 'UNIUSDT', 'FILUSDT', 'HBARUSDT', 'NEARUSDT'
-];
+// --- Shared Logic ---
+// Removed STATIC TOP_PAIRS list in favor of Dynamic Volume Fetching
+
+async function getDynamicTopPairs() {
+    try {
+        const REGION = process.env.REGION || 'US';
+        const baseUrl = REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us';
+        const res = await axios.get(`${baseUrl}/api/v3/ticker/24hr`, { timeout: 5000 });
+        const allPairs = res.data;
+
+        // Explicit Blacklist (Matches Frontend)
+        const BLACKLIST = [
+            'USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP',
+            'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD'
+        ];
+
+        const relevant = allPairs.filter(p => {
+            if (!p.symbol.endsWith('USDT')) return false;
+            const isBlacklisted = BLACKLIST.some(blocked => p.symbol.includes(blocked));
+            if (isBlacklisted) return false;
+            if (p.symbol.includes('USDC')) return false; // Extra safety
+
+            // Volume Filter (Min 5M)
+            return parseFloat(p.quoteVolume) > 5000000;
+        });
+
+        // Sort by Volume (Desc)
+        relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
+
+        // Return Top 10 Symbols
+        return relevant.slice(0, 10).map(p => p.symbol);
+    } catch (e) {
+        console.warn('⚠️ Dynamic Pair Fetch Failed, using Fallback:', e.message);
+        // Fallback List if API fails
+        return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT'];
+    }
+}
 
 // Telegram Config
 const BOT_TOKEN = '8025293831:AAF5H56wm1yAzHwbI9foh7lA-tr8WUwHfd0';
@@ -143,7 +176,22 @@ export default async function handler(req, res) {
         // MODE B: MONITOR & AUTONOMOUS SCAN (ALWAYS RUN MONITORING)
         // 1. Monitor Active Trades (Exits) & 2. Scan for New (if enabled/not forced)
 
-        const promises = TOP_PAIRS.map(async (symbol) => {
+        // --- NEW DYNAMIC LOGIC ---
+        let marketPairs = [];
+        try {
+            marketPairs = await getDynamicTopPairs();
+        } catch (e) {
+            console.error('CRITICAL: Failed to get dynamic pairs', e);
+            marketPairs = ['BTCUSDT', 'ETHUSDT'];
+        }
+
+        // Merge with Active Trades to ensure we monitor open positions
+        const activeSymbols = activeTrades.map(t => t.symbol);
+        const uniquePairs = Array.from(new Set([...marketPairs, ...activeSymbols]));
+
+        console.log(`🔍 SCANNED PAIRS (${uniquePairs.length}):`, uniquePairs.join(', '));
+
+        const promises = uniquePairs.map(async (symbol) => {
             try {
                 // 1. Fetch Global Price First (Reliable PnL)
                 const currentPrice = await fetchGlobalPrice(symbol);
