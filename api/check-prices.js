@@ -400,11 +400,18 @@ export default async function handler(req, res) {
 
                             isStrongBuy = (rsi < 30 && rsi1h < 30 && rsi15m < 30);
                         } catch (e) { console.warn('Triple Check Fail', e.message); }
-                    } else {
-                        // DEFAULT: SCALP, SWING, or Fallback
-                        // Lógica Combinada: RSI < 30 (Clásico) OR Bollinger Band Sniper (Frontend Parity)
+                    }
+                    else if (strategy === 'SCALP') {
+                        // ⚡ SCALP MODE: Quick entries on 5m/15m charts
+                        // Logic: RSI Oversold (Classic)
+                        isStrongBuy = (rsi < 30);
+                        if (isStrongBuy) console.log(`⚡ ${symbol} | SCALP SIGNAL (RSI ${rsi.toFixed(2)})`);
+                    }
+                    else {
+                        // 🐂 SWING MODE (Default): Deep Dips on 4h charts
+                        // Logic: RSI < 30 OR Sniper (RSI < 30 + Lower Bollinger Band)
 
-                        // 3. Calculate Bollinger Bands (20 period, 2 stdDev)
+                        // Bollinger Bands (20, 2)
                         const bbValues = BollingerBands.calculate({ period: 20, values: closes, stdDev: 2 });
                         const currentBB = bbValues[bbValues.length - 1] || null;
                         const lastPrice = closes[closes.length - 1];
@@ -415,7 +422,7 @@ export default async function handler(req, res) {
                         }
 
                         if (sniperBuy) {
-                            console.log(`🎯 ${symbol} | SNIPER SIGNAL (RSI ${rsi.toFixed(2)} + BB Touch)`);
+                            console.log(`🎯 ${symbol} | SWING SNIPER (RSI ${rsi.toFixed(2)} + BB Touch)`);
                             isStrongBuy = true;
                         } else {
                             isStrongBuy = (rsi < 30);
