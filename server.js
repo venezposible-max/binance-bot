@@ -68,20 +68,25 @@ app.get('*', (req, res) => {
 // START SERVER
 try {
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 SENTINEL BOT SERVER IS ALIVE ON PORT ${PORT}`);
-        console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-        console.log(`🇪🇺 Region: ${process.env.REGION || 'Default (US)'}`);
+        console.log('='.repeat(60));
+        console.log('🚀 SENTINEL BOT SERVER IS ALIVE ON PORT', PORT);
+        console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
+        console.log('🇪🇺 Region:', process.env.REGION || 'Default (US)');
+        console.log('💓 Heartbeat: ENABLED (Every 60 seconds)');
+        console.log('='.repeat(60));
 
         // --- AUTONOMOUS HEARTBEAT (For Paid Plans / VPS) ---
         // If the server stays alive, this loop ensures trading happens 24/7 without external triggers.
         setInterval(async () => {
+            const now = new Date().toISOString();
+            console.log(`\n💓 [${now}] Heartbeat: Triggering autonomous check...`);
             try {
                 // Call itself locally to trigger the check-prices logic
                 // Using localhost ensures we use the same express handler logic
-                await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
-                console.log('💓 Heartbeat: Autonomous Check Triggered');
+                const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
+                console.log(`✅ [${now}] Heartbeat: Check completed - ${response.data.activeCount} active trades`);
             } catch (e) {
-                console.error('💔 Heartbeat Error:', e.message);
+                console.error(`💔 [${now}] Heartbeat Error:`, e.message);
             }
         }, 60000); // Every 60 seconds
     });
