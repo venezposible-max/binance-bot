@@ -52,10 +52,9 @@ const privateRequest = async (endpoint, method = 'GET', data = {}) => {
 // --- PUBLIC METHODS ---
 
 export const getAccountBalance = async (asset = 'USDT') => {
-    // En modo SIMULATION, retornamos Saldo Simulado (manejado en check-prices, aqui solo real)
-    // Pero si llamamos a esto, asumimos que queremos REAL info si hay credenciales
-    if (!process.env.TRADING_MODE || process.env.TRADING_MODE !== 'LIVE') {
-        return { available: 1000, total: 1000, isSimulated: true }; // Dummy for integration
+    // Si NO hay API Key, retornamos 0 y error. NO MÁS 1000 FANTASMA.
+    if (!API_KEY) {
+        return { available: 0, total: 0, error: 'MISSING_API_KEY_ENV', isSimulated: true };
     }
 
     try {
@@ -68,8 +67,9 @@ export const getAccountBalance = async (asset = 'USDT') => {
             isSimulated: false
         };
     } catch (e) {
-        if (e.message === 'MISSING_CREDENTIALS') return { available: 0, error: 'No API Keys' };
-        throw e;
+        console.error('Balance Error:', e.message);
+        // Retornamos 0 explícito en caso de error para no confundir
+        return { available: 0, total: 0, error: e.message || 'API_CONNECTION_FAILED' };
     }
 };
 
