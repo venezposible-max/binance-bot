@@ -73,16 +73,7 @@ function App() {
     return rawPnL - 0.1;
   };
 
-  const isLoadingRef = useRef(false); // Prevent duplicate fetches
-
   const fetchData = async (overrideTimeframe) => {
-    // Prevent duplicate calls
-    if (isLoadingRef.current) {
-      console.log('⏭️ Skipping fetchData (already loading)');
-      return;
-    }
-
-    isLoadingRef.current = true;
     const currentTf = overrideTimeframe || timeframe;
     const results = {};
     let buyCount = 0;
@@ -160,7 +151,6 @@ function App() {
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
-      isLoadingRef.current = false; // Always release lock
       setLoading(false);
     }
   };
