@@ -81,8 +81,11 @@ try {
             const now = new Date().toISOString();
             console.log(`\n💓 [${now}] Heartbeat: Triggering autonomous check...`);
             try {
+                // Save heartbeat timestamp to Redis for status monitoring
+                const redis = (await import('./src/utils/redisClient.js')).default;
+                await redis.set('sentinel_last_heartbeat', now);
+
                 // Call itself locally to trigger the check-prices logic
-                // Using localhost ensures we use the same express handler logic
                 const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
                 console.log(`✅ [${now}] Heartbeat: Check completed - ${response.data.activeCount} active trades`);
             } catch (e) {
