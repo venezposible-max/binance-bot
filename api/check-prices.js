@@ -215,7 +215,7 @@ export default async function handler(req, res) {
         console.log(`🔍 SCANNED PAIRS (${uniquePairs.length}):`, uniquePairs.join(', '));
 
         const promises = uniquePairs.map(async (symbol) => {
-            console.log(`.. 🔎 ANALYZING: ${symbol}`); // Log visible solicitado
+            // console.log(`.. 🔎 ANALYZING: ${symbol}`); // Movido a después de tradeIndex para mostrar el TF real usado
             try {
                 // 1. Fetch Global Price First (Reliable PnL)
                 // NOW RETURNS OBJECT: { price, bid, ask }
@@ -333,7 +333,9 @@ export default async function handler(req, res) {
                 // The bot should be autonomous and enter trades automatically
 
                 if (tradeIndex === -1) {
-                    let primaryInterval = strategy === 'SCALP' ? '5m' : '1h'; // Default to 1h for more signals (was 4h)
+                    let primaryInterval = strategy === 'SCALP' ? '5m' : '4h'; // SYNC WITH FRONTEND (4h)
+
+                    console.log(`.. 🔎 ANALYZING: ${symbol} [${primaryInterval}]`);
 
                     // SMART REGION SWITCHING FOR KLINES
                     let klinesUrl = '';
