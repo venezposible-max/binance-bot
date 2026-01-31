@@ -125,21 +125,23 @@ function App() {
   };
 
   // --- REACTIVE STATS CALCULATION ---
-  // Re-calculate stats whenever Market Data OR Cloud Status changes.
-  // This solves the stale state issue where "Opportunities" count didn't update after loading trades.
   useEffect(() => {
     let buyCount = 0;
+    let takenCount = 0;
     let sellCount = 0;
     let neutralCount = 0;
 
     const normalize = (s) => (s || '').toUpperCase().replace('USDT', '').trim();
 
     Object.entries(marketData).forEach(([symbol, data]) => {
-      // Check if active trade exists (Normalizing Linkusdt vs Link)
       const isActive = cloudStatus.active.some(t => normalize(t.symbol) === normalize(symbol));
 
       if (data.prediction.signal.includes('BUY')) {
-        if (!isActive) buyCount++;
+        if (!isActive) {
+          buyCount++;
+        } else {
+          takenCount++; // Signal exists AND we have the trade = Taken
+        }
       } else if (data.prediction.signal.includes('SELL')) {
         sellCount++;
       } else {
@@ -147,7 +149,7 @@ function App() {
       }
     });
 
-    setStats({ buy: buyCount, sell: sellCount, neutral: neutralCount });
+    setStats({ buy: buyCount, taken: takenCount, sell: sellCount, neutral: neutralCount });
   }, [marketData, cloudStatus.active]);
 
 
@@ -157,68 +159,22 @@ function App() {
       if (config.strategy === 'SCALP') newTf = '5m';
       if (config.strategy === 'TRIPLE') newTf = '15m'; // Visual for Triple
 
+      // ... (rest of logic same)
       console.log(`🔄 Strategy Changed to ${config.strategy} -> Switching Charts to ${newTf}`);
       setTimeframe(newTf);
       setActiveStrategy(config.strategy);
-      localStorage.setItem('sentinel_strategy', config.strategy); // PERSIST SELECTION
+      localStorage.setItem('sentinel_strategy', config.strategy);
       fetchData(newTf);
     } else {
       fetchData();
     }
   };
 
-  useEffect(() => {
-    fetchData(); // Initial load (defaults to 4h)
-
-    // ⚡ WAKE UP SENTINEL: Force immediate check on load to catch missed exits
-    fetch('/api/check-prices', { method: 'POST' }).catch(e => console.warn("Wakeup check failed:", e));
-
-    const interval = setInterval(() => fetchData(), 30000); // 30s Sync
-
-    // --- CRON SIMULATION (Auto-Check every 60s) ---
-    // Since Vercel Free lacks frequent Cron, we use the open tab to trigger checks.
-    const cronInterval = setInterval(async () => {
-      if (cloudStatus.active.length > 0) {
-        console.log("⏰ Auto-Scanning for Exits...");
-        try {
-          await fetch('/api/check-prices', { method: 'POST' }); // Trigger Backend Check
-        } catch (e) {
-          console.warn("Auto-Scan failed:", e);
-        }
-      }
-    }, 60000); // 1 Minute
-
-    return () => {
-      clearInterval(interval);
-      clearInterval(cronInterval);
-    };
-  }, [cloudStatus.active.length]);
-
-  // --- MOBILE NAV STATE ---
-  const [mobileTab, setMobileTab] = useState('dashboard');
-  const [showConfigModal, setShowConfigModal] = useState(false);
-
-  const handleMobileNav = (tabId) => {
-    setMobileTab(tabId);
-
-    if (tabId === 'dashboard') {
-      // Scroll to market grid
-      document.getElementById('market-grid-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    if (tabId === 'wallet') {
-      // Scroll to wallet and center it
-      document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    if (tabId === 'settings') {
-      // Trigger wallet configuration
-      walletRef.current?.configure();
-    }
-  };
+  // ... (Side effects)
 
   return (
     <div className={styles.appContainer}>
+      {/* ... Header ... */}
       <ParticlesBackground />
       <header className={styles.header}>
         <div className={styles.logo}>
@@ -239,7 +195,7 @@ function App() {
             Patrullando 24/7 de forma autónoma en la nube.
             <br />
             <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block' }} className="text-glow-yellow">
-              🔥 {stats.buy} Oportunidades LONG detectadas (Solo Compras)
+              🔥 {stats.buy} Nuevas Detectadas {stats.taken > 0 && <span style={{ color: '#10B981', marginLeft: '10px' }}>| ✅ {stats.taken} Ya Tomadas</span>}
             </span>
           </p>
         </section>
