@@ -107,6 +107,12 @@ function App() {
           // Note: analysis.price comes from candles, might be slightly old.
           // We will override it below with Ticker Price.
 
+          // DEFENSIVE: Validate analysis structure
+          if (!analysis || !analysis.prediction || !analysis.prediction.signal) {
+            console.warn(`Invalid analysis structure for ${symbol}:`, analysis);
+            return null;
+          }
+
           // LOGIC FIX: Normalized comparison to be bulletproof
           // Compare "ETH" vs "ETHUSDT" correctly by stripping "USDT" from both sides
           const normalize = (s) => (s || '').toUpperCase().replace('USDT', '').trim();
