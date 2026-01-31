@@ -16,7 +16,6 @@ function App() {
   const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
 
   const [timeframe, setTimeframe] = useState('4h');
-  const [timeframe, setTimeframe] = useState('4h');
   const [activeStrategy, setActiveStrategy] = useState(() => localStorage.getItem('sentinel_strategy') || 'SWING');
   const [tradingMode, setTradingMode] = useState('SIMULATION'); // Default safe
 
