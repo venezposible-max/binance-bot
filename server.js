@@ -70,52 +70,58 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+// IMPORT CRON HANDLER DIRECTLY (Bypass Network Issues)
+import checkPriceHandler from './api/check-prices.js';
+
+// --- ROBUST INTERNAL CRON (No HTTP reqs needed) ---
+const runInternalScan = async (source = 'TIMER') => {
+    console.log(`\n⏰ [${new Date().toISOString()}] INTERNAL CRON (${source}): Executing Scan...`);
+
+    // Mock Request/Response for the handler
+    const req = { method: 'GET', query: {}, body: {} };
+    const res = {
+        setHeader: () => { },
+        status: (code) => ({
+            json: (data) => {
+                const active = data.activeCount !== undefined ? data.activeCount : (data.active?.length || 0);
+                console.log(`✅ SCAN COMPLETE: ${active} Active Trades | Code ${code}`);
+                // Keep heartbeat alive in Redis
+                import('./src/utils/redisClient.js').then(m => {
+                    m.default.set('sentinel_last_heartbeat', new Date().toISOString());
+                });
+            },
+            end: () => console.log('✅ SCAN COMPLETE (Empty Response)')
+        })
+    };
+
+    try {
+        await checkPriceHandler(req, res);
+    } catch (e) {
+        console.error('❌ INTERNAL CRON ERROR:', e.message);
+    }
+};
+
 // START SERVER
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('='.repeat(60));
     console.log('🚀 SENTINEL BOT SYSTEMS ONLINE & STABLE | PORT', PORT);
     console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
-    console.log('🇪🇺 Region:', process.env.REGION || 'Default (US)');
-    console.log('💓 Heartbeat: ENABLED (Every 60 seconds)');
+    console.log('🔐 VIP DATA MODE:', process.env.BINANCE_API_KEY ? 'ENABLED' : 'DISABLED');
+    console.log('💓 Heartbeat: ENABLED (Direct Internal Execution)');
     console.log('='.repeat(60));
 
-    // FORCE IMMEDIATE RUN for user visibility
-    setTimeout(async () => {
-        try {
-            console.log('⚡ FAST START: Triggering first price check immediately...');
-            const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
-            console.log(`✅ Startup scan completed - ${response.data.activeCount} active trades, ${response.data.newAlerts?.length || 0} alerts`);
-        } catch (e) {
-            console.error('❌ Startup scan error:', e.message);
-            // Don't crash the server if startup scan fails
-        }
-    }, 5000); // Wait 5 seconds for server to be fully ready
-
-    // --- AUTONOMOUS HEARTBEAT (For Paid Plans / VPS) ---
-    // If the server stays alive, this loop ensures trading happens 24/7 without external triggers.
-    setInterval(async () => {
-        const now = new Date().toISOString();
-        console.log(`\n💓 [${now}] Heartbeat: Triggering autonomous check...`);
-        try {
-            // Save heartbeat timestamp to Redis for status monitoring
-            const redis = (await import('./src/utils/redisClient.js')).default;
-            await redis.set('sentinel_last_heartbeat', now);
-
-            // Call itself locally to trigger the check-prices logic
-            const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, { timeout: 5000 });
-            console.log(`✅ [${now}] Heartbeat: Check completed - ${response.data.activeCount} active trades`);
-        } catch (e) {
-            console.error(`💔 [${now}] Heartbeat Error:`, e.message);
-            // Don't crash the server if heartbeat fails
-        }
-    }, 60000); // Every 60 seconds
-
-    // --- KEEPALIVE LOG (Every 1 minute to show server is alive visually) ---
-    setInterval(() => {
-        const memUsage = process.memoryUsage();
-        console.log(`🟢 [${new Date().toISOString()}] Server OK | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`);
-    }, 60000); // Every 1 minute
+    // FORCE IMMEDIATE RUN
+    setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
 });
+
+// Loop every 60 seconds
+setInterval(() => runInternalScan('HEARTBEAT'), 60000);
+
+// --- KEEPALIVE LOG (Every 1 minute to show server is alive visually) ---
+setInterval(() => {
+    const memUsage = process.memoryUsage();
+    console.log(`🟢 [${new Date().toISOString()}] Server OK | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`);
+}, 60000); // Every 1 minute
 
 // Handle server errors
 server.on('error', (error) => {
