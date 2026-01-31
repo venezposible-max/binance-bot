@@ -69,7 +69,7 @@ app.get('*', (req, res) => {
 // START SERVER
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('='.repeat(60));
-    console.log('🚀 SENTINEL BOT SERVER IS ALIVE ON PORT', PORT);
+    console.log('🚀 SENTINEL BOT SYSTEMS ONLINE & STABLE | PORT', PORT);
     console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
     console.log('🇪🇺 Region:', process.env.REGION || 'Default (US)');
     console.log('💓 Heartbeat: ENABLED (Every 60 seconds)');
