@@ -16,7 +16,9 @@ function App() {
   const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
 
   const [timeframe, setTimeframe] = useState('4h');
+  const [timeframe, setTimeframe] = useState('4h');
   const [activeStrategy, setActiveStrategy] = useState(() => localStorage.getItem('sentinel_strategy') || 'SWING');
+  const [tradingMode, setTradingMode] = useState('SIMULATION'); // Default safe
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
@@ -230,6 +232,11 @@ function App() {
 
 
   const handleConfigChange = (newConfig) => {
+    // Sync Trading Mode
+    if (newConfig?.tradingMode) {
+      setTradingMode(newConfig.tradingMode);
+    }
+
     // Sync activeStrategy if changed from WalletCard
     if (newConfig?.strategy && newConfig.strategy !== activeStrategy) {
       console.log(`🔄 Strategy Changed: ${activeStrategy} -> ${newConfig.strategy}`);
@@ -274,7 +281,25 @@ function App() {
           BINANCE <span>SENTINEL</span>
         </div>
         <nav style={{ display: 'flex', gap: '20px', color: '#EAECEF', fontWeight: '600', fontSize: '0.9rem' }}>
-          <span style={{ color: '#10B981' }}>● CLOUD SNIPER ACTIVE</span>
+          {/* TRADING MODE BADGE */}
+          {tradingMode === 'LIVE' ? (
+            <span style={{
+              background: 'linear-gradient(90deg, #DC2626 0%, #991B1B 100%)',
+              color: 'white', padding: '2px 8px', borderRadius: '4px', textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+              display: 'flex', alignItems: 'center', gap: '4px'
+            }}>
+              🚀 LIVE MONEY
+            </span>
+          ) : (
+            <span style={{
+              background: 'rgba(59, 130, 246, 0.2)', border: '1px solid #3B82F6',
+              color: '#60A5FA', padding: '2px 8px', borderRadius: '4px',
+              display: 'flex', alignItems: 'center', gap: '4px'
+            }}>
+              🧪 SIMULATION
+            </span>
+          )}
+
           <span style={{ color: 'var(--color-binance-yellow)' }}>
             {activeStrategy} ({timeframe})
           </span>
