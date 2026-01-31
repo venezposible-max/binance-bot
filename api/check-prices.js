@@ -531,9 +531,9 @@ export default async function handler(req, res) {
                     console.error(`Error processing ${symbol}:`, err.message);
                 }
             }
-        });
+        } // End of Sequential Loop
 
-        await Promise.all(promises);
+        // Promises removed (Sequential Mode)
 
         // 4. Save Cloud State
         await redis.set('sentinel_active_trades', JSON.stringify(newActiveTrades));
