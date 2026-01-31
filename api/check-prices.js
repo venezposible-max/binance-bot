@@ -358,6 +358,9 @@ export default async function handler(req, res) {
                     const closes = klines.map(candle => parseFloat(candle[4]));
                     const rsi = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
+                    // DEBUG MASTER: Qué RSI ve el backend??
+                    console.log(`🧐 ${symbol} RSI: ${rsi.toFixed(2)} (Threshold: 30)`);
+
                     // EMA 200 Calculation (Trend Filter) - Not used for Entry Blocking anymore to match Frontend
                     const ema200Val = EMA.calculate({ values: closes, period: 200 }).slice(-1)[0];
 
