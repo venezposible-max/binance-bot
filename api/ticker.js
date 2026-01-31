@@ -1,3 +1,11 @@
+import axios from 'axios';
+
+// Helper to determine base URL based on region
+const getBaseUrl = () => {
+    const REGION = process.env.REGION || 'US';
+    return REGION === 'EU' ? 'https://api.binance.com/api/v3' : 'https://api.binance.us/api/v3';
+};
+
 const fetchPriceFromSource = async (baseUrl, symbol) => {
     try {
         const response = await axios.get(`${baseUrl}/ticker/price`, {
