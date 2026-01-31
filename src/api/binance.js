@@ -16,14 +16,20 @@ export const fetchTopPairs = async () => {
         const res = await axios.get(`${BASE_URL}/ticker/24hr`);
         const allPairs = res.data;
 
-        // Filter valid USDT pairs (exclude stablecoins pairs like USDCUSDT)
+        // Filter valid USDT pairs (exclude stablecoins & non-volatile assets)
         const relevant = allPairs.filter(p =>
             p.symbol.endsWith('USDT') &&
             !p.symbol.includes('USDC') &&
             !p.symbol.includes('FUSD') &&
             !p.symbol.includes('TUSD') &&
+            !p.symbol.includes('BUSD') &&
             !p.symbol.includes('DAI') &&
-            parseFloat(p.quoteVolume) > 10000000 // Min 10M volume filter
+            !p.symbol.includes('USDP') &&
+            !p.symbol.includes('AEUR') &&
+            !p.symbol.includes('EUR') &&
+            !p.symbol.includes('PAXG') &&
+            !p.symbol.includes('WBTC') &&
+            parseFloat(p.quoteVolume) > 5000000 // Min 5M volume
         );
 
         // Sort by Volume (quoteVolume = Volume in USDT)
