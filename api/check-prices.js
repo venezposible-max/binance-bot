@@ -36,7 +36,11 @@ async function getDynamicTopPairs() {
         // Return Top 10 Symbols
         return relevant.slice(0, 10).map(p => p.symbol);
     } catch (e) {
-        console.warn('⚠️ Dynamic Pair Fetch Failed, using Fallback:', e.message);
+        if (e.response && e.response.status === 403) {
+            console.warn('⚠️ Dynamic Pairs: API Access 403 (Region Blocked/WAF) - Using Fallback');
+        } else {
+            console.warn('⚠️ Dynamic Pair Fetch Failed:', e.message);
+        }
         // Fallback List if API fails
         return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT'];
     }
@@ -372,7 +376,11 @@ export default async function handler(req, res) {
                     }
                 }
             } catch (err) {
-                console.error(`Error processing ${symbol}:`, err.message);
+                if (err.response && err.response.status === 403) {
+                    console.log(`⛔ ${symbol}: 403 Forbidden (Region/IP Blocked)`);
+                } else {
+                    console.error(`Error processing ${symbol}:`, err.message);
+                }
             }
         });
 
