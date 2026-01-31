@@ -333,7 +333,10 @@ export default async function handler(req, res) {
                 // The bot should be autonomous and enter trades automatically
 
                 if (tradeIndex === -1) {
-                    let primaryInterval = strategy === 'SCALP' ? '5m' : '4h'; // SYNC WITH FRONTEND (4h)
+                    // DYNAMIC TELESCOPE: Use User's Timeframe or Fallback
+                    let primaryInterval = wallet.timeframe || (strategy === 'SCALP' ? '5m' : '4h');
+                    // ensure valid interval
+                    if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = '4h';
 
                     console.log(`.. 🔎 ANALYZING: ${symbol} [${primaryInterval}]`);
 

@@ -254,6 +254,13 @@ function App() {
       setActiveStrategy(newConfig.strategy);
       localStorage.setItem('sentinel_strategy', newConfig.strategy);
 
+      // SYNC TIMEFRAME TO BACKEND (So Auto-Scan uses the same candles)
+      fetch('/api/wallet/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeframe: newTf })
+      }).catch(err => console.error('Failed to sync timeframe:', err));
+
       // Reload data with new strategy
       setTimeout(() => fetchData(newTf), 100); // Small delay to ensure state is cleared
     } else {
