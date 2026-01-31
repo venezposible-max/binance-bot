@@ -303,20 +303,22 @@ function App() {
             {activeStrategy} ({timeframe})
           </span>
 
-          {/* REAL BALANCE INDICATOR */}
-          {binanceBalance ? (
-            !binanceBalance.error ? (
-              <span style={{ color: '#FCD34D', border: '1px solid #FCD34D', padding: '0 8px', borderRadius: '4px' }}>
-                💰 ${binanceBalance.total?.toFixed(2)}
-              </span>
+          {/* REAL BALANCE INDICATOR - LIVE ONLY */}
+          {tradingMode === 'LIVE' ? (
+            binanceBalance ? (
+              !binanceBalance.error ? (
+                <span style={{ color: '#FCD34D', border: '1px solid #FCD34D', padding: '0 8px', borderRadius: '4px' }}>
+                  💰 ${binanceBalance.total?.toFixed(2)}
+                </span>
+              ) : (
+                <span style={{ color: '#EF4444', border: '1px solid #EF4444', padding: '0 8px', borderRadius: '4px' }}>
+                  ⚠️ CHECK KEYS
+                </span>
+              )
             ) : (
-              <span style={{ color: '#EF4444', border: '1px solid #EF4444', padding: '0 8px', borderRadius: '4px' }}>
-                ⚠️ CHECK KEYS
-              </span>
+              <span style={{ opacity: 0.5 }}>⌛ Loading...</span>
             )
-          ) : (
-            <span style={{ opacity: 0.5 }}>⌛ Loading...</span>
-          )}
+          ) : null}
         </nav>
       </header>
 
