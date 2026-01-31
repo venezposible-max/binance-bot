@@ -49,27 +49,15 @@ export default async function handler(req, res) {
                 if (newConfig.riskPercentage) newConfig.riskPercentage = parseFloat(newConfig.riskPercentage);
                 if (newConfig.allocatedCapital) newConfig.allocatedCapital = parseFloat(newConfig.allocatedCapital);
             }
-            // Generic Update (Merge)
-            const currentStr = await redis.get('sentinel_wallet_config');
-            const current = currentStr ? JSON.parse(currentStr) : {};
 
-            newConfig = {
-                ...current,
-                ...req.body, // Merge new flags like multiFrameMode
-                // Protect critical fields unless explicitly provided in body
-                currentBalance: req.body.currentBalance !== undefined ? req.body.currentBalance : current.currentBalance,
-                initialBalance: req.body.initialBalance !== undefined ? req.body.initialBalance : current.initialBalance,
-                riskPercentage: req.body.riskPercentage !== undefined ? req.body.riskPercentage : current.riskPercentage
-            };
-        }
 
             await redis.set('sentinel_wallet_config', JSON.stringify(newConfig));
-        res.status(200).json(newConfig);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+            res.status(200).json(newConfig);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    } else {
+        res.setHeader('Allow', ['GET', 'POST']);
+        res.status(405).end(`Method ${req.method} Not Allowed`);
     }
-} else {
-    res.setHeader('Allow', ['GET', 'POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
-}
 }
