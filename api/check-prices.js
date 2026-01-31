@@ -348,112 +348,114 @@ export default async function handler(req, res) {
                             isStrongBuy = (rsi < 30 && rsi1h < 30 && rsi15m < 30);
                         } catch (e) { console.warn('Triple Check Fail', e.message); }
                     }
+                } else {
+                    // DEFAULT: SCALP, SWING, or Fallback
+                    // Lógica Combinada: RSI < 30 (Clásico) OR Bollinger Band Sniper (Frontend Parity)
+
                     // 3. Calculate Bollinger Bands (20 period, 2 stdDev)
                     const bbValues = BollingerBands.calculate({ period: 20, values: closes, stdDev: 2 });
                     const currentBB = bbValues[bbValues.length - 1] || null;
                     const lastPrice = closes[closes.length - 1];
 
-                    // logic
                     let sniperBuy = false;
                     if (currentBB) {
                         sniperBuy = (rsi < 30 && lastPrice <= currentBB.lower);
                     }
 
-                    // DEFAULT: SCALP or SWING (RSI < 30 OR Sniper BB)
-                    // If Sniper (BB + RSI), it's a stronger signal
                     if (sniperBuy) {
                         console.log(`🎯 ${symbol} | SNIPER SIGNAL (RSI ${rsi.toFixed(2)} + BB Touch)`);
                         isStrongBuy = true;
                     } else {
                         isStrongBuy = (rsi < 30);
                     }
-
-                    // DEBUG: Log Decision Reason
-                    let reason = '';
-                    if (strategy === 'FLOW') reason = `Pressure: ${typeof buyPressure !== 'undefined' ? buyPressure.toFixed(2) : 'N/A'}`;
-                    else reason = `RSI: ${rsi.toFixed(2)}`;
-
-                    if (strategy !== 'FLOW') console.log(`📊 ${symbol} | ${reason} | Buy: ${isStrongBuy} | ${strategy}`);
-
-                    // LOGIC: EXECUTE TRADE
-                    if (isStrongBuy) {
-                        // 1. BALANCE CHECK
-                        if (wallet.currentBalance < 10) {
-                            console.warn(`⚠️ SKIPPING ${symbol}: Insufficient Balance ($${wallet.currentBalance.toFixed(2)})`);
-                            alertsSent.push(`⚠️ ${symbol}: Saldo insuficiente ($${wallet.currentBalance.toFixed(2)})`);
-                            return; // Fixed: Use return instead of continue in map callback
-                        }
-
-                        const type = 'LONG';
-                        // Wallet Logic
-                        const risk = wallet.riskPercentage || 10;
-                        const investedAmount = wallet.currentBalance * (risk / 100);
-                        const openFee = investedAmount * 0.001;
-
-                        // Deduct Balance
-                        wallet.currentBalance -= (investedAmount + openFee);
-
-                        const newTrade = {
-                            id: uuidv4(),
-                            symbol,
-                            entryPrice: currentPrice, // SIMPLE ENTRY: Mid Price
-                            type,
-                            timestamp: new Date().toISOString(),
-                            investedAmount: investedAmount,
-                            strategy: strategy
-                        };
-                        newActiveTrades.push(newTrade);
-
-                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentPrice} | Inv: $${investedAmount.toFixed(2)}`);
-
-                        // Send Telegram alert (non-blocking)
-                        try {
-                            await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                                chat_id: CHAT_ID,
-                                text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentPrice}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
-                                parse_mode: 'Markdown'
-                            });
-                        } catch (telegramError) {
-                            console.warn('⚠️ Telegram notification failed:', telegramError.message);
-                        }
-                        alertsSent.push(`${symbol} (${type})`);
-                    }
                 }
-            } catch (err) {
-                if (err.response && err.response.status === 403) {
-                    console.log(`⛔ ${symbol}: 403 Forbidden (Region/IP Blocked)`);
-                } else {
-                    console.error(`Error processing ${symbol}:`, err.message);
+
+                // DEBUG: Log Decision Reason
+                let reason = '';
+                if (strategy === 'FLOW') reason = `Pressure: ${typeof buyPressure !== 'undefined' ? buyPressure.toFixed(2) : 'N/A'}`;
+                else reason = `RSI: ${rsi.toFixed(2)}`;
+
+                if (strategy !== 'FLOW') console.log(`📊 ${symbol} | ${reason} | Buy: ${isStrongBuy} | ${strategy}`);
+
+                // LOGIC: EXECUTE TRADE
+                if (isStrongBuy) {
+                    // 1. BALANCE CHECK
+                    if (wallet.currentBalance < 10) {
+                        console.warn(`⚠️ SKIPPING ${symbol}: Insufficient Balance ($${wallet.currentBalance.toFixed(2)})`);
+                        alertsSent.push(`⚠️ ${symbol}: Saldo insuficiente ($${wallet.currentBalance.toFixed(2)})`);
+                        return; // Fixed: Use return instead of continue in map callback
+                    }
+
+                    const type = 'LONG';
+                    // Wallet Logic
+                    const risk = wallet.riskPercentage || 10;
+                    const investedAmount = wallet.currentBalance * (risk / 100);
+                    const openFee = investedAmount * 0.001;
+
+                    // Deduct Balance
+                    wallet.currentBalance -= (investedAmount + openFee);
+
+                    const newTrade = {
+                        id: uuidv4(),
+                        symbol,
+                        entryPrice: currentPrice, // SIMPLE ENTRY: Mid Price
+                        type,
+                        timestamp: new Date().toISOString(),
+                        investedAmount: investedAmount,
+                        strategy: strategy
+                    };
+                    newActiveTrades.push(newTrade);
+
+                    console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentPrice} | Inv: $${investedAmount.toFixed(2)}`);
+
+                    // Send Telegram alert (non-blocking)
+                    try {
+                        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                            chat_id: CHAT_ID,
+                            text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentPrice}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
+                            parse_mode: 'Markdown'
+                        });
+                    } catch (telegramError) {
+                        console.warn('⚠️ Telegram notification failed:', telegramError.message);
+                    }
+                    alertsSent.push(`${symbol} (${type})`);
                 }
             }
-        });
-
-        await Promise.all(promises);
-
-        // 4. Save Cloud State
-        await redis.set('sentinel_active_trades', JSON.stringify(newActiveTrades));
-        await redis.set('sentinel_wallet_config', JSON.stringify(wallet));
-        if (newWins.length > 0) {
-            const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
-            await redis.set('sentinel_win_history', JSON.stringify(updatedHistory));
+            } catch (err) {
+            if (err.response && err.response.status === 403) {
+                console.log(`⛔ ${symbol}: 403 Forbidden (Region/IP Blocked)`);
+            } else {
+                console.error(`Error processing ${symbol}:`, err.message);
+            }
         }
+    });
 
-        res.status(200).json({
-            status: 'Process Finished',
-            region: REGION, // Return current region for debug
-            strategy: strategy,
-            activeCount: newActiveTrades.length,
-            newAlerts: alertsSent
-        });
+    await Promise.all(promises);
 
-    } catch (error) {
-        console.error('❌ CRITICAL ERROR in check-prices:', error);
-        console.error('Error Stack:', error.stack);
-        console.error('Error Message:', error.message);
-        res.status(500).json({
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-            timestamp: new Date().toISOString()
-        });
+    // 4. Save Cloud State
+    await redis.set('sentinel_active_trades', JSON.stringify(newActiveTrades));
+    await redis.set('sentinel_wallet_config', JSON.stringify(wallet));
+    if (newWins.length > 0) {
+        const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
+        await redis.set('sentinel_win_history', JSON.stringify(updatedHistory));
     }
+
+    res.status(200).json({
+        status: 'Process Finished',
+        region: REGION, // Return current region for debug
+        strategy: strategy,
+        activeCount: newActiveTrades.length,
+        newAlerts: alertsSent
+    });
+
+} catch (error) {
+    console.error('❌ CRITICAL ERROR in check-prices:', error);
+    console.error('Error Stack:', error.stack);
+    console.error('Error Message:', error.message);
+    res.status(500).json({
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+    });
+}
 }
