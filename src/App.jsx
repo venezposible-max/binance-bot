@@ -105,19 +105,7 @@ function App() {
 
       const analyzedPairs = (await Promise.all(promises)).filter(p => p !== null);
 
-      // 1.5 FETCH REAL-TIME PRICES (Ticker API) - More accurate than candles
-      const realTimePrices = await fetchTickerPrices(TOP_PAIRS);
-
-      analyzedPairs.forEach(({ symbol, analysis, history, candles }) => {
-        // OVERRIDE Price with Ticker Price if available
-        if (realTimePrices[symbol]) {
-          analysis.price = realTimePrices[symbol];
-        }
-        results[symbol] = { ...analysis, history, candles };
-      });
-
       setMarketData(results);
-      setStats({ buy: buyCount, sell: sellCount, neutral: neutralCount });
 
       // 2. Sync with Cloud Sniper (Vercel KV) - Non-blocking
       try {
@@ -135,6 +123,33 @@ function App() {
       setLoading(false);
     }
   };
+
+  // --- REACTIVE STATS CALCULATION ---
+  // Re-calculate stats whenever Market Data OR Cloud Status changes.
+  // This solves the stale state issue where "Opportunities" count didn't update after loading trades.
+  useEffect(() => {
+    let buyCount = 0;
+    let sellCount = 0;
+    let neutralCount = 0;
+
+    const normalize = (s) => (s || '').toUpperCase().replace('USDT', '').trim();
+
+    Object.entries(marketData).forEach(([symbol, data]) => {
+      // Check if active trade exists (Normalizing Linkusdt vs Link)
+      const isActive = cloudStatus.active.some(t => normalize(t.symbol) === normalize(symbol));
+
+      if (data.prediction.signal.includes('BUY')) {
+        if (!isActive) buyCount++;
+      } else if (data.prediction.signal.includes('SELL')) {
+        sellCount++;
+      } else {
+        neutralCount++;
+      }
+    });
+
+    setStats({ buy: buyCount, sell: sellCount, neutral: neutralCount });
+  }, [marketData, cloudStatus.active]);
+
 
   const handleConfigChange = (config) => {
     if (config?.strategy) {
