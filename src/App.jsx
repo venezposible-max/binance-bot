@@ -82,8 +82,11 @@ function App() {
           // Note: analysis.price comes from candles, might be slightly old.
           // We will override it below with Ticker Price.
 
-          // LOGIC FIX: Only count as "Opportunity" if we are NOT already in a trade for this symbol
-          const isActive = cloudStatus.active.some(t => t.symbol === symbol);
+          // LOGIC FIX: Normalized comparison to be bulletproof
+          // Compare "ETH" vs "ETHUSDT" correctly by stripping "USDT" from both sides
+          const normalize = (s) => (s || '').toUpperCase().replace('USDT', '').trim();
+
+          const isActive = cloudStatus.active.some(t => normalize(t.symbol) === normalize(symbol));
 
           if (analysis.prediction.signal.includes('BUY')) {
             if (!isActive) buyCount++;
