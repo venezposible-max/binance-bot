@@ -232,12 +232,12 @@ export default async function handler(req, res) {
                     const dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : 1.25;
 
                     // DEBUG LOG (Enhanced)
-                    alertsSent.push(`🔍 ${symbol}: Entry $${trade.entryPrice} vs Exit $${exitPrice} -> ${pnl.toFixed(2)}%`);
+                    alertsSent.push(`🔍 ${symbol}: Entry $${trade.entryPrice} vs Current $${currentPrice} -> ${pnl.toFixed(2)}%`);
 
                     // EXIT CONDITION
                     if (pnl >= dynamicTarget) {
                         console.log(`🎯 CLOUD WIN (${tradeStrategy}): ${symbol} hit ${pnl.toFixed(2)}%`);
-                        alertsSent.push(`✅ CLOSING ${symbol} (Hit Target) at $${exitPrice}`);
+                        alertsSent.push(`✅ CLOSING ${symbol} (Hit Target) at $${currentPrice}`);
 
                         // Wallet Credit Logic...
                         let profitUsd = trade.investedAmount * (pnl / 100);
@@ -259,8 +259,8 @@ export default async function handler(req, res) {
                             type: trade.type,
                             timestamp: new Date().toISOString(),
                             entryPrice: trade.entryPrice,
-                            exitPrice: exitPrice, // Use Realistic Exit Price
-                            investedAmount: trade.investedAmount, // Critical Fix for Final Value
+                            exitPrice: currentPrice, // Simple Exit Price
+                            investedAmount: trade.investedAmount,
                             strategy: tradeStrategy
                         });
                         newActiveTrades.splice(tradeIndex, 1);
@@ -396,7 +396,7 @@ export default async function handler(req, res) {
                         const newTrade = {
                             id: uuidv4(),
                             symbol,
-                            entryPrice: currentAsk, // REALISTIC ENTRY: Buy at Ask Price
+                            entryPrice: currentPrice, // SIMPLE ENTRY: Mid Price
                             type,
                             timestamp: new Date().toISOString(),
                             investedAmount: investedAmount,
@@ -404,14 +404,13 @@ export default async function handler(req, res) {
                         };
                         newActiveTrades.push(newTrade);
 
-                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentAsk} | Inv: $${investedAmount.toFixed(2)}`);
-
+                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentPrice} | Inv: $${investedAmount.toFixed(2)}`);
 
                         // Send Telegram alert (non-blocking)
                         try {
                             await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                                 chat_id: CHAT_ID,
-                                text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentAsk}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
+                                text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentPrice}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
                                 parse_mode: 'Markdown'
                             });
                         } catch (telegramError) {
