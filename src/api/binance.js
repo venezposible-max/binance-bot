@@ -16,21 +16,23 @@ export const fetchTopPairs = async () => {
         const res = await axios.get(`${BASE_URL}/ticker/24hr`);
         const allPairs = res.data;
 
+        // Explicit Blacklist of Stablecoins & Non-Volatile Assets
+        const BLACKLIST = [
+            'USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP',
+            'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD'
+        ];
+
         // Filter valid USDT pairs (exclude stablecoins & non-volatile assets)
-        const relevant = allPairs.filter(p =>
-            p.symbol.endsWith('USDT') &&
-            !p.symbol.includes('USDC') &&
-            !p.symbol.includes('FUSD') &&
-            !p.symbol.includes('TUSD') &&
-            !p.symbol.includes('BUSD') &&
-            !p.symbol.includes('DAI') &&
-            !p.symbol.includes('USDP') &&
-            !p.symbol.includes('AEUR') &&
-            !p.symbol.includes('EUR') &&
-            !p.symbol.includes('PAXG') &&
-            !p.symbol.includes('WBTC') &&
-            parseFloat(p.quoteVolume) > 5000000 // Min 5M volume
-        );
+        const relevant = allPairs.filter(p => {
+            if (!p.symbol.endsWith('USDT')) return false;
+
+            // Check against Blacklist
+            const isBlacklisted = BLACKLIST.some(blocked => p.symbol.includes(blocked));
+            if (isBlacklisted) return false;
+
+            // Volume Filter
+            return parseFloat(p.quoteVolume) > 5000000;
+        });
 
         // Sort by Volume (quoteVolume = Volume in USDT)
         relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
