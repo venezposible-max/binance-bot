@@ -73,7 +73,6 @@ function App() {
     return rawPnL - 0.1;
   };
 
-  const walletRef = useRef(null);
   const isLoadingRef = useRef(false); // Prevent duplicate fetches
 
   const fetchData = async (overrideTimeframe) => {
