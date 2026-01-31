@@ -104,9 +104,6 @@ export default async function handler(req, res) {
         } else {
             console.log('☁️ STANDARD DATA: Public API (Rate Limited)');
         }
-        console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
-        // -------------------------
-
         const alertsSent = [];
 
         let activeTradesStr = await redis.get('sentinel_active_trades');
@@ -117,8 +114,17 @@ export default async function handler(req, res) {
             initialBalance: 1000,
             currentBalance: 1000,
             riskPercentage: 10,
+            allocatedCapital: 500, // Default
+            tradingMode: 'SIMULATION', // Default
             isBotActive: true
         };
+
+        // DYNAMIC LOGGING
+        if (wallet.tradingMode === 'LIVE') {
+            console.log('💸 EXECUTION MODE: LIVE MONEY (REAL TRADING) ⚠️');
+        } else {
+            console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
+        }
 
         // --- GLOBAL KILL SWITCH ---
         if (wallet.isBotActive === false) {
