@@ -58,6 +58,16 @@ export default async function handler(req, res) {
     try {
         const REGION = process.env.REGION || 'USA';
         console.log(`🤖 Sentinel Bot Waking Up... [REGION: ${REGION}] [METHOD: ${req.method}]`);
+
+        // --- VIP & SAFETY LOGS ---
+        if (process.env.BINANCE_API_KEY) {
+            console.log('🔐 VIP DATA ACCESS: ENABLED (High Performance Mode)');
+        } else {
+            console.log('☁️ STANDARD DATA: Public API (Rate Limited)');
+        }
+        console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
+        // -------------------------
+
         const alertsSent = [];
 
         let activeTradesStr = await redis.get('sentinel_active_trades');
