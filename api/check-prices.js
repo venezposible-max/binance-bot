@@ -223,13 +223,13 @@ export default async function handler(req, res) {
                     const closes = klines.map(candle => parseFloat(candle[4]));
                     const rsi = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
-                    // EMA 200 Calculation (Trend Filter)
-                    // If not enough data, assume bullish (avoid blocking starter coins)
+                    // EMA 200 Calculation (Trend Filter) - Not used for Entry Blocking anymore to match Frontend
                     const ema200Val = EMA.calculate({ values: closes, period: 200 }).slice(-1)[0];
-                    const currentClose = closes[closes.length - 1];
-                    const isBullishTrend = ema200Val ? currentClose > ema200Val : true;
 
-                    let isStrongBuy = (rsi < 30 && isBullishTrend); // MAIN LOGIC: Oversold + Uptrend
+                    // ALIGNMENT WITH FRONTEND (analysis.js):
+                    // Frontend 'BUY' signal is purely based on RSI < 30 (Oversold).
+                    // We remove 'isBullishTrend' check to ensure "detected opportunities" are executed.
+                    let isStrongBuy = (rsi < 30);
 
                     if (strategy === 'TRIPLE') {
                         try {
