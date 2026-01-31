@@ -5,7 +5,12 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 
 // --- CRASH PREVENTION & LOGGING ---
-console.log('🔥 SERVER STARTING... Catching all errors.');
+console.log('========================================');
+console.log('🔥 SERVER STARTING...');
+console.log('Node Version:', process.version);
+console.log('Platform:', process.platform);
+console.log('CWD:', process.cwd());
+console.log('========================================');
 
 process.on('uncaughtException', (err) => {
     console.error('💥 CRITICAL ERROR (Uncaught Exception):', err);
