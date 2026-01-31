@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
+import checkPriceHandler from './api/check-prices.js';
 
 // --- CRASH PREVENTION & LOGGING ---
 console.log('🔥 SERVER STARTING... Catching all errors.');
@@ -70,8 +71,6 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// IMPORT CRON HANDLER DIRECTLY (Bypass Network Issues)
-import checkPriceHandler from './api/check-prices.js';
 
 // --- ROBUST INTERNAL CRON (No HTTP reqs needed) ---
 const runInternalScan = async (source = 'TIMER') => {
