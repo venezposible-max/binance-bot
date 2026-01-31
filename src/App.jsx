@@ -115,6 +115,11 @@ function App() {
 
       const analyzedPairs = (await Promise.all(promises)).filter(p => p !== null);
 
+      // FIX: Populate results object from array
+      analyzedPairs.forEach(p => {
+        results[p.symbol] = p;
+      });
+
       setMarketData(results);
 
       // 2. Sync with Cloud Sniper (Vercel KV) - Non-blocking
