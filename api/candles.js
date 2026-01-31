@@ -28,7 +28,8 @@ export default async function handler(req, res) {
             } catch (e) {
                 console.warn(`Binance US failed for ${symbol}, trying Global...`);
                 response = await axios.get('https://api.binance.com/api/v3/klines', {
-                    params: { symbol, interval, limit }
+                    params: { symbol, interval, limit },
+                    timeout: 8000
                 });
             }
         }

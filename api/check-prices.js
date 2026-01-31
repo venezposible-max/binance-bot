@@ -20,7 +20,7 @@ async function fetchGlobalPrice(symbol) {
     // OPTION A: EUROPE (RAILWAY/VPS) -> Use Binance Global Directly
     if (REGION === 'EU') {
         try {
-            const res = await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+            const res = await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { timeout: 5000 });
             return parseFloat(res.data.price);
         } catch (e) {
             console.error('Binance Global Price Fail (EU Mode)', e.message);
@@ -32,12 +32,12 @@ async function fetchGlobalPrice(symbol) {
     const base = symbol.replace('USDT', '');
     try {
         // Priority 1: Binance US (More accurate for Binance simulation)
-        const res = await axios.get(`https://api.binance.us/api/v3/ticker/price?symbol=${symbol}`);
+        const res = await axios.get(`https://api.binance.us/api/v3/ticker/price?symbol=${symbol}`, { timeout: 5000 });
         return parseFloat(res.data.price);
     } catch (e) {
         try {
             // Priority 2: Coinbase Oracle (Backup)
-            const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`);
+            const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`, { timeout: 5000 });
             return parseFloat(res.data.data.amount);
         } catch (err) {
             console.error(`Price Fetch Failed for ${symbol}`, err.message);
@@ -219,7 +219,7 @@ export default async function handler(req, res) {
                         klinesUrl = `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=250`;
                     }
 
-                    const { data: klines } = await axios.get(klinesUrl);
+                    const { data: klines } = await axios.get(klinesUrl, { timeout: 5000 });
                     const closes = klines.map(candle => parseFloat(candle[4]));
                     const rsi = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
@@ -238,8 +238,8 @@ export default async function handler(req, res) {
                             const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
 
                             const [res1h, res15m] = await Promise.all([
-                                axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1h&limit=50`),
-                                axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=15m&limit=50`)
+                                axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1h&limit=50`, { timeout: 5000 }),
+                                axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=15m&limit=50`, { timeout: 5000 })
                             ]);
                             const closes1h = res1h.data.map(c => parseFloat(c[4]));
                             const closes15m = res15m.data.map(c => parseFloat(c[4]));
