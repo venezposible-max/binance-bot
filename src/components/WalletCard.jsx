@@ -147,7 +147,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
 
     const handleCycleStrategy = async () => {
         if (!wallet) return;
-        const strategies = ['SWING', 'TRIPLE', 'SCALP'];
+        const strategies = ['SWING', 'TRIPLE', 'SCALP', 'FLOW'];
         const currentIndex = strategies.indexOf(currentStrategy);
         const nextStrategy = strategies[(currentIndex + 1) % strategies.length];
 
@@ -173,6 +173,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
     const getStrategyColor = (s) => {
         if (s === 'TRIPLE') return '#8B5CF6'; // Purple
         if (s === 'SCALP') return '#F59E0B'; // Orange
+        if (s === 'FLOW') return '#00D9FF'; // Neon Blue
         return '#10B981'; // Teal (Default/Swing)
     };
 

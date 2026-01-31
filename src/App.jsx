@@ -184,17 +184,17 @@ function App() {
   }, [marketData, cloudStatus.active]);
 
 
-  const handleConfigChange = (config) => {
-    if (config?.strategy) {
+  const handleConfigChange = (newConfig) => {
+    // Sync activeStrategy if changed from WalletCard
+    if (newConfig?.strategy) {
       let newTf = '4h';
-      if (config.strategy === 'SCALP') newTf = '5m';
-      if (config.strategy === 'TRIPLE') newTf = '15m'; // Visual for Triple
+      if (newConfig.strategy === 'SCALP') newTf = '5m';
+      if (newConfig.strategy === 'TRIPLE') newTf = '15m'; // Visual for Triple
 
-      // ... (rest of logic same)
-      console.log(`🔄 Strategy Changed to ${config.strategy} -> Switching Charts to ${newTf}`);
+      console.log(`🔄 Strategy Changed to ${newConfig.strategy} -> Switching Charts to ${newTf}`);
       setTimeframe(newTf);
-      setActiveStrategy(config.strategy);
-      localStorage.setItem('sentinel_strategy', config.strategy);
+      setActiveStrategy(newConfig.strategy);
+      localStorage.setItem('sentinel_strategy', newConfig.strategy);
       fetchData(newTf);
     } else {
       fetchData();
