@@ -180,6 +180,14 @@ function App() {
     }
   };
 
+  // --- INITIAL DATA FETCH ---
+  useEffect(() => {
+    fetchData();
+    // Set up auto-refresh interval (every 60s)
+    const interval = setInterval(() => fetchData(), 60000);
+    return () => clearInterval(interval);
+  }, [timeframe]); // Re-fetch when timeframe changes
+
   // ... (Side effects)
 
   return (
