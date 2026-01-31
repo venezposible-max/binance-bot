@@ -28,19 +28,35 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
     }, []);
 
     const handleConfigure = async () => {
-        const newBalance = prompt('Introduce Capital Inicial (USDT Virtuales):', wallet?.initialBalance || 1000);
+        // 1. Select Mode
+        const modeInput = prompt('ESCOGE MODO DE EJECUCIÓN:\n1 = SIMULACIÓN (Paper Trading)\n2 = LIVE (Dinero Real 💸)', wallet?.tradingMode === 'LIVE' ? '2' : '1');
+        if (modeInput === null) return;
+        const newMode = modeInput === '2' ? 'LIVE' : 'SIMULATION';
+
+        // 2. Initial Balance OR Allocated Capital
+        const balanceLabel = newMode === 'LIVE' ? '💰 Capital REAL Asignado (USDT Max):' : '🧪 Saldo Virtual Inicial:';
+        const defaultBal = newMode === 'LIVE' ? (wallet?.allocatedCapital || 500) : (wallet?.initialBalance || 1000);
+
+        const newBalance = prompt(balanceLabel, defaultBal);
         if (newBalance === null) return;
 
+        // 3. Risk
         const newRisk = prompt('Porcentaje de Riesgo por Operación (%):', wallet?.riskPercentage || 10);
         if (newRisk === null) return;
 
-        if (confirm(`⚠ ATENCIÓN: Al cambiar el capital inicial, se restablecerá el saldo actual a $${newBalance}.\n\n¿Estás seguro?`)) {
+        const confirmMsg = newMode === 'LIVE'
+            ? `⚠️⚠️ PELIGRO: MODO LIVE ⚠️⚠️\n\nEstás a punto de activar DINERO REAL.\nCapital Asignado: $${newBalance}\nRiesgo: ${newRisk}%\n\n¿CONFIRMAS?`
+            : `Confirmar Reconfiguración:\nModo: SIMULACIÓN\nSaldo: $${newBalance}\nRiesgo: ${newRisk}%`;
+
+        if (confirm(confirmMsg)) {
             try {
                 const res = await fetch('/api/wallet/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        initialBalance: parseFloat(newBalance),
+                        initialBalance: parseFloat(newBalance), // Virtual Balance
+                        allocatedCapital: parseFloat(newBalance), // Real Limit
+                        tradingMode: newMode,
                         riskPercentage: parseFloat(newRisk),
                         strategy: wallet?.strategy || 'SWING', // Preserve active strategy
                         reset: true
@@ -201,6 +217,16 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     💼 BILLETERA
+                    {wallet?.tradingMode === 'LIVE' && (
+                        <span style={{
+                            fontSize: '0.6rem',
+                            background: '#EF4444',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            animation: 'pulse 2s infinite'
+                        }}>LIVE MONEY 💸</span>
+                    )}
                 </div>
                 <button
                     onClick={handleToggleBot}
