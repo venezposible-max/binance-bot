@@ -285,7 +285,7 @@ export default async function handler(req, res) {
                 // The bot should be autonomous and enter trades automatically
 
                 if (tradeIndex === -1) {
-                    let primaryInterval = strategy === 'SCALP' ? '5m' : '4h';
+                    let primaryInterval = strategy === 'SCALP' ? '5m' : '1h'; // Default to 1h for more signals (was 4h)
 
                     // SMART REGION SWITCHING FOR KLINES
                     let klinesUrl = '';
