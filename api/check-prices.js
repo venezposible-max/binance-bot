@@ -343,7 +343,7 @@ export default async function handler(req, res) {
                     // ensure valid interval
                     if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = '4h';
 
-                    console.log(`.. 🔎 ANALYZING: ${symbol} [${primaryInterval}]`);
+                    // Log moved to post-calculation for visibility
 
                     // SMART REGION SWITCHING FOR KLINES
                     let klinesUrl = '';
