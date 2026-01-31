@@ -58,8 +58,8 @@ async function fetchGlobalPrice(symbol) {
     // OPTION A: EUROPE (RAILWAY/VPS) -> Use Binance Global Directly
     if (REGION === 'EU') {
         try {
-            const res = await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { timeout: 5000 });
-            return parseFloat(res.data.price);
+            const res = await axios.get(`https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 5000 });
+            return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice) };
         } catch (e) {
             console.error('Binance Global Price Fail (EU Mode)', e.message);
             // Fallback to Coinbase just in case
@@ -70,13 +70,14 @@ async function fetchGlobalPrice(symbol) {
     const base = symbol.replace('USDT', '');
     try {
         // Priority 1: Binance US (More accurate for Binance simulation)
-        const res = await axios.get(`https://api.binance.us/api/v3/ticker/price?symbol=${symbol}`, { timeout: 5000 });
-        return parseFloat(res.data.price);
+        const res = await axios.get(`https://api.binance.us/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 5000 });
+        return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice) };
     } catch (e) {
         try {
             // Priority 2: Coinbase Oracle (Backup)
             const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`, { timeout: 5000 });
-            return parseFloat(res.data.data.amount);
+            const val = parseFloat(res.data.data.amount);
+            return { price: val, bid: val, ask: val };
         } catch (err) {
             console.error(`Price Fetch Failed for ${symbol}`, err.message);
             return null;
