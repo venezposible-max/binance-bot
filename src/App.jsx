@@ -21,6 +21,27 @@ function App() {
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
 
+  // --- BINANCE REAL BALANCE ---
+  const [binanceBalance, setBinanceBalance] = useState(null);
+
+  const fetchBinanceBalance = async () => {
+    try {
+      const res = await fetch('/api/wallet/balance');
+      if (res.ok) {
+        const data = await res.json();
+        setBinanceBalance(data);
+      }
+    } catch (e) {
+      console.error("Balance fetch failed", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchBinanceBalance();
+    const interval = setInterval(fetchBinanceBalance, 20000); // Check every 20s
+    return () => clearInterval(interval);
+  }, []);
+
   // --- MOBILE NAV STATE ---
   const [mobileTab, setMobileTab] = useState('dashboard');
 
