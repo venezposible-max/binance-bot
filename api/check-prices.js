@@ -198,31 +198,45 @@ export default async function handler(req, res) {
         const promises = uniquePairs.map(async (symbol) => {
             try {
                 // 1. Fetch Global Price First (Reliable PnL)
-                const currentPrice = await fetchGlobalPrice(symbol);
-                if (!currentPrice) return;
+                // NOW RETURNS OBJECT: { price, bid, ask }
+                const marketData = await fetchGlobalPrice(symbol);
+                if (!marketData || !marketData.price) return;
+
+                const currentPrice = marketData.price; // For logging/display
+                const currentBid = marketData.bid;     // Execution Price for Selling (Closing Longs)
+                const currentAsk = marketData.ask;     // Execution Price for Buying (Closing Shorts / Opening Longs)
 
                 // --- 2. Monitor Existing Trades (Auto-Exit) ---
                 const tradeIndex = newActiveTrades.findIndex(t => t.symbol === symbol);
                 if (tradeIndex !== -1) {
                     const trade = newActiveTrades[tradeIndex];
                     let pnl = 0;
+
+                    // REALISTIC PNL CALCULATION (SPREAD AWARE)
+                    let exitPrice = currentPrice;
+
                     if (trade.type === 'SHORT') {
-                        pnl = ((trade.entryPrice - currentPrice) / trade.entryPrice) * 100;
+                        // Closing Short = Buying Back at ASK Price
+                        exitPrice = currentAsk;
+                        pnl = ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100;
                     } else {
-                        pnl = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                        // Closing Long = Selling at BID Price
+                        exitPrice = currentBid;
+                        pnl = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
                     }
 
+                    // Determine Target based on Trade's Strategy (with fallback)
                     // Determine Target based on Trade's Strategy (with fallback)
                     const tradeStrategy = trade.strategy || strategy;
                     const dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : 1.25;
 
                     // DEBUG LOG (Enhanced)
-                    alertsSent.push(`🔍 ${symbol}: $${currentPrice} vs Entry $${trade.entryPrice} -> ${pnl.toFixed(2)}% (${tradeStrategy})`);
+                    alertsSent.push(`🔍 ${symbol}: Entry $${trade.entryPrice} vs Exit $${exitPrice} -> ${pnl.toFixed(2)}%`);
 
                     // EXIT CONDITION
                     if (pnl >= dynamicTarget) {
-                        console.log(`🎯 CLOUD WIN (${tradeStrategy}): ${symbol} hit ${pnl.toFixed(2)}% (Target: ${dynamicTarget}%)`);
-                        alertsSent.push(`✅ CLOSING ${symbol} (Hit Target)`);
+                        console.log(`🎯 CLOUD WIN (${tradeStrategy}): ${symbol} hit ${pnl.toFixed(2)}%`);
+                        alertsSent.push(`✅ CLOSING ${symbol} (Hit Target) at $${exitPrice}`);
 
                         // Wallet Credit Logic...
                         let profitUsd = trade.investedAmount * (pnl / 100);
@@ -244,7 +258,7 @@ export default async function handler(req, res) {
                             type: trade.type,
                             timestamp: new Date().toISOString(),
                             entryPrice: trade.entryPrice,
-                            exitPrice: currentPrice,
+                            exitPrice: exitPrice, // Use Realistic Exit Price
                             investedAmount: trade.investedAmount, // Critical Fix for Final Value
                             strategy: tradeStrategy
                         });
@@ -352,7 +366,7 @@ export default async function handler(req, res) {
                         const newTrade = {
                             id: uuidv4(),
                             symbol,
-                            entryPrice: currentPrice, // FIXED: Use Global Price (Coinbase) to match PnL logic
+                            entryPrice: currentAsk, // REALISTIC ENTRY: Buy at Ask Price
                             type,
                             timestamp: new Date().toISOString(),
                             investedAmount: investedAmount,
@@ -360,13 +374,13 @@ export default async function handler(req, res) {
                         };
                         newActiveTrades.push(newTrade);
 
-                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentPrice} | Strategy: ${strategy}`);
+                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentAsk} | Strategy: ${strategy}`);
 
                         // Send Telegram alert (non-blocking)
                         try {
                             await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                                 chat_id: CHAT_ID,
-                                text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentPrice}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
+                                text: `🔵 **CLOUD LONG (${strategy})** 🐂\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: LONG\n💰 Precio Entrada: $${currentAsk}\n⏱️ Candles: ${primaryInterval}\n🎯 Target: +${PROFIT_TARGET}%\n\n_REGION: ${REGION}_`,
                                 parse_mode: 'Markdown'
                             });
                         } catch (telegramError) {
