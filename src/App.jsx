@@ -106,7 +106,8 @@ function App() {
           }
           else neutralCount++;
 
-          return { symbol, analysis, history, candles: candles.slice(-50) };
+          // Flatten analysis object so 'prediction' is at top level for SentinelCard
+          return { symbol, ...analysis, history, candles: candles.slice(-50) };
         } catch (err) {
           console.warn(`Error fetching ${symbol}:`, err);
           return null;
