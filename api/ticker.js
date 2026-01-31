@@ -8,14 +8,10 @@ const getBaseUrl = () => {
 
 const fetchPriceFromSource = async (baseUrl, symbol) => {
     try {
-        const config = {
+        const response = await axios.get(`${baseUrl}/ticker/price`, {
             params: { symbol },
             timeout: 3000 // Fast timeout to failover quickly
-        };
-        if (process.env.BINANCE_API_KEY) {
-            config.headers = { 'X-MBX-APIKEY': process.env.BINANCE_API_KEY };
-        }
-        const response = await axios.get(`${baseUrl}/ticker/price`, config);
+        });
         return parseFloat(response.data.price);
     } catch (e) {
         return null;

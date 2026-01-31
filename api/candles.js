@@ -14,14 +14,10 @@ export default async function handler(req, res) {
 
         if (REGION === 'EU') {
             // Priority: Binance Global
-            const config = {
+            response = await axios.get('https://api.binance.com/api/v3/klines', {
                 params: { symbol, interval, limit },
                 timeout: 8000
-            };
-            if (process.env.BINANCE_API_KEY) {
-                config.headers = { 'X-MBX-APIKEY': process.env.BINANCE_API_KEY };
-            }
-            response = await axios.get('https://api.binance.com/api/v3/klines', config);
+            });
         } else {
             // US Mode: Try Binance US first
             try {
