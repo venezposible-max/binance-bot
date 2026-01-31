@@ -119,9 +119,20 @@ export default async function handler(req, res) {
             isBotActive: true
         };
 
-        // DYNAMIC LOGGING
+        // DYNAMIC LOGGING & BALANCE CHECK
+        let realBalance = null;
         if (wallet.tradingMode === 'LIVE') {
-            console.log('💸 EXECUTION MODE: LIVE MONEY (REAL TRADING) ⚠️');
+            try {
+                const balanceData = await binanceClient.getAccountBalance('USDT');
+                if (balanceData.error) {
+                    console.log('⛔ API KEY ERROR: ' + balanceData.error);
+                } else {
+                    realBalance = balanceData.available;
+                    console.log(`💸 EXECUTION MODE: LIVE MONEY | 💰 WALLET: $${realBalance.toFixed(2)} USDT`);
+                }
+            } catch (e) {
+                console.log('⛔ BINANCE API EXCEPTION: ' + e.message);
+            }
         } else {
             console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
         }
