@@ -79,12 +79,10 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('💓 Heartbeat: ENABLED (Every 60 seconds)');
     console.log('='.repeat(60));
 
-    // --- IMMEDIATE FIRST SCAN (Catch opportunities on startup) ---
-    console.log('🔍 Running immediate first scan on startup...');
+    // FORCE IMMEDIATE RUN for user visibility
     setTimeout(async () => {
         try {
-            const redis = (await import('./src/utils/redisClient.js')).default;
-            await redis.set('sentinel_last_heartbeat', new Date().toISOString());
+            console.log('⚡ FAST START: Triggering first price check immediately...');
             const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
             console.log(`✅ Startup scan completed - ${response.data.activeCount} active trades, ${response.data.newAlerts?.length || 0} alerts`);
         } catch (e) {
