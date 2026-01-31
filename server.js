@@ -61,8 +61,12 @@ app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 // --- SERVE FRONTEND (VITE BUILD) ---
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Handle React Routing (SPA)
+// Handle React Routing (SPA) with explicit NO-CACHE for index.html
 app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 

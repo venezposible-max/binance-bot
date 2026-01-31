@@ -6,25 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['pwa-icon.svg'],
-      manifest: {
-        name: 'Binance Sentinel AI',
-        short_name: 'Sentinel',
-        description: 'Autonomous Crypto Trading Bot',
-        theme_color: '#0d1117',
-        background_color: '#0d1117',
-        display: 'standalone',
-        icons: [
-          {
-            src: 'pwa-icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
-          }
-        ]
-      }
-    })
+    react(),
+    // VitePWA({...}) // DISABLE PWA TEMPORARILY TO FIX CHROME CACHE
   ],
 })
