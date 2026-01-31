@@ -195,7 +195,7 @@ function App() {
             Patrullando 24/7 de forma autónoma en la nube.
             <br />
             <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block' }} className="text-glow-yellow">
-              🔥 {stats.buy} Nuevas Detectadas {stats.taken > 0 && <span style={{ color: '#10B981', marginLeft: '10px' }}>| ✅ {stats.taken} Ya Tomadas</span>}
+              🔥 {stats.buy + stats.taken} oportunidades long detectadas, {stats.taken} tomadas
             </span>
           </p>
         </section>
