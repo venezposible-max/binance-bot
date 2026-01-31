@@ -100,7 +100,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
             await redis.set('sentinel_last_heartbeat', now);
 
             // Call itself locally to trigger the check-prices logic
-            const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`);
+            const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, { timeout: 5000 });
             console.log(`✅ [${now}] Heartbeat: Check completed - ${response.data.activeCount} active trades`);
         } catch (e) {
             console.error(`💔 [${now}] Heartbeat Error:`, e.message);
@@ -108,10 +108,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
         }
     }, 60000); // Every 60 seconds
 
-    // --- KEEPALIVE LOG (Every 5 minutes to show server is alive) ---
+    // --- KEEPALIVE LOG (Every 1 minute to show server is alive visually) ---
     setInterval(() => {
-        console.log(`🟢 [${new Date().toISOString()}] Server keepalive - Still running...`);
-    }, 300000); // Every 5 minutes
+        const memUsage = process.memoryUsage();
+        console.log(`🟢 [${new Date().toISOString()}] Server OK | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`);
+    }, 60000); // Every 1 minute
 });
 
 // Handle server errors
