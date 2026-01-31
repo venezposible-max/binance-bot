@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { RSI, EMA } from 'technicalindicators';
+import { RSI, EMA, BollingerBands } from 'technicalindicators';
 import redis from '../src/utils/redisClient.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -348,8 +348,23 @@ export default async function handler(req, res) {
                             isStrongBuy = (rsi < 30 && rsi1h < 30 && rsi15m < 30);
                         } catch (e) { console.warn('Triple Check Fail', e.message); }
                     }
-                    else {
-                        // DEFAULT: SCALP or SWING (RSI < 30)
+                    // 3. Calculate Bollinger Bands (20 period, 2 stdDev)
+                    const bbValues = BollingerBands.calculate({ period: 20, values: closes, stdDev: 2 });
+                    const currentBB = bbValues[bbValues.length - 1] || null;
+                    const lastPrice = closes[closes.length - 1];
+
+                    // logic
+                    let sniperBuy = false;
+                    if (currentBB) {
+                        sniperBuy = (rsi < 30 && lastPrice <= currentBB.lower);
+                    }
+
+                    // DEFAULT: SCALP or SWING (RSI < 30 OR Sniper BB)
+                    // If Sniper (BB + RSI), it's a stronger signal
+                    if (sniperBuy) {
+                        console.log(`🎯 ${symbol} | SNIPER SIGNAL (RSI ${rsi.toFixed(2)} + BB Touch)`);
+                        isStrongBuy = true;
+                    } else {
                         isStrongBuy = (rsi < 30);
                     }
 
