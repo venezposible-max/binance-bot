@@ -21,13 +21,13 @@ function App() {
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
 
   // --- MOBILE NAV STATE ---
-  const [mobileTab, setMobileTab] = useState('DASHBOARD');
+  const [mobileTab, setMobileTab] = useState('dashboard');
 
   const handleMobileNav = (tab) => {
     setMobileTab(tab);
-    if (tab === 'DASHBOARD') window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (tab === 'WALLET') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
-    if (tab === 'MARKET') document.getElementById('market-grid-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (tab === 'dashboard') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tab === 'wallet') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (tab === 'settings') walletRef.current?.configure(); // Open config modal
   };
 
   // --- WALLET REF for mobile config ---
