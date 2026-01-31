@@ -113,7 +113,20 @@ export const analyzePair = (candles) => {
  */
 export const analyzeFlow = (depth, currentPrice) => {
     if (!depth || !depth.bids || !depth.asks) {
-        return { signal: 'NEUTRAL', label: 'NO DATA', color: '#64748B', pressure: 1.0 };
+        return {
+            price: currentPrice,
+            indicators: {
+                rsi: '---',
+                ema: '---',
+                flow: { bidVol: '0', askVol: '0', ratio: '1.00', bidPercent: '50.0' }
+            },
+            prediction: {
+                signal: 'NEUTRAL',
+                label: 'NO DATA (FLOW)',
+                color: '#64748B',
+                intensity: 0
+            }
+        };
     }
 
     // 1. Calculate Buying Pressure (Sum of Bid Volume) vs Selling Pressure
