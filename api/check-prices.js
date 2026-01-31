@@ -262,8 +262,8 @@ export default async function handler(req, res) {
                             // Fallback for old trades: invested / entry
                             const qtyToSell = trade.quantity || (trade.investedAmount / trade.entryPrice);
 
-                            // EXECUTE SELL
-                            const order = await binanceClient.executeOrder(symbol, 'SELL', qtyToSell, currentPrice);
+                            // EXECUTE SELL (Pass isLive Override)
+                            const order = await binanceClient.executeOrder(symbol, 'SELL', qtyToSell, currentPrice, 'MARKET', isLive);
 
                             // Parse Result
                             const executedQty = parseFloat(order.executedQty);
