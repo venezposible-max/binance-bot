@@ -365,7 +365,7 @@ export default async function handler(req, res) {
                         if (wallet.currentBalance < 10) {
                             console.warn(`⚠️ SKIPPING ${symbol}: Insufficient Balance ($${wallet.currentBalance.toFixed(2)})`);
                             alertsSent.push(`⚠️ ${symbol}: Saldo insuficiente ($${wallet.currentBalance.toFixed(2)})`);
-                            continue; // Skip this iteration
+                            return; // Fixed: Use return instead of continue in map callback
                         }
 
                         const type = 'LONG';
