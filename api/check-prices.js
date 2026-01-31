@@ -352,15 +352,29 @@ export default async function handler(req, res) {
                         isStrongBuy = (rsi < 30);
                     }
 
-                    // DEBUG: Log Decision
-                    if (strategy !== 'FLOW') console.log(`📊 ${symbol} | RSI: ${rsi.toFixed(2)} | isStrongBuy: ${isStrongBuy} | Strategy: ${strategy}`);
+                    // DEBUG: Log Decision Reason
+                    let reason = '';
+                    if (strategy === 'FLOW') reason = `Pressure: ${typeof buyPressure !== 'undefined' ? buyPressure.toFixed(2) : 'N/A'}`;
+                    else reason = `RSI: ${rsi.toFixed(2)}`;
 
+                    if (strategy !== 'FLOW') console.log(`📊 ${symbol} | ${reason} | Buy: ${isStrongBuy} | ${strategy}`);
+
+                    // LOGIC: EXECUTE TRADE
                     if (isStrongBuy) {
+                        // 1. BALANCE CHECK
+                        if (wallet.currentBalance < 10) {
+                            console.warn(`⚠️ SKIPPING ${symbol}: Insufficient Balance ($${wallet.currentBalance.toFixed(2)})`);
+                            alertsSent.push(`⚠️ ${symbol}: Saldo insuficiente ($${wallet.currentBalance.toFixed(2)})`);
+                            continue; // Skip this iteration
+                        }
+
                         const type = 'LONG';
                         // Wallet Logic
                         const risk = wallet.riskPercentage || 10;
                         const investedAmount = wallet.currentBalance * (risk / 100);
                         const openFee = investedAmount * 0.001;
+
+                        // Deduct Balance
                         wallet.currentBalance -= (investedAmount + openFee);
 
                         const newTrade = {
@@ -374,7 +388,8 @@ export default async function handler(req, res) {
                         };
                         newActiveTrades.push(newTrade);
 
-                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentAsk} | Strategy: ${strategy}`);
+                        console.log(`✅ ENTRADA AUTÓNOMA: ${symbol} ${type} @ $${currentAsk} | Inv: $${investedAmount.toFixed(2)}`);
+
 
                         // Send Telegram alert (non-blocking)
                         try {
