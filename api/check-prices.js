@@ -214,7 +214,10 @@ export default async function handler(req, res) {
 
         console.log(`🔍 SCANNED PAIRS (${uniquePairs.length}):`, uniquePairs.join(', '));
 
-        const promises = uniquePairs.map(async (symbol) => {
+        console.log(`🔍 SCANNED PAIRS (${uniquePairs.length}):`, uniquePairs.join(', '));
+
+        // SEQUENTIAL LOOP (Par por Par - User Request)
+        for (const symbol of uniquePairs) {
             // Determine Timeframe EARLY for logging
             let primaryInterval = wallet.timeframe || (strategy === 'SCALP' ? '5m' : '4h');
             if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = '4h';
@@ -224,8 +227,12 @@ export default async function handler(req, res) {
             try {
                 // 1. Fetch Global Price First (Reliable PnL)
                 // NOW RETURNS OBJECT: { price, bid, ask }
+                // 1. Fetch Global Price First (Reliable PnL)
                 const marketData = await fetchGlobalPrice(symbol);
-                if (!marketData || !marketData.price) return;
+                if (!marketData || !marketData.price) {
+                    console.warn(`.. ⚠️ NO PRICE: ${symbol} (Skipping)`);
+                    continue; // Skip execution for this pair
+                }
 
                 const currentPrice = marketData.price; // For logging/display
                 const currentBid = marketData.bid;     // Execution Price for Selling (Closing Longs)
