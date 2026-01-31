@@ -3,7 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
-import checkPriceHandler from './api/check-prices.js';
 
 // --- CRASH PREVENTION & LOGGING ---
 console.log('🔥 SERVER STARTING... Catching all errors.');
@@ -72,29 +71,24 @@ app.get('*', (req, res) => {
 });
 
 
-// --- ROBUST INTERNAL CRON (No HTTP reqs needed) ---
+// --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
 const runInternalScan = async (source = 'TIMER') => {
     console.log(`\n⏰ [${new Date().toISOString()}] INTERNAL CRON (${source}): Executing Scan...`);
 
-    // Mock Request/Response for the handler
-    const req = { method: 'GET', query: {}, body: {} };
-    const res = {
-        setHeader: () => { },
-        status: (code) => ({
-            json: (data) => {
-                const active = data.activeCount !== undefined ? data.activeCount : (data.active?.length || 0);
-                console.log(`✅ SCAN COMPLETE: ${active} Active Trades | Code ${code}`);
-                // Keep heartbeat alive in Redis
-                import('./src/utils/redisClient.js').then(m => {
-                    m.default.set('sentinel_last_heartbeat', new Date().toISOString());
-                });
-            },
-            end: () => console.log('✅ SCAN COMPLETE (Empty Response)')
-        })
-    };
-
     try {
-        await checkPriceHandler(req, res);
+        const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
+            timeout: 15000
+        });
+
+        const activeCount = response.data.activeCount || 0;
+        const alerts = response.data.newAlerts?.length || 0;
+        console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts | Code ${response.status}`);
+
+        // Keep heartbeat alive in Redis
+        import('./src/utils/redisClient.js').then(m => {
+            m.default.set('sentinel_last_heartbeat', new Date().toISOString());
+        }).catch(() => { }); // Silent fail if Redis unavailable
+
     } catch (e) {
         console.error('❌ INTERNAL CRON ERROR:', e.message);
     }
