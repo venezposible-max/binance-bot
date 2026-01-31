@@ -219,7 +219,7 @@ export default async function handler(req, res) {
             let primaryInterval = wallet.timeframe || (strategy === 'SCALP' ? '5m' : '4h');
             if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = '4h';
 
-            console.log(`.. 🔎 ANALYZING: ${symbol} [${primaryInterval}]`); // Guaranteed Log
+            // console.log(`.. 🔎 ANALYZING: ${symbol} [${primaryInterval}]`); // Duplicate removed to show RSI later
 
             try {
                 // 1. Fetch Global Price First (Reliable PnL)
