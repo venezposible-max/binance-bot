@@ -47,9 +47,17 @@ async function fetchGlobalPrice(symbol) {
 }
 
 export default async function handler(req, res) {
+    // Set CORS headers for external cron services
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     try {
-        const REGION = process.env.REGION || 'US';
-        console.log(`🤖 Sentinel Bot Waking Up... [REGION: ${REGION}]`);
+        const REGION = process.env.REGION || 'USA';
+        console.log(`🤖 Sentinel Bot Waking Up... [REGION: ${REGION}] [METHOD: ${req.method}]`);
         const alertsSent = [];
 
         let activeTradesStr = await redis.get('sentinel_active_trades');
@@ -303,7 +311,13 @@ export default async function handler(req, res) {
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
+        console.error('❌ CRITICAL ERROR in check-prices:', error);
+        console.error('Error Stack:', error.stack);
+        console.error('Error Message:', error.message);
+        res.status(500).json({
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+        });
     }
 }
