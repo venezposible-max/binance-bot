@@ -215,6 +215,7 @@ export default async function handler(req, res) {
         console.log(`🔍 SCANNED PAIRS (${uniquePairs.length}):`, uniquePairs.join(', '));
 
         const promises = uniquePairs.map(async (symbol) => {
+            console.log(`.. 🔎 ANALYZING: ${symbol}`); // Log visible solicitado
             try {
                 // 1. Fetch Global Price First (Reliable PnL)
                 // NOW RETURNS OBJECT: { price, bid, ask }
