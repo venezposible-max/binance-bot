@@ -4,7 +4,6 @@ import querystring from 'querystring';
 
 const API_KEY = process.env.BINANCE_API_KEY;
 const API_SECRET = process.env.BINANCE_API_SECRET;
-const BASE_URL = 'https://api.binance.com'; // Use .us if REGION=USA, logic below
 
 // Determinar URL base según Región y Modo
 const getBaseUrl = () => {
@@ -46,7 +45,7 @@ const privateRequest = async (endpoint, method = 'GET', data = {}) => {
         return response.data;
     } catch (error) {
         console.error(`🚨 BINANCE API ERROR [${endpoint}]:`, error.response?.data || error.message);
-        throw error;
+        throw error; // Rethrow to be caught by caller
     }
 };
 
@@ -74,17 +73,32 @@ export const getAccountBalance = async (asset = 'USDT') => {
     }
 };
 
-export const executeOrder = async (symbol, side, quantity, type = 'MARKET') => {
+// CORREGIDO: Acepta currentPrice como argumento opcional para simulaciones precisas
+// Firma anterior causaba conflicto: (symbol, side, qty, type) vs llamada (symbol, side, qty, price)
+export const executeOrder = async (symbol, side, quantity, currentPrice = 0, type = 'MARKET') => {
     const isLive = process.env.TRADING_MODE === 'LIVE';
 
     if (!isLive) {
-        console.log(`🧪 SIMULATED ORDER: ${side} ${quantity} ${symbol}`);
+        console.log(`🧪 SIMULATED ORDER: ${side} ${quantity} ${symbol} @ $${currentPrice}`);
+        // Math for Sim
+        // If BUY, quantity is USDT. If SELL, quantity is COIN.
+        let execQty = 0;
+        let quoteQty = 0;
+
+        if (side === 'BUY') {
+            quoteQty = quantity;
+            execQty = currentPrice > 0 ? (quantity / currentPrice) : 0;
+        } else {
+            execQty = quantity;
+            quoteQty = currentPrice > 0 ? (quantity * currentPrice) : 0;
+        }
+
         return {
             status: 'FILLED',
             orderId: 'SIM_' + Date.now(),
-            executedQty: quantity,
-            cummulativeQuoteQty: quantity * 100, // Dummy price
-            avgPrice: 100 // Dummy
+            executedQty: execQty,
+            cummulativeQuoteQty: quoteQty,
+            avgPrice: currentPrice || 0
         };
     }
 
