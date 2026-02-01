@@ -48,6 +48,11 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         const newUseSL = useSlInput;
         const newSL = newUseSL ? prompt('Distancia del Stop Loss (%):', wallet?.stopLoss || 3.0) : (wallet?.stopLoss || 3.0);
 
+        // 4. Missing Defaults (Hidden from prompt to keep it simple, but needed for API)
+        const maxTrades = wallet?.maxTrades || 3;
+        const lossLimit = wallet?.dailyLossLimit || 50;
+        const cooldown = wallet?.cooldownMinutes || 30;
+
         const confirmMsg = newMode === 'LIVE'
             ? `⚠️⚠️ PELIGRO: MODO LIVE ⚠️⚠️\n\nEstás a punto de activar DINERO REAL.\nCapital Asignado: $${newBalance}\nRiesgo: ${newRisk}%\nMax Trades: ${maxTrades}\nSL Seguridad: ${newUseSL ? (newSL + '%') : 'OFF'}\n\n¿CONFIRMAS?`
             : `Confirmar Reconfiguración:\nModo: SIMULACIÓN\nSaldo: $${newBalance}\nRiesgo: ${newRisk}%\nSL Seguridad: ${newUseSL ? (newSL + '%') : 'OFF'}`;
