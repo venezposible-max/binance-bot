@@ -153,6 +153,23 @@ export default async function handler(req, res) {
 
         console.log(`🧠 STRATEGY: ${strategy} | TARGET: ${PROFIT_TARGET}% | MODE: LONG-ONLY 🐂`);
 
+        // 🔫 SNIPER MODE: Skip Cron Execution (Handled by cvd-worker.js WebSocket)
+        if (strategy === 'SNIPER') {
+            console.log('🔫 SNIPER MODE ACTIVE: Skipping cron scan (WebSocket handles BTCUSDT only)');
+
+            // Still monitor existing trades for TP/SL
+            const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+            const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+
+            return res.status(200).json({
+                success: true,
+                message: 'Sniper mode: Monitoring only',
+                activeCount: activeTrades.length,
+                newAlerts: []
+            });
+        }
+
+
         // Parse active trades and history
         const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
