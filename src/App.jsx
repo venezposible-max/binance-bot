@@ -307,7 +307,7 @@ function App() {
               color: 'white', padding: '2px 8px', borderRadius: '4px', textShadow: '0 1px 2px rgba(0,0,0,0.3)',
               display: 'flex', alignItems: 'center', gap: '4px'
             }}>
-              🚀 LIVE MONEY
+              <span>🚀 LIVE MONEY</span>
             </span>
           ) : (
             <span style={{
@@ -315,7 +315,7 @@ function App() {
               color: '#60A5FA', padding: '2px 8px', borderRadius: '4px',
               display: 'flex', alignItems: 'center', gap: '4px'
             }}>
-              🧪 SIMULATION
+              <span>🧪 SIMULATION</span>
             </span>
           )}
 
