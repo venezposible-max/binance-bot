@@ -302,7 +302,10 @@ export default async function handler(req, res) {
                     const isTakeProfitHit = pnl >= grossTarget;
 
                     // EXIT CONDITION (Stop Loss - User Feature isolated to SWING)
-                    const isStopLossHit = slEnforced && (pnl <= -STOP_LOSS_TARGET);
+                    // FEE COMPENSATION: Subtract 0.2% buffer so Net Loss matches User Request
+                    // If user sets SL at 3.0%, we trigger at -2.8% Gross -> ~3.0% Net Loss
+                    const grossSL = STOP_LOSS_TARGET - 0.2;
+                    const isStopLossHit = slEnforced && (pnl <= -grossSL);
 
                     if (isTakeProfitHit || isStopLossHit) {
                         const isLive = trade.mode === 'LIVE';
