@@ -71,12 +71,17 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         reset: true
                     })
                 });
+
                 if (res.ok) {
-                    fetchWallet();
+                    await fetchWallet();
                     alert('✅ Billetera Reconfigurada Exitosamente');
+                } else {
+                    const errData = await res.json();
+                    throw new Error(errData.error || 'Server rejected config');
                 }
             } catch (error) {
-                alert('Error al guardar configuración');
+                console.error(error);
+                alert(`❌ Error al guardar: ${error.message}`);
             }
         }
     };

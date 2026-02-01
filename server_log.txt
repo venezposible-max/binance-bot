@@ -453,3 +453,882 @@ AI Regime detection failed, using defaults: Request failed with status code 403
 AI Regime detection failed, using defaults: Request failed with status code 403
 ⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
 ✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:52:09.128Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:52:39.129Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T19:53:09.093Z] SYSTEM HEARTBEAT | RAM: 63.31 MB | Uptime: 1440s
+
+⏳ [2026-02-01T19:53:09.129Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:53:39.130Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:54:09.131Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:54:39.131Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T19:55:09.091Z] SYSTEM HEARTBEAT | RAM: 55.25 MB | Uptime: 1560s
+
+⏳ [2026-02-01T19:55:09.131Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:55:39.133Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:56:09.132Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:56:39.132Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T19:57:09.091Z] SYSTEM HEARTBEAT | RAM: 50.67 MB | Uptime: 1680s
+
+⏳ [2026-02-01T19:57:09.133Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:57:39.133Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:58:09.133Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:58:39.134Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T19:59:09.088Z] SYSTEM HEARTBEAT | RAM: 49.23 MB | Uptime: 1800s
+
+⏳ [2026-02-01T19:59:09.135Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T19:59:39.134Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:00:09.135Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:00:39.135Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:01:09.086Z] SYSTEM HEARTBEAT | RAM: 56.03 MB | Uptime: 1920s
+
+⏳ [2026-02-01T20:01:09.134Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:01:39.134Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:02:09.144Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🐳 WHALE ALERT: BUY POWER: $184745 @ 77037.56
+⚠️ Sniper: No wallet config found
+
+⏳ [2026-02-01T20:02:39.159Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:03:09.112Z] SYSTEM HEARTBEAT | RAM: 57.33 MB | Uptime: 2040s
+
+⏳ [2026-02-01T20:03:09.161Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:03:39.162Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:04:09.163Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:04:39.164Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:05:09.112Z] SYSTEM HEARTBEAT | RAM: 64.23 MB | Uptime: 2160s
+
+⏳ [2026-02-01T20:05:09.163Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🐳 WHALE ALERT: BUY POWER: $231239 @ 77079.83
+⚠️ Sniper: No wallet config found
+
+⏳ [2026-02-01T20:05:39.163Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:06:09.164Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:06:39.164Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:07:09.112Z] SYSTEM HEARTBEAT | RAM: 59.19 MB | Uptime: 2280s
+
+⏳ [2026-02-01T20:07:09.164Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:07:39.163Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:08:09.164Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:08:39.165Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:09:09.113Z] SYSTEM HEARTBEAT | RAM: 54.84 MB | Uptime: 2400s
+
+⏳ [2026-02-01T20:09:09.164Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:09:39.166Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:10:09.166Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🐳 WHALE ALERT: BUY POWER: $154392 @ 77190.7
+⚠️ Sniper: No wallet config found
+
+⏳ [2026-02-01T20:10:39.166Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:11:09.113Z] SYSTEM HEARTBEAT | RAM: 69.41 MB | Uptime: 2520s
+
+⏳ [2026-02-01T20:11:09.166Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:11:39.166Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🐳 WHALE ALERT: BUY POWER: $193442 @ 77284.08
+⚠️ Sniper: No wallet config found
+
+⏳ [2026-02-01T20:12:09.165Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:12:39.165Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:13:09.114Z] SYSTEM HEARTBEAT | RAM: 63.19 MB | Uptime: 2640s
+
+⏳ [2026-02-01T20:13:09.165Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:13:39.166Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:14:09.166Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:14:39.167Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:15:09.113Z] SYSTEM HEARTBEAT | RAM: 63.94 MB | Uptime: 2760s
+
+⏳ [2026-02-01T20:15:09.167Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:15:39.167Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:16:09.168Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:16:39.169Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:17:09.113Z] SYSTEM HEARTBEAT | RAM: 63.89 MB | Uptime: 2880s
+
+⏳ [2026-02-01T20:17:09.170Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:17:39.170Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:18:09.171Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:18:39.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:19:09.113Z] SYSTEM HEARTBEAT | RAM: 63.97 MB | Uptime: 3000s
+
+⏳ [2026-02-01T20:19:09.173Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:19:39.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:20:09.171Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:20:39.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:21:09.112Z] SYSTEM HEARTBEAT | RAM: 44.48 MB | Uptime: 3120s
+
+⏳ [2026-02-01T20:21:09.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:21:39.171Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:22:09.171Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:22:39.171Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:23:09.112Z] SYSTEM HEARTBEAT | RAM: 55.41 MB | Uptime: 3240s
+
+⏳ [2026-02-01T20:23:09.171Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:23:39.171Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:24:09.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:24:39.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🐳 WHALE ALERT: BUY POWER: $154568 @ 77284.13
+⚠️ Sniper: No wallet config found
+🟢 [2026-02-01T20:25:09.112Z] SYSTEM HEARTBEAT | RAM: 64.53 MB | Uptime: 3360s
+
+⏳ [2026-02-01T20:25:09.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:25:39.172Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:26:09.173Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:26:39.174Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: timeout of 3000ms exceeded
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:27:09.112Z] SYSTEM HEARTBEAT | RAM: 17.53 MB | Uptime: 3480s
+
+⏳ [2026-02-01T20:27:09.175Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:27:39.176Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:28:09.176Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:28:39.178Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:29:09.113Z] SYSTEM HEARTBEAT | RAM: 17.70 MB | Uptime: 3600s
+
+⏳ [2026-02-01T20:29:09.179Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:29:39.180Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:30:09.185Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:30:39.185Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:31:09.113Z] SYSTEM HEARTBEAT | RAM: 17.70 MB | Uptime: 3720s
+
+⏳ [2026-02-01T20:31:09.186Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: getaddrinfo ENOTFOUND api.binance.us
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:31:39.188Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: getaddrinfo ENOTFOUND api.binance.us
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:32:09.189Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: getaddrinfo ENOTFOUND api.binance.us
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:32:39.190Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:33:09.114Z] SYSTEM HEARTBEAT | RAM: 17.98 MB | Uptime: 3840s
+
+⏳ [2026-02-01T20:33:09.191Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:33:39.195Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:34:09.201Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:34:39.202Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:35:09.122Z] SYSTEM HEARTBEAT | RAM: 18.02 MB | Uptime: 3960s
+
+⏳ [2026-02-01T20:35:09.204Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:35:39.203Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:36:09.204Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:36:39.204Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+🟢 [2026-02-01T20:37:09.123Z] SYSTEM HEARTBEAT | RAM: 17.69 MB | Uptime: 4080s
+
+⏳ [2026-02-01T20:37:09.204Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:37:39.206Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:38:09.208Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
+
+⏳ [2026-02-01T20:38:39.210Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
+🚀 [API] check-prices handler STARTED
+🤖 Sentinel Bot Waking Up... [REGION: USA] [METHOD: GET]
+☁️ STANDARD DATA: Public API (Rate Limited)
+🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
+AI Regime detection failed, using defaults: Request failed with status code 403
+⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.
+✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
