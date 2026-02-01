@@ -8,47 +8,71 @@ const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice, forecas
 
     // MEMOIZED: Transform candle data for recharts
     const chartData = useMemo(() => {
-        return candles.slice(-50).map((candle, index) => {
+        // 1. Process Historical Data
+        const history = candles.slice(-50).map((candle, index) => {
             const isArray = Array.isArray(candle);
             const close = isArray ? parseFloat(candle[4]) : parseFloat(candle.close);
             const open = isArray ? parseFloat(candle[1]) : parseFloat(candle.open);
             const high = isArray ? parseFloat(candle[2]) : parseFloat(candle.high);
             const low = isArray ? parseFloat(candle[3]) : parseFloat(candle.low);
-
             const isGreen = close >= open;
 
             return {
-                index,
-                close,
-                open,
-                high,
-                low,
+                index, // 0 to 49
+                close, open, high, low,
                 ema: emaData && emaData[index] ? emaData[index] : null,
                 wick: [low, high],
                 body: isGreen ? [open, close] : [close, open],
                 bodyColor: isGreen ? '#2ebd85' : '#f6465d',
+                // Forecast placeholders for history
+                price: null, upper1: null, lower1: null, upper2: null, lower2: null
             };
         });
-    }, [candles, emaData]);
+
+        // 2. Process Future Forecast Data (if available)
+        let combined = [...history];
+
+        if (forecast && forecast.points) {
+            // Append future points. Note: Recharts needs continuous data for the X-axis to space it right.
+            // forecast.points already has 'index' starting from 49/50.
+
+            const future = forecast.points.map(p => ({
+                index: p.index,
+                // Nullify candle data for future
+                close: null, open: null, high: null, low: null, ema: null,
+                wick: null, body: null, bodyColor: null,
+                // Add Forecast Data
+                price: p.price,
+                upper1: p.upper1,
+                lower1: p.lower1,
+                upper2: p.upper2,
+                lower2: p.lower2
+            }));
+
+            // Avoid overlap at the splice point if necessary, or just concat
+            combined = combined.concat(future);
+        }
+
+        return combined;
+    }, [candles, emaData, forecast]);
 
     const { minPrice, maxPrice, padding } = useMemo(() => {
-        const prices = chartData.flatMap(d => [d.high, d.low]);
+        // Safe min/max calculation ignoring nulls
+        const allValues = chartData.flatMap(d => [
+            d.high, d.low, d.price, d.upper2, d.lower2
+        ]).filter(v => v !== null && v !== undefined && !isNaN(v));
+
         if (obZone) {
-            prices.push(obZone.sl, obZone.tp);
-        }
-        // [NEW] Include Forecast Ranges in Y-Axis Domain
-        if (forecast && forecast.points) {
-            forecast.points.forEach(p => {
-                if (p.upper2) prices.push(p.upper2);
-                if (p.lower2) prices.push(p.lower2);
-            });
+            allValues.push(obZone.sl, obZone.tp);
         }
 
-        const min = Math.min(...prices);
-        const max = Math.max(...prices);
+        if (allValues.length === 0) return { minPrice: 0, maxPrice: 100, padding: 10 };
+
+        const min = Math.min(...allValues);
+        const max = Math.max(...allValues);
         const pad = (max - min) * 0.1;
         return { minPrice: min, maxPrice: max, padding: pad };
-    }, [chartData, obZone, forecast]);
+    }, [chartData, obZone]);
 
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
