@@ -44,9 +44,14 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         const newRisk = prompt('Porcentaje de Riesgo por Operación (%):', wallet?.riskPercentage || 10);
         if (newRisk === null) return;
 
+        // 4. ELITE GUARDRAILS (Phase 3)
+        const maxTrades = prompt('🛡️ Máximo de Trades Simultáneos:', wallet?.maxTrades || 3);
+        const lossLimit = prompt('🛑 Límite de Pérdida Diaria (USDT):', wallet?.dailyLossLimit || 50);
+        const cooldown = prompt('⏱️ Cooldown tras Pérdida (Minutos):', wallet?.cooldownMinutes || 30);
+
         const confirmMsg = newMode === 'LIVE'
-            ? `⚠️⚠️ PELIGRO: MODO LIVE ⚠️⚠️\n\nEstás a punto de activar DINERO REAL.\nCapital Asignado: $${newBalance}\nRiesgo: ${newRisk}%\n\n¿CONFIRMAS?`
-            : `Confirmar Reconfiguración:\nModo: SIMULACIÓN\nSaldo: $${newBalance}\nRiesgo: ${newRisk}%`;
+            ? `⚠️⚠️ PELIGRO: MODO LIVE ⚠️⚠️\n\nEstás a punto de activar DINERO REAL.\nCapital Asignado: $${newBalance}\nRiesgo: ${newRisk}%\nMax Trades: ${maxTrades}\nLoss Limit: $${lossLimit}\n\n¿CONFIRMAS?`
+            : `Confirmar Reconfiguración:\nModo: SIMULACIÓN\nSaldo: $${newBalance}\nRiesgo: ${newRisk}%\nMax Trades: ${maxTrades}`;
 
         if (confirm(confirmMsg)) {
             try {
@@ -54,25 +59,20 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        initialBalance: parseFloat(newBalance), // Virtual Balance
-                        allocatedCapital: parseFloat(newBalance), // Real Limit
+                        initialBalance: parseFloat(newBalance),
+                        allocatedCapital: parseFloat(newBalance),
                         tradingMode: newMode,
                         riskPercentage: parseFloat(newRisk),
-                        strategy: activeStrategy || wallet?.strategy || 'SWING', // Use current frontend strategy
+                        maxTrades: parseInt(maxTrades),
+                        dailyLossLimit: parseFloat(lossLimit),
+                        cooldownMinutes: parseInt(cooldown),
+                        strategy: activeStrategy || wallet?.strategy || 'HYBRID',
                         reset: true
                     })
                 });
                 if (res.ok) {
                     fetchWallet();
                     alert('✅ Billetera Reconfigurada Exitosamente');
-                    // FORCE PARENT UPDATE TO STAY ON CURRENT STRATEGY
-                    if (onConfigChange) {
-                        onConfigChange({
-                            initialBalance: parseFloat(newBalance),
-                            riskPercentage: parseFloat(newRisk),
-                            strategy: currentStrategy // La que tengo en variable local
-                        });
-                    }
                 }
             } catch (error) {
                 alert('Error al guardar configuración');
@@ -95,41 +95,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     const pnl = currentBalance - initialBalance;
     const pnlPercent = ((pnl / initialBalance) * 100).toFixed(2);
-    const isPositive = pnl >= 0;
 
     // Calculate Equity (Balance + Unrealized PnL)
-    let unrealizedPnL = 0;
-    if (activeTrades && marketData) {
-        activeTrades.forEach(t => {
-            const currentPrice = marketData[t.symbol]?.price;
-            if (currentPrice && t.investedAmount) {
-                let tradePnlPercent = 0;
-                if (t.type === 'SHORT') {
-                    tradePnlPercent = ((t.entryPrice - currentPrice) / t.entryPrice);
-                } else {
-                    tradePnlPercent = ((currentPrice - t.entryPrice) / t.entryPrice);
-                }
-
-                // Value Change - Fees (0.1% entry already paid, needs 0.1% exit estimated)
-                // Actually, balance already deducted Entry Fee. So Equity is:
-                // Current Value of Position - Estimated Exit Fee.
-
-                // Position Value = Invested * (1 + %Change)
-                const positionValue = t.investedAmount * (1 + tradePnlPercent);
-                const estimatedExitFee = positionValue * 0.001;
-                const netValue = positionValue - estimatedExitFee;
-
-                // Unrealized PnL = Net Value - Cost Basis (Invested)
-                // Note: 'Invested' was removed from balance. So we add back the Net Value to get Equity.
-                unrealizedPnL += (netValue - t.investedAmount);
-            }
-        });
-    }
-
-    // Equity = Balance (Cash) + Invested Amounts + Unrealized PnL
-    // Note: 'currentBalance' has open positions DEDUCTED.
-    // So to get Equity we need: Cash (currentBalance) + Current Value of Positions.
-
     let equity = currentBalance;
     if (activeTrades && marketData) {
         activeTrades.forEach(t => {
@@ -145,19 +112,16 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 const estimatedExitFee = positionValue * 0.001;
                 equity += (positionValue - estimatedExitFee);
             } else if (t.investedAmount) {
-                // Fallback if no price data yet, assume cost basis
-                equity += t.investedAmount * 0.999; // Minus entry fee approx
+                equity += t.investedAmount * 0.999;
             }
         });
     }
 
 
     const getStrategy = () => {
-        if (activeStrategy) return activeStrategy; // Prioritize prop from parent
-        if (!wallet) return 'SWING';
-        if (wallet.strategy) return wallet.strategy;
-        // Migration for legacy flag
-        return wallet.multiFrameMode ? 'TRIPLE' : 'SWING';
+        if (activeStrategy) return activeStrategy;
+        if (!wallet) return 'HYBRID';
+        return wallet.strategy || 'HYBRID';
     };
 
     const currentStrategy = getStrategy();
@@ -169,67 +133,48 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         const nextStrategy = strategies[(currentIndex + 1) % strategies.length];
 
         try {
-            // Optimistic Update
-            setWallet(prev => ({ ...prev, strategy: nextStrategy, multiFrameMode: nextStrategy === 'TRIPLE' }));
-
+            setWallet(prev => ({ ...prev, strategy: nextStrategy }));
             await fetch('/api/wallet/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    strategy: nextStrategy,
-                    multiFrameMode: nextStrategy === 'TRIPLE' // Keep legacy flag synced
-                })
+                body: JSON.stringify({ strategy: nextStrategy })
             });
-
-            // Notify Parent immediately to switch views
-            if (onConfigChange) onConfigChange({ ...wallet, strategy: nextStrategy, multiFrameMode: nextStrategy === 'TRIPLE' });
+            if (onConfigChange) onConfigChange({ ...wallet, strategy: nextStrategy });
         } catch (e) {
             console.error('Failed to cycle strategy', e);
         }
     };
 
     const getStrategyColor = (s) => {
-        if (s === 'HYBRID') return '#00D9FF'; // Neon Cyan
-        if (s === 'SNIPER') return '#D946EF'; // Neon Magenta
+        if (s === 'HYBRID') return '#00D9FF';
+        if (s === 'SNIPER') return '#D946EF';
         return '#666';
     };
 
     const handleToggleBot = async () => {
         if (!wallet) return;
-
-        // Determine current status (Default to true/Active if undefined/legacy)
         const strategyConfig = wallet.strategyConfig || {};
         const currentConfig = strategyConfig[currentStrategy] || { active: wallet.isBotActive !== false };
-
         const newState = !currentConfig.active;
 
-        // New Strategy Config Object
         const newStrategyConfig = {
             ...strategyConfig,
             [currentStrategy]: { ...currentConfig, active: newState }
         };
 
         try {
-            // Optimistic update
-            setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, isBotActive: newState /* Legacy sync visual */ }));
-
+            setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, isBotActive: newState }));
             await fetch('/api/wallet/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    strategyConfig: newStrategyConfig,
-                    isBotActive: newState // Keep legacy sync for now
-                })
+                body: JSON.stringify({ strategyConfig: newStrategyConfig, isBotActive: newState })
             });
-
             if (onConfigChange) onConfigChange({ ...wallet, strategyConfig: newStrategyConfig });
         } catch (e) {
             console.error(e);
-            alert('Error al cambiar estado del bot');
         }
     };
 
-    // --- MULTI-STRATEGY TOGGLE ---
     const handleToggleStrategyActive = async (strategyName) => {
         if (!wallet) return;
         const strategyConfig = wallet.strategyConfig || {};
@@ -254,76 +199,15 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         }
     };
 
-    const handleUpdateRiskValue = async (field, value) => {
-        if (!wallet) return;
-        try {
-            const numericValue = parseFloat(value);
-            if (isNaN(numericValue)) return;
-
-            // AUTO-PAUSE on change for safety
-            setWallet(prev => ({ ...prev, [field]: numericValue, isBotActive: false }));
-
-            await fetch('/api/wallet/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [field]: numericValue, isBotActive: false })
-            });
-
-            if (onConfigChange) onConfigChange({ ...wallet, [field]: numericValue, isBotActive: false });
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    const handleToggleSL = async () => {
-        if (!wallet) return;
-        const newState = !wallet.useStopLoss;
-        try {
-            // AUTO-PAUSE on change for safety
-            setWallet(prev => ({ ...prev, useStopLoss: newState, isBotActive: false }));
-
-            await fetch('/api/wallet/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ useStopLoss: newState, isBotActive: false })
-            });
-
-            if (onConfigChange) onConfigChange({ ...wallet, useStopLoss: newState, isBotActive: false });
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    const handleSetSwingMode = async (mode) => {
-        if (!wallet) return;
-        try {
-            // AUTO-PAUSE on change for safety
-            setWallet(prev => ({ ...prev, swingMode: mode, isBotActive: false }));
-
-            await fetch('/api/wallet/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ swingMode: mode, isBotActive: false })
-            });
-
-            if (onConfigChange) onConfigChange({ ...wallet, swingMode: mode, isBotActive: false });
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
     const handleSetHybridMode = async (mode) => {
         if (!wallet) return;
         try {
-            // AUTO-PAUSE on change for safety
             setWallet(prev => ({ ...prev, hybridMode: mode, isBotActive: false }));
-
             await fetch('/api/wallet/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ hybridMode: mode, isBotActive: false })
             });
-
             if (onConfigChange) onConfigChange({ ...wallet, hybridMode: mode, isBotActive: false });
         } catch (e) {
             console.error(e);
@@ -348,87 +232,68 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     )}
                 </div>
 
-                {/* PAUSED WARNING / START BUTTON */}
                 {(function () {
                     const sConf = wallet.strategyConfig?.[currentStrategy];
-                    // Active by default if not strictly false
                     const isActive = sConf ? sConf.active : (wallet.isBotActive !== false);
-
                     return isActive ? (
-                        <button
-                            onClick={handleToggleBot}
-                            className={styles.pauseBtn}
-                        >
-                            ⏸️ PAUSE ({currentStrategy})
-                        </button>
+                        <button onClick={handleToggleBot} className={styles.pauseBtn}>⏸️ PAUSE</button>
                     ) : (
-                        <button
-                            onClick={handleToggleBot}
-                            className={styles.startBtn}
-                        >
-                            ▶️ START ({currentStrategy})
-                        </button>
+                        <button onClick={handleToggleBot} className={styles.startBtn}>▶️ START</button>
                     );
                 })()}
             </div>
 
-            {/* --- MULTI-STRATEGY PARALLEL TOGGLE PANEL --- */}
-            <div style={{
-                marginBottom: '15px',
-                padding: '10px',
-                background: 'rgba(255,255,255,0.03)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.1)'
-            }}>
-                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px', fontWeight: 'bold' }}>
-                    <span>🎯 ESTRATEGIAS ACTIVAS</span>
-                    <span style={{ fontSize: '0.6rem', marginLeft: '6px', color: '#64748B' }}>(Paralelo)</span>
-                </div>
+            {/* --- MULTI-STRATEGY PANEL --- */}
+            <div style={{ marginBottom: '15px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px', fontWeight: 'bold' }}>🎯 ESTRATEGIAS ACTIVAS</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {['HYBRID', 'SNIPER'].map(s => {
-                        const strategyConfig = wallet.strategyConfig || {};
-                        const isActive = strategyConfig[s]?.active || (s === currentStrategy && wallet.isBotActive !== false);
+                        const isActive = (wallet.strategyConfig || {})[s]?.active;
                         return (
                             <button
                                 key={s}
                                 onClick={() => handleToggleStrategyActive(s)}
                                 style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '4px 8px',
-                                    borderRadius: '44px',
+                                    padding: '4px 8px', borderRadius: '44px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
                                     border: `1px solid ${isActive ? getStrategyColor(s) : '#333'}`,
                                     background: isActive ? `${getStrategyColor(s)}22` : 'transparent',
-                                    color: isActive ? getStrategyColor(s) : '#64748B',
-                                    cursor: 'pointer',
-                                    fontSize: '0.7rem',
-                                    fontWeight: 'bold',
-                                    transition: 'all 0.2s'
+                                    color: isActive ? getStrategyColor(s) : '#64748B'
                                 }}
                             >
-                                <span>{s === 'SNIPER' ? '🔫' : '🧬'}</span>
-                                <span>{s}</span>
-                                <span style={{ fontSize: '0.6rem', marginLeft: '2px' }}>{isActive ? '✓' : '○'}</span>
+                                {s} {isActive ? '✓' : '○'}
                             </button>
                         );
                     })}
                 </div>
             </div>
 
+            {/* --- PORTFOLIO HEALTH (Phase 3) --- */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '15px' }}>
+                <div className={styles.statMini}>
+                    <div className={styles.label}>TRADES</div>
+                    <div style={{ color: (activeTrades?.length || 0) >= (wallet.maxTrades || 3) ? '#EF4444' : '#10B981', fontWeight: 'bold' }}>
+                        {activeTrades?.length || 0} / {wallet.maxTrades || 3}
+                    </div>
+                </div>
+                <div className={styles.statMini}>
+                    <div className={styles.label}>LOSS LIMIT</div>
+                    <div style={{ color: '#E2E8F0', fontWeight: 'bold' }}>${wallet.dailyLossLimit || 50}</div>
+                </div>
+                <div className={styles.statMini}>
+                    <div className={styles.label}>ATR MODE</div>
+                    <div style={{ color: '#F59E0B', fontWeight: 'bold' }}>AUTO ✅</div>
+                </div>
+            </div>
+
             <div className={styles.mainStats}>
                 <div className={styles.balanceGroup}>
-                    <span className={styles.label}>CAPITAL DISPONIBLE (CASH)</span>
-                    <span className={styles.value}>${wallet.currentBalance.toFixed(2)}</span>
+                    <div className={styles.label}>CASH</div>
+                    <div className={styles.value}>${currentBalance.toFixed(2)}</div>
                 </div>
-
                 <div className={styles.balanceGroup} style={{ borderLeft: '1px solid #333', paddingLeft: '20px' }}>
-                    <span className={styles.label}>EQUITY (PATRIMONIO REAL)</span>
-                    <span className={styles.value} style={{ color: equity >= wallet.initialBalance ? '#10B981' : '#E2E8F0' }}>
+                    <div className={styles.label}>EQUITY</div>
+                    <div className={styles.value} style={{ color: equity >= initialBalance ? '#10B981' : '#EF4444' }}>
                         ${equity.toFixed(2)}
-                    </span>
-                    <div style={{ fontSize: '0.75rem', color: equity >= wallet.initialBalance ? '#10B981' : '#EF4444' }}>
-                        <span>{equity >= wallet.initialBalance ? '+' : ''}{(equity - wallet.initialBalance).toFixed(2)} USD</span>
                     </div>
                 </div>
             </div>
@@ -442,35 +307,24 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                             <button
                                 onClick={() => handleSetHybridMode('SWING')}
                                 style={{
-                                    padding: '4px 10px',
-                                    borderRadius: '4px',
+                                    padding: '4px 10px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer',
                                     background: (wallet.hybridMode || 'SWING') === 'SWING' ? '#00D9FF' : '#1e1e1e',
-                                    color: (wallet.hybridMode || 'SWING') === 'SWING' ? '#000' : '#666',
-                                    fontSize: '0.7rem',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
+                                    color: (wallet.hybridMode || 'SWING') === 'SWING' ? '#000' : '#666'
                                 }}
                             >🏛️ SWING</button>
                             <button
                                 onClick={() => handleSetHybridMode('BLITZ')}
                                 style={{
-                                    padding: '4px 10px',
-                                    borderRadius: '4px',
+                                    padding: '4px 10px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer',
                                     background: wallet.hybridMode === 'BLITZ' ? '#F59E0B' : '#1e1e1e',
-                                    color: wallet.hybridMode === 'BLITZ' ? '#000' : '#666',
-                                    fontSize: '0.7rem',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
+                                    color: wallet.hybridMode === 'BLITZ' ? '#000' : '#666'
                                 }}
                             >⚡ BLITZ</button>
                         </div>
                     </div>
-
                     <div className={styles.riskItem}>
-                        <div className={styles.label}>STOP LOSS</div>
-                        <div style={{ color: '#F59E0B', fontSize: '0.7rem', fontWeight: 'bold' }}>AUTOMATIC (STRUCTURAL)</div>
+                        <div className={styles.label}>AUTO EXIT</div>
+                        <div style={{ color: '#F59E0B', fontSize: '0.7rem', fontWeight: 'bold' }}>ATR PRECISION ✅</div>
                     </div>
                 </div>
             )}
@@ -478,26 +332,15 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             <div className={styles.configGroup}>
                 <div className={styles.statItem}>
                     <div className={styles.label}>RIESGO</div>
-                    <div style={{ fontWeight: 'bold', color: '#E2E8F0' }}>{wallet.riskPercentage}%</div>
+                    <div style={{ fontWeight: 'bold' }}>{wallet.riskPercentage}%</div>
                 </div>
-
                 <div className={styles.statItem} onClick={handleCycleStrategy} style={{ cursor: 'pointer' }}>
                     <div className={styles.label}>ESTRATEGIA</div>
-                    <div style={{
-                        fontWeight: 'bold',
-                        color: getStrategyColor(currentStrategy),
-                        border: `1px solid ${getStrategyColor(currentStrategy)}`,
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.7rem'
-                    }}>
-                        {currentStrategy}
-                    </div>
+                    <div style={{ fontWeight: 'bold', color: getStrategyColor(currentStrategy) }}>{currentStrategy}</div>
                 </div>
-
                 <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>
             </div>
-        </div >
+        </div>
     );
 });
 

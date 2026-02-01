@@ -126,8 +126,45 @@ export default async function handler(req, res) {
             riskPercentage: 10,
             allocatedCapital: 500, // Default
             tradingMode: 'SIMULATION', // Default
-            isBotActive: true
+            isBotActive: true,
+            maxTrades: 3,
+            dailyLossLimit: 50, // Fixed 50 USDT or 5% of 1000
+            cooldownMinutes: 30
         };
+
+        // 🛡️ PHASE 3: PORTFOLIO GUARDRAILS
+        let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+        let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+
+        // 1. MAX ACTIVE TRADES GUARD
+        const MAX_TRADES = wallet.maxTrades || 3;
+        if (activeTrades.length >= MAX_TRADES) {
+            console.log(`🛡️ GUARDRAIL: Max Active Trades (${MAX_TRADES}) reached. Skipping scan.`);
+            return res.status(200).json({ status: 'GUARD_LIMIT_REACHED', active: activeTrades.length });
+        }
+
+        // 2. DAILY LOSS LIMIT
+        const today = new Date().toISOString().split('T')[0];
+        const dailyLossAmount = winHistory
+            .filter(t => t.timestamp && t.timestamp.startsWith(today) && t.pnlAmount < 0)
+            .reduce((sum, t) => sum + Math.abs(t.pnlAmount), 0);
+
+        const MAX_DAILY_LOSS = wallet.dailyLossLimit || (wallet.initialBalance * 0.05);
+        if (dailyLossAmount >= MAX_DAILY_LOSS) {
+            console.log(`🛡️ GUARDRAIL: Daily Loss Limit ($${dailyLossAmount.toFixed(2)} / $${MAX_DAILY_LOSS.toFixed(2)}) reached. Bot Halted.`);
+            return res.status(200).json({ status: 'DAILY_LOSS_LIMIT_REACHED', loss: dailyLossAmount });
+        }
+
+        // 3. COOLDOWN PERIOD (e.g., 30 mins after a loss)
+        const lastTrade = winHistory.length > 0 ? winHistory[winHistory.length - 1] : null;
+        if (lastTrade && lastTrade.pnlAmount < 0) {
+            const timeSinceLoss = (new Date() - new Date(lastTrade.timestamp)) / 1000 / 60; // mins
+            const COOLDOWN_MINS = wallet.cooldownMinutes || 30;
+            if (timeSinceLoss < COOLDOWN_MINS) {
+                console.log(`🛡️ GUARDRAIL: Cooldown active (${Math.round(COOLDOWN_MINS - timeSinceLoss)} mins remaining).`);
+                return res.status(200).json({ status: 'COOLDOWN_ACTIVE', remaining: Math.round(COOLDOWN_MINS - timeSinceLoss) });
+            }
+        }
 
         // DYNAMIC LOGGING & BALANCE CHECK
         let realBalance = null;
@@ -183,9 +220,7 @@ export default async function handler(req, res) {
         // It's in activeStrategies for priority tracking (e.g., to reserve BTCUSDT).
 
 
-        // Parse active trades and history
-        const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-        const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+        // newActiveTrades and newWins will use the already parsed activeTrades/winHistory from above
 
 
         const newActiveTrades = [...activeTrades];

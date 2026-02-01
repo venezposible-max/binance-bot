@@ -1,4 +1,4 @@
-import { RSI, EMA, BollingerBands } from 'technicalindicators';
+import { RSI, EMA, BollingerBands, ATR } from 'technicalindicators';
 
 /**
  * Analyzes market data to generate a signal
@@ -276,9 +276,16 @@ export const analyzeOB = (candles) => {
 
     // 🚀 INITIALIZE INDICATORS FIRST (Fix ReferenceError)
     const closes = candles.map(c => c.close || parseFloat(c[4]));
+    const highs = candles.map(c => c.high || parseFloat(c[2]));
+    const lows = candles.map(c => c.low || parseFloat(c[3]));
+
     const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
     const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
     const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
+
+    // Phase 3: ATR for Volatility-adjusted Risk
+    const atrValues = ATR.calculate({ high: highs, low: lows, close: closes, period: 14 }) || [];
+    const currentATR = atrValues.length > 0 ? atrValues[atrValues.length - 1] : lastPrice * 0.02;
 
     let obZone = null;
     let signal = 'NEUTRAL';
@@ -315,8 +322,9 @@ export const analyzeOB = (candles) => {
                 high: prevHigh,
                 mid: obMid,
                 impulse: impulse,
-                tp: lastPrice * (1 + (impulse / 100)),
-                sl: prevLow * 0.997 // 0.3% buffer
+                // Phase 3: ATR-Based Dynamic Targets
+                tp: lastPrice + (currentATR * 2.5), // 2.5x ATR for target
+                sl: lastPrice - (currentATR * 1.5)  // 1.5x ATR for safety
             };
 
             // 2. Expert Logic: Check Trend + Precision Entry
@@ -351,7 +359,8 @@ export const analyzeOB = (candles) => {
         },
         indicators: {
             rsi: currentRSI.toFixed(1),
-            ema: currentEMA ? currentEMA.toFixed(1) : '---'
+            ema: currentEMA ? currentEMA.toFixed(1) : '---',
+            atr: currentATR.toFixed(4)
         },
         prediction: {
             signal,
