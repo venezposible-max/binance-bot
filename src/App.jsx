@@ -9,7 +9,9 @@ import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
 import CVDView from './components/CVDView'; // NEW: Sniper View
 import CVDChart from './components/CVDChart'; // NEW: Embedded CVD Chart
+import DocumentationModal from './components/DocumentationModal'; // NEW: Docs
 import { sendTelegramAlert } from './utils/telegram';
+import { BookOpen } from 'lucide-react';
 
 function App() {
   const [pairs, setPairs] = useState(INITIAL_PAIRS); // Dynamic Top 10 Pairs
@@ -21,6 +23,8 @@ function App() {
   const [timeframe, setTimeframe] = useState('4h');
   const [activeStrategy, setActiveStrategy] = useState(() => localStorage.getItem('sentinel_strategy') || 'SWING');
   const [tradingMode, setTradingMode] = useState('SIMULATION'); // Default safe
+
+  const [isDocsOpen, setIsDocsOpen] = useState(false); // NEW: Documentation State
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
@@ -664,10 +668,18 @@ function App() {
         )}
 
 
-        <footer style={{ textAlign: 'center', color: '#5E6673', padding: '40px 20px', fontSize: '0.8rem' }}>
-          Cloud Core Running on Vercel Edge • Redis Persistence Active • NFA
+        <footer className={styles.footer}>
+          <div className={styles.copyright}>
+            © 2026 Binance Sentinel AI • Todos los derechos reservados
+          </div>
+          <div className={styles.docsLink} onClick={() => setIsDocsOpen(true)}>
+            <BookOpen size={16} />
+            Documentación
+          </div>
         </footer>
       </main>
+
+      <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
 
       <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
     </div>

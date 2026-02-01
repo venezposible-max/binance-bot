@@ -19,6 +19,47 @@
     z-index: 100;
 }
 
+.footer {
+    width: 100%;
+    padding: 30px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    color: #5E6673;
+    font-size: 0.75rem;
+    margin-top: 40px;
+}
+
+.copyright {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.docsLink {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94A3B8;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 6px 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+.docsLink:hover {
+    color: var(--color-binance-yellow);
+    border-color: var(--color-binance-yellow);
+    background: rgba(245, 158, 11, 0.05);
+    transform: translateY(-2px);
+}
+
 .logo {
     font-family: var(--font-main);
     font-size: 1.6rem;

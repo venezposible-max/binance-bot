@@ -1,0 +1,157 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal {
+    width: 100%;
+    max-width: 900px;
+    max-height: 85vh;
+    background: rgba(30, 35, 41, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 158, 11, 0.05);
+}
+
+.modal::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal::-webkit-scrollbar-thumb {
+    background: rgba(245, 158, 11, 0.3);
+    border-radius: 10px;
+}
+
+.closeBtn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.closeBtn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #EF4444;
+    color: #EF4444;
+}
+
+.title {
+    font-family: var(--font-main);
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 30px;
+    text-align: center;
+    background: linear-gradient(135deg, #fff 0%, #FCD34D 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.section {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.modeTitle {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-binance-yellow);
+    letter-spacing: 1px;
+}
+
+.modeIcon {
+    color: var(--color-binance-yellow);
+}
+
+.description {
+    color: #94A3B8;
+    line-height: 1.6;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.indicatorTag {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: #E2E8F0;
+    font-weight: 500;
+}
+
+.logicInfo {
+    margin-top: 15px;
+    background: rgba(16, 185, 129, 0.03);
+    border: 1px solid rgba(16, 185, 129, 0.1);
+    padding: 12px 15px;
+    border-radius: 12px;
+}
+
+.logicText {
+    font-size: 0.9rem;
+    color: #10B981;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (max-width: 768px) {
+    .modal {
+        padding: 25px;
+        border-radius: 16px;
+    }
+
+    .title {
+        font-size: 1.6rem;
+    }
+
+    .modeTitle {
+        font-size: 1.2rem;
+    }
+}
