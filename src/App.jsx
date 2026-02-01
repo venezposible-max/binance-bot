@@ -274,7 +274,6 @@ function App() {
     fetchData();
     // Set up auto-refresh interval (every 90s - optimized)
     const interval = setInterval(() => fetchData(), 90000);
-    ```javascript
     return () => clearInterval(interval);
   }, [timeframe]); // Re-fetch when timeframe changes
 
@@ -283,15 +282,15 @@ function App() {
   // ⚡ SNIPER MODE OVERRIDE (Full Screen)
   if (activeStrategy === 'SNIPER') {
     return (
-        <CVDView onExit={async () => {
-            // Revert to Safe Mode (SWING)
-            setActiveStrategy('SWING');
-            await fetch('/api/wallet/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategy: 'SWING' })
-            });
-        }} />
+      <CVDView onExit={async () => {
+        // Revert to Safe Mode (SWING)
+        setActiveStrategy('SWING');
+        await fetch('/api/wallet/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ strategy: 'SWING' })
+        });
+      }} />
     );
   }
 
@@ -415,7 +414,7 @@ function App() {
                     const resData = await res.json();
 
                     const logs = resData.newAlerts ? resData.newAlerts.join('\n') : 'No logs';
-                    alert(`✅ Escaneo Finalizado\n\n📋 REPORTE DE NUBE: \n${ logs } \n\n🔄 Estado: ${ resData.activeCount } Activas`);
+                    alert(`✅ Escaneo Finalizado\n\n📋 REPORTE DE NUBE: \n${logs} \n\n🔄 Estado: ${resData.activeCount} Activas`);
 
                     // Recargar datos locales
                     const statusRes = await fetch('/api/get-status');
@@ -456,7 +455,7 @@ function App() {
               {cloudStatus.active.map(t => {
                 const pnl = calculatePnL(t, marketData[t.symbol]?.price);
                 return (
-                  <div key={t.id} className={styles.tradeCard} style={{ borderLeft: `5px solid ${ t.type === 'LONG' ? '#10B981' : '#EF4444' } ` }}>
+                  <div key={t.id} className={styles.tradeCard} style={{ borderLeft: `5px solid ${t.type === 'LONG' ? '#10B981' : '#EF4444'} ` }}>
                     <div className={styles.tradeCardHeader}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span className={styles.tradeTag}>{t.type}{t.isManual ? ' (M)' : ''}</span>
