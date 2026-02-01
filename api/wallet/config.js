@@ -16,6 +16,7 @@ export default async function handler(req, res) {
                 takeProfit: 1.25,
                 stopLoss: 3.0,
                 useStopLoss: false,
+                swingMode: 'CONSERVATIVE', // NEW: CONSERVATIVE or AGGRESSIVE
                 ...existingConfig
             };
 

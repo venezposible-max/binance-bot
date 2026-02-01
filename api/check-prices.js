@@ -437,10 +437,13 @@ export default async function handler(req, res) {
                         const currentBB = bbValues[bbValues.length - 1] || null;
                         const lastPrice = closes[closes.length - 1];
 
+                        const swingMode = wallet.swingMode || 'CONSERVATIVE';
+                        const emaFilter = swingMode === 'CONSERVATIVE' ? (lastPrice > ema200Val) : true;
+
                         let sniperBuy = false;
-                        if (currentBB && ema200Val) {
-                            // Filter: Price MUST be above EMA 200 for SWING entries
-                            sniperBuy = (rsi < 30 && lastPrice <= currentBB.lower && lastPrice > ema200Val);
+                        if (currentBB) {
+                            // Filter: Price MUST be above EMA 200 for SWING entries IF mode is CONSERVATIVE
+                            sniperBuy = (rsi < 30 && lastPrice <= currentBB.lower && emaFilter);
                         }
 
                         if (sniperBuy) {

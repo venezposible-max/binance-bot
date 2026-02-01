@@ -4,8 +4,10 @@ import { RSI, EMA, BollingerBands } from 'technicalindicators';
  * Analyzes market data to generate a signal
  * @param {Array} candles - Array of candle objects { close: number, ... }
  */
-export const analyzePair = (candles) => {
+export const analyzePair = (candles, config = {}) => {
     if (!candles || candles.length === 0) return { signal: 'NEUTRAL', score: 0, prediction: { signal: 'NEUTRAL', color: '#888' } };
+
+    const swingMode = config.swingMode || 'CONSERVATIVE'; // NEW: Default to safe
 
     // Always extract price first
     const closes = candles.map(c => c.close);
@@ -41,7 +43,9 @@ export const analyzePair = (candles) => {
     const hitLowerBB = lastPrice <= currentBB.lower;
     const hitUpperBB = lastPrice >= currentBB.upper;
 
-    if (isOversold && lastPrice > currentEMA) {
+    const trendFilter = swingMode === 'CONSERVATIVE' ? (lastPrice > currentEMA) : true;
+
+    if (isOversold && trendFilter) {
         signal = 'BUY';
         label = 'OFERTA / COMPRA';
         color = '#10B981';

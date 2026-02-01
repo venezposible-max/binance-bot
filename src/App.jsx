@@ -156,7 +156,7 @@ function App() {
             analysis = analyzeTriple(candles, k1h, k15m);
           } else {
             // 📊 STANDARD MODE: Technicals (RSI/EMA/BB)
-            analysis = analyzePair(candles);
+            analysis = analyzePair(candles, wallet);
           }
 
           const history = candles.slice(-50).map(c => c.close || parseFloat(c[4]));

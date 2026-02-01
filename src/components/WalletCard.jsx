@@ -257,6 +257,24 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         }
     };
 
+    const handleSetSwingMode = async (mode) => {
+        if (!wallet) return;
+        try {
+            // AUTO-PAUSE on change for safety
+            setWallet(prev => ({ ...prev, swingMode: mode, isBotActive: false }));
+
+            await fetch('/api/wallet/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ swingMode: mode, isBotActive: false })
+            });
+
+            if (onConfigChange) onConfigChange({ ...wallet, swingMode: mode, isBotActive: false });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     return (
         <div className={styles.card}>
             {/* Header with Execution Control */}
@@ -344,6 +362,29 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                             value={wallet.stopLoss || 3.0}
                             onChange={(e) => handleUpdateRiskValue('stopLoss', e.target.value)}
                         />
+                    </div>
+                )}
+
+                {/* --- SWING SPECIFIC MODE (Agresivo vs Conservador) --- */}
+                {currentStrategy === 'SWING' && (
+                    <div className={styles.riskItem} style={{ gridColumn: '1 / -1' }}>
+                        <div className={styles.label}>MODO SWING</div>
+                        <div className={styles.modeSelector}>
+                            <button
+                                className={`${styles.modeBtn} ${wallet.swingMode === 'AGGRESSIVE' ? styles.modeBtnActive : ''}`}
+                                onClick={() => handleSetSwingMode('AGGRESSIVE')}
+                            >
+                                AGRESIVO
+                                <span className={styles.modeSub}>(sin EMA 200)</span>
+                            </button>
+                            <button
+                                className={`${styles.modeBtn} ${wallet.swingMode !== 'AGGRESSIVE' ? styles.modeBtnActive : ''}`}
+                                onClick={() => handleSetSwingMode('CONSERVATIVE')}
+                            >
+                                CONSERVADOR
+                                <span className={styles.modeSub}>(con EMA 200)</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
