@@ -65,8 +65,15 @@ app.get('/api/wallet/balance', vercelAdapter(walletBalance)); // New Route
 
 // CVD SNIPER SERVICE (Singleton)
 import cvdSniper from './api/stream/cvd-worker.js';
+import marketWorker from './api/stream/market-worker.js'; // Phase 1
+
 app.get('/api/cvd', (req, res) => {
     res.json(cvdSniper.getData());
+});
+
+// Phase 1: High-Speed Market Cache
+app.get('/api/market-cache', (req, res) => {
+    res.json(marketWorker.getAllMarketData());
 });
 
 // DEBUG ENDPOINT
@@ -140,6 +147,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('🔐 VIP DATA MODE:', process.env.BINANCE_API_KEY ? 'ENABLED' : 'DISABLED');
     console.log('💓 Heartbeat: ENABLED (Direct Internal Execution)');
     console.log('='.repeat(60));
+
+    // START REAL-TIME MARKET WORKER
+    marketWorker.start();
 
     // FORCE IMMEDIATE RUN
     setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);

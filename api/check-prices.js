@@ -50,35 +50,34 @@ async function getDynamicTopPairs() {
 
 // Telegram hardcoded config removed - using src/utils/telegram.js
 
-// Helper: Fetch Accurate Global Price (Coinbase as Oracle or Binance Global if EU)
-async function fetchGlobalPrice(symbol) {
-    const REGION = process.env.REGION || 'US'; // Default to US (Vercel)
+// Helper: Fetch Accurate Global Price (Real-time Cache or REST Fallback)
+async function fetchGlobalPrice(symbol, cache = null) {
+    const REGION = process.env.REGION || 'US';
 
-    // OPTION A: EUROPE (RAILWAY/VPS) -> Use Binance Global Directly
-    if (REGION === 'EU') {
-        try {
-            const res = await axios.get(`https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 5000 });
-            return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice) };
-        } catch (e) {
-            console.error('Binance Global Price Fail (EU Mode)', e.message);
-            // Fallback to Coinbase just in case
-        }
+    // 🚀 OPTION 1: Real-time WebSocket Cache (Zero Latency)
+    if (cache && cache[symbol]) {
+        const item = cache[symbol];
+        return { price: item.price, bid: item.bid, ask: item.ask, source: 'WS_CACHE' };
     }
 
-    // OPTION B: USA (VERCEL/RAILWAY) -> Use Binance US Priority + Coinbase Fallback
+    // 🐌 OPTION 2: REST Fallback (Latency 200ms+)
+    if (REGION === 'EU') {
+        try {
+            const res = await axios.get(`https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 3000 });
+            return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: 'REST_EU' };
+        } catch (e) { /* fallback */ }
+    }
+
     const base = symbol.replace('USDT', '');
     try {
-        // Priority 1: Binance US (More accurate for Binance simulation)
-        const res = await axios.get(`https://api.binance.us/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 5000 });
-        return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice) };
+        const res = await axios.get(`https://api.binance.us/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 3000 });
+        return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: 'REST_US' };
     } catch (e) {
         try {
-            // Priority 2: Coinbase Oracle (Backup)
-            const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`, { timeout: 5000 });
+            const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`, { timeout: 3000 });
             const val = parseFloat(res.data.data.amount);
-            return { price: val, bid: val, ask: val };
+            return { price: val, bid: val, ask: val, source: 'REST_ORACLE' };
         } catch (err) {
-            console.error(`Price Fetch Failed for ${symbol}`, err.message);
             return null;
         }
     }
@@ -96,6 +95,17 @@ export default async function handler(req, res) {
 
     try {
         const REGION = process.env.REGION || 'USA';
+        const PORT = process.env.PORT || 8080;
+
+        // 🚀 PHASE 1: Fetch Real-time Market Cache (Internal Call)
+        let marketCache = {};
+        try {
+            const cacheRes = await axios.get(`http://127.0.0.1:${PORT}/api/market-cache`, { timeout: 1000 });
+            marketCache = cacheRes.data;
+        } catch (e) {
+            console.warn('⚠️ Market Cache Fetch Failed (Using REST Fallback)');
+        }
+
         console.log(`🤖 Sentinel Bot Waking Up... [REGION: ${REGION}] [METHOD: ${req.method}]`);
 
         // --- VIP & SAFETY LOGS ---
@@ -245,7 +255,7 @@ export default async function handler(req, res) {
                 // 1. Fetch Global Price First (Reliable PnL)
                 // NOW RETURNS OBJECT: { price, bid, ask }
                 // 1. Fetch Global Price First (Reliable PnL)
-                const marketData = await fetchGlobalPrice(symbol);
+                const marketData = await fetchGlobalPrice(symbol, marketCache);
                 if (!marketData || !marketData.price) {
                     console.warn(`.. ⚠️ NO PRICE: ${symbol} (Skipping)`);
                     continue; // Skip execution for this pair
@@ -460,8 +470,15 @@ export default async function handler(req, res) {
                         // Evaluate entry condition for this strategy
                         if (candidateStrategy === 'FLOW') {
                             try {
-                                const depthResponse = await axios.get((REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us') + `/api/v3/depth?symbol=${symbol}&limit=50`, { timeout: 4000 });
-                                const depth = depthResponse.data;
+                                // 🚀 Phase 1: Use cache for Depth if available
+                                let depth = null;
+                                if (marketCache[symbol]) {
+                                    depth = marketCache[symbol].depth;
+                                } else {
+                                    const depthResponse = await axios.get((REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us') + `/api/v3/depth?symbol=${symbol}&limit=50`, { timeout: 4000 });
+                                    depth = depthResponse.data;
+                                }
+
                                 if (depth && depth.bids && depth.asks) {
                                     // Identify the "Master Wall" (Highest Volume Bid in Top 20)
                                     const topBids = depth.bids.slice(0, 20);
