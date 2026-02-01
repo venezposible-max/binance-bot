@@ -12,9 +12,11 @@ export default async function handler(req, res) {
     try {
         // 1. Load Data
         let activeTradesStr = await redis.get('sentinel_active_trades');
+        let sniperTradesStr = await redis.get('sentinel_sniper_trades');
         let walletConfigStr = await redis.get('sentinel_wallet_config');
 
         let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+        let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
             currentBalance: 1000,
@@ -52,9 +54,22 @@ export default async function handler(req, res) {
             });
 
         } else if (action === 'CLOSE') {
-            const tradeIndex = activeTrades.findIndex(t => t.id === id);
+            // Check both regular and Sniper trades
+            let tradeIndex = activeTrades.findIndex(t => t.id === id);
+            let isSniper = false;
+            let trade = null;
+
             if (tradeIndex !== -1) {
-                const trade = activeTrades[tradeIndex];
+                trade = activeTrades[tradeIndex];
+            } else {
+                tradeIndex = sniperTrades.findIndex(t => t.id === id);
+                if (tradeIndex !== -1) {
+                    trade = sniperTrades[tradeIndex];
+                    isSniper = true;
+                }
+            }
+
+            if (trade) {
 
                 // Calculate PnL if exitPrice is provided
                 if (exitPrice && trade.investedAmount) {
@@ -104,7 +119,18 @@ export default async function handler(req, res) {
                     await redis.set('sentinel_win_history', JSON.stringify(winHistory));
                 }
 
-                activeTrades.splice(tradeIndex, 1);
+                // Remove from correct array
+                if (isSniper) {
+                    sniperTrades.splice(tradeIndex, 1);
+                    await redis.set('sentinel_sniper_trades', JSON.stringify(sniperTrades));
+
+                    // Activate cooldown to prevent immediate reopening
+                    await redis.set('sentinel_sniper_cooldown', Date.now().toString());
+                    console.log('🔫 Sniper cooldown activated (manual close)');
+                } else {
+                    activeTrades.splice(tradeIndex, 1);
+                    await redis.set('sentinel_active_trades', JSON.stringify(activeTrades));
+                }
             }
 
         } else if (action === 'CLEAR_HISTORY') {

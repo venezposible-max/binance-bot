@@ -191,8 +191,10 @@ class CVDSniper {
             console.log(`💰 AFTER: Balance = $${config.currentBalance.toFixed(2)}`);
             await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
-            // Update cooldown tracker
+            // Update cooldown tracker (both in-memory and Redis)
             this.lastTradeTime = Date.now();
+            await redis.set('sentinel_sniper_cooldown', this.lastTradeTime.toString());
+
 
             console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | Invested: $${investedAmount.toFixed(2)} (${riskPercentage}%) | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
 
