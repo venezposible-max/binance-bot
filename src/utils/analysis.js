@@ -151,9 +151,10 @@ export const analyzeFlow = (depth, candles) => {
     const totalVol = bidVol + askVol;
     const bidPercent = (bidVol / totalVol) * 100;
 
-    // EMA for visual trend
+    // Indicators for visual consistency
     const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
     const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
+    const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
     let signal = 'NEUTRAL';
     let label = 'EQUILIBRIO FLOW';
@@ -188,7 +189,7 @@ export const analyzeFlow = (depth, candles) => {
             ema: emaValues.slice(-50)
         },
         indicators: {
-            rsi: '---',
+            rsi: currentRSI.toFixed(1),
             ema: currentEMA ? currentEMA.toFixed(2) : '---',
             flow: {
                 bidVol: bidVol.toFixed(2),
@@ -316,10 +317,11 @@ export const analyzeOB = (candles) => {
         }
     }
 
-    // EMA for visual trend (using 4h)
+    // EMA & RSI for visual consistency
     const closes = candles.map(c => c.close || parseFloat(c[4]));
     const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
     const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
+    const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
     return {
         price: lastPrice,
@@ -328,7 +330,7 @@ export const analyzeOB = (candles) => {
             ema: emaValues.slice(-50)
         },
         indicators: {
-            rsi: '---', // OB doesn't strictly use RSI
+            rsi: currentRSI.toFixed(1),
             ema: currentEMA ? currentEMA.toFixed(1) : '---'
         },
         prediction: {
