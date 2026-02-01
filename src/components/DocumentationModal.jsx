@@ -22,6 +22,14 @@ const DocumentationModal = ({ isOpen, onClose }) => {
             logic: 'Analiza los muros de compra y venta. Una señal "STRONG BUY" se genera cuando el volumen de compra duplica al de venta (Ratio > 2.0x).'
         },
         {
+            id: 'ob',
+            title: 'MODO ORDER BLOCK (Zonas Institucionales)',
+            icon: <Target className={styles.modeIcon} style={{ color: '#10B981' }} size={28} />,
+            description: 'Detecta huellas de dinero institucional analizando impulsos fuertes (+2%) seguidos de retrocesos a la zona de origen.',
+            indicators: ['4H Candles', 'Structural Impulses', 'Smart Money Concepts'],
+            logic: 'Identifica la última vela contraria antes de un disparo fuerte. Entra cuando el precio regresa a esa "caja" para un re-test de alta probabilidad.'
+        },
+        {
             id: 'triple',
             title: 'MODO TRIPLE LOUPE (Confluencia Temporal)',
             icon: <Layers className={styles.modeIcon} size={28} />,
