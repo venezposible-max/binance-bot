@@ -97,6 +97,11 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
             whileHover="hover"
 
         >
+            {/* TIMEFRAME BADGE (New) */}
+            <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.65rem', color: '#64748B', border: '1px solid rgba(100,116,139,0.3)', padding: '2px 4px', borderRadius: '4px' }}>
+                {indicators.mode === 'BLITZ' ? '5m' : (indicators.mode === 'SCALP' ? '5m' : (indicators.mode === 'TRIPLE' ? '15m' : '4h'))}
+            </div>
+
             <div className={styles.header}>
                 <div className={styles.symbolWrapper}>
                     <span className={styles.symbol}>{symbol.replace('USDT', '')}</span>

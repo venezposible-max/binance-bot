@@ -91,6 +91,14 @@ function App() {
           if (data.strategy && data.strategy !== activeStrategy) {
             setActiveStrategy(data.strategy);
             localStorage.setItem('sentinel_strategy', data.strategy);
+
+            // Force Timeframe for Special Modes on Startup
+            if (data.strategy === 'BLITZ') setTimeframe('5m');
+            if (data.strategy === 'SCALP') setTimeframe('5m');
+            if (data.strategy === 'TRIPLE') setTimeframe('15m');
+          } else {
+            // Even if strategy matches, ensure timeframe is correct for Blitz
+            if (data.strategy === 'BLITZ' && timeframe !== '5m') setTimeframe('5m');
           }
         }
       })
