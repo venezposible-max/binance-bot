@@ -312,6 +312,24 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         }
     };
 
+    const handleSetHybridMode = async (mode) => {
+        if (!wallet) return;
+        try {
+            // AUTO-PAUSE on change for safety
+            setWallet(prev => ({ ...prev, hybridMode: mode, isBotActive: false }));
+
+            await fetch('/api/wallet/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hybridMode: mode, isBotActive: false })
+            });
+
+            if (onConfigChange) onConfigChange({ ...wallet, hybridMode: mode, isBotActive: false });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     return (
         <div className={styles.card}>
             {/* Header with Execution Control */}
@@ -422,7 +440,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         <div className={styles.label}>HYBRID MODE</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button
-                                onClick={() => handleUpdateRiskValue('hybridMode', 'SWING')}
+                                onClick={() => handleSetHybridMode('SWING')}
                                 style={{
                                     padding: '4px 10px',
                                     borderRadius: '4px',
@@ -435,7 +453,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                 }}
                             >🏛️ SWING</button>
                             <button
-                                onClick={() => handleUpdateRiskValue('hybridMode', 'BLITZ')}
+                                onClick={() => handleSetHybridMode('BLITZ')}
                                 style={{
                                     padding: '4px 10px',
                                     borderRadius: '4px',
