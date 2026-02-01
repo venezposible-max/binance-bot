@@ -23,6 +23,7 @@ function App() {
   const [timeframe, setTimeframe] = useState('4h');
   const [activeStrategy, setActiveStrategy] = useState(() => localStorage.getItem('sentinel_strategy') || 'SWING');
   const [tradingMode, setTradingMode] = useState('SIMULATION'); // Default safe
+  const [walletConfig, setWalletConfig] = useState({}); // bot logic and risk settings
 
   const [isDocsOpen, setIsDocsOpen] = useState(false); // NEW: Documentation State
 
@@ -59,6 +60,16 @@ function App() {
     if (tab === 'wallet') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
     if (tab === 'settings') walletRef.current?.configure(); // Open config modal
   };
+
+  // --- INITIAL CONFIG LOAD ---
+  useEffect(() => {
+    fetch('/api/wallet/config')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) setWalletConfig(data);
+      })
+      .catch(err => console.error('Failed to load initial config:', err));
+  }, []);
 
   // --- WALLET REF for mobile config ---
   const walletRef = useRef(null);
@@ -156,7 +167,7 @@ function App() {
             analysis = analyzeTriple(candles, k1h, k15m);
           } else {
             // 📊 STANDARD MODE: Technicals (RSI/EMA/BB)
-            analysis = analyzePair(candles, wallet);
+            analysis = analyzePair(candles, walletConfig);
           }
 
           const history = candles.slice(-50).map(c => c.close || parseFloat(c[4]));
@@ -219,13 +230,18 @@ function App() {
 
 
   const handleConfigChange = (newConfig) => {
-    // Sync Trading Mode
-    if (newConfig?.tradingMode) {
+    if (!newConfig) return;
+
+    // Always sync the full configuration state
+    setWalletConfig(newConfig);
+
+    // Sync Trading Mode indicator if present
+    if (newConfig.tradingMode) {
       setTradingMode(newConfig.tradingMode);
     }
 
-    // Sync activeStrategy if changed from WalletCard
-    if (newConfig?.strategy && newConfig.strategy !== activeStrategy) {
+    // Check if strategy changed from WalletCard
+    if (newConfig.strategy && newConfig.strategy !== activeStrategy) {
       console.log(`🔄 Strategy Changed: ${activeStrategy} -> ${newConfig.strategy}`);
 
       // REMOVED: setMarketData({}) flash for better fluidity
@@ -249,11 +265,16 @@ function App() {
           timeframe: newTf,
           strategy: newConfig.strategy
         })
-      }).catch(err => console.error('Failed to sync strategy:', err));
+      }).then(res => res.json())
+        .then(data => setWalletConfig(data)) // Sync full config back
+        .catch(err => console.error('Failed to sync strategy:', err));
+
+      setWalletConfig(newConfig); // NEW: Full state sync
 
       // Reload data with new strategy
       setTimeout(() => fetchData(newTf), 100); // Small delay to ensure state is cleared
     } else {
+      setWalletConfig(newConfig || {}); // SYNC even if same strategy
       fetchData();
     }
   };
@@ -264,7 +285,7 @@ function App() {
     // Set up auto-refresh interval (every 90s - optimized)
     const interval = setInterval(() => fetchData(), 90000);
     return () => clearInterval(interval);
-  }, [timeframe]); // Re-fetch when timeframe changes
+  }, [timeframe, activeStrategy, walletConfig]); // Re-fetch when config, strategy or timeframe changes
 
   // ... (Side effects)
 

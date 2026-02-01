@@ -5,20 +5,27 @@ import { RSI, EMA, BollingerBands } from 'technicalindicators';
  * @param {Array} candles - Array of candle objects { close: number, ... }
  */
 export const analyzePair = (candles, config = {}) => {
-    if (!candles || candles.length === 0) return { signal: 'NEUTRAL', score: 0, prediction: { signal: 'NEUTRAL', color: '#888' } };
-
-    const swingMode = config.swingMode || 'CONSERVATIVE'; // NEW: Default to safe
-
     // Always extract price first
-    const closes = candles.map(c => c.close);
-    const lastPrice = closes[closes.length - 1];
+    const closes = (candles || []).map(c => c.close || parseFloat(c[4] || 0));
+    const lastPrice = closes.length > 0 ? closes[closes.length - 1] : 0;
+
+    // SKELETON: Constant structure to prevent UI crashes
+    const skeleton = {
+        price: lastPrice,
+        ema: null,
+        chartData: { ema: [], bb: [] },
+        indicators: { rsi: '---', ema: '---', bb: { upper: '---', lower: '---' } },
+        prediction: { signal: 'NEUTRAL', label: 'CARGANDO', color: '#94A3B8', intensity: 0 }
+    };
+
+    if (!candles || candles.length === 0) {
+        return { ...skeleton, prediction: { ...skeleton.prediction, label: 'SIN DATOS' } };
+    }
+
+    const swingMode = config?.swingMode || 'CONSERVATIVE';
 
     if (candles.length < 20) {
-        return {
-            price: lastPrice, // CRITICAL: RETURN PRICE
-            signal: 'NEUTRAL',
-            prediction: { signal: 'NEUTRAL', label: 'BAJA LIQUIDEZ', color: '#64748B' }
-        };
+        return { ...skeleton, prediction: { ...skeleton.prediction, label: 'BAJA LIQUIDEZ' } };
     }
 
     const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
