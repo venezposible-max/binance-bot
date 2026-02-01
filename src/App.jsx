@@ -142,8 +142,7 @@ function App() {
           if (activeStrategy === 'FLOW') {
             // 🌊 FLOW MODE: Order Book Imbalance
             const depth = await fetchDepth(symbol); // Using New Backend Proxy
-            const lastPrice = candles.length > 0 ? candles[candles.length - 1].close : 0;
-            analysis = analyzeFlow(depth, lastPrice);
+            analysis = analyzeFlow(depth, candles);
           } else if (activeStrategy === 'TRIPLE') {
             // 🧐 TRIPLE LOUPE: 15m + 1h + 4h
             const [k1h, k15m] = await Promise.all([

@@ -109,12 +109,15 @@ export const analyzePair = (candles) => {
  * STRATEGY: FLOW (Order Book Imbalance)
  * Ignores technicals. Looks for Walls and Pressure.
  * @param {Object} depth - { bids: [[price, qty], ...], asks: [...] }
- * @param {number} currentPrice - Last traded price
+ * @param {Array} candles - Price history candles
  */
-export const analyzeFlow = (depth, currentPrice) => {
+export const analyzeFlow = (depth, candles) => {
+    const closes = candles.map(c => c.close);
+    const lastPrice = closes[closes.length - 1] || 0;
+
     if (!depth || !depth.bids || !depth.asks) {
         return {
-            price: currentPrice,
+            price: lastPrice,
             indicators: {
                 rsi: '---',
                 ema: '---',
@@ -130,26 +133,26 @@ export const analyzeFlow = (depth, currentPrice) => {
     }
 
     // 1. Calculate Buying Pressure (Sum of Bid Volume) vs Selling Pressure
-    // We only care about the "active" zone (e.g., closest 20 levels)
     const bidVol = depth.bids.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
     const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
 
-    // Prevent division by zero
     const buyPressure = askVol > 0 ? bidVol / askVol : 1;
     const totalVol = bidVol + askVol;
     const bidPercent = (bidVol / totalVol) * 100;
+
+    // EMA for visual trend
+    const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
+    const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
 
     let signal = 'NEUTRAL';
     let label = 'EQUILIBRIO FLOW';
     let color = '#94A3B8';
     let intensity = 0;
 
-    // THRESHOLDS (Aggressive Flow Logic)
     if (buyPressure >= 2.0) {
-        // Double the buyers than sellers
         signal = 'STRONG_BUY';
         label = `🌊 MURO DE COMPRA (${bidPercent.toFixed(0)}%)`;
-        color = '#00ffaa'; // Neon Green
+        color = '#00ffaa';
         intensity = 100;
     } else if (buyPressure >= 1.5) {
         signal = 'BUY';
@@ -157,8 +160,7 @@ export const analyzeFlow = (depth, currentPrice) => {
         color = '#10B981';
         intensity = 60;
     } else if (buyPressure <= 0.5) {
-        // Double the sellers
-        signal = 'STRONG_SELL'; // Or NEUTRAL if long-only
+        signal = 'STRONG_SELL';
         label = `🧱 MURO DE VENTA (${(100 - bidPercent).toFixed(0)}%)`;
         color = '#EF4444';
         intensity = 100;
@@ -170,11 +172,13 @@ export const analyzeFlow = (depth, currentPrice) => {
     }
 
     return {
-        price: currentPrice,
-        // Override Indicators for Flow Visualization
+        price: lastPrice,
+        chartData: {
+            ema: emaValues.slice(-50)
+        },
         indicators: {
-            rsi: '---', // Ignored
-            ema: '---',
+            rsi: '---',
+            ema: currentEMA ? currentEMA.toFixed(2) : '---',
             flow: {
                 bidVol: bidVol.toFixed(2),
                 askVol: askVol.toFixed(2),
