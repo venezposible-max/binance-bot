@@ -619,10 +619,10 @@ function App() {
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Valor Final 💵</div>
                           <div style={{ color: '#fff', fontWeight: 'bold', fontFamily: 'monospace', fontSize: '1rem' }}>
-                            ${((h.investedAmount || 0) * (1 + (h.pnl || 0) / 100)).toFixed(2)}
+                            ${(h.investedAmount + (h.profitUsd || h.netProfit || 0)).toFixed(2)}
                           </div>
                           <div style={{ fontSize: '0.65rem', color: statusColor }}>
-                            ({isWin ? '+' : ''}${((h.investedAmount || 0) * ((h.pnl || 0) / 100)).toFixed(2)})
+                            ({(h.profitUsd || h.netProfit) >= 0 ? '+' : ''}${(h.profitUsd || h.netProfit || 0).toFixed(2)})
                           </div>
                         </div>
                       </div>

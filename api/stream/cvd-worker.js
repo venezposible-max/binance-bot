@@ -267,7 +267,7 @@ class CVDSniper {
                     exitPrice: exitPrice,
                     investedAmount: trade.investedAmount || 0,
                     pnl: pnlPercent,
-                    netProfit: totalCycleProfit, // Correct: Profit minus ALL fees
+                    profitUsd: totalCycleProfit, // Unified field name
                     timestamp: trade.timestamp,
                     closeTime: Date.now(),
                     reason: exitReason
