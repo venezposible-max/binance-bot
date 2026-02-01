@@ -97,8 +97,20 @@ const DocumentationModal = ({ isOpen, onClose }) => {
                             </div>
                         ))}
 
+                        <div className={styles.section} style={{ borderBottom: 'none', background: 'rgba(239, 68, 68, 0.05)', padding: '20px', borderRadius: '16px', marginTop: '20px' }}>
+                            <div className={styles.sectionHeader}>
+                                <ShieldCheck className={styles.modeIcon} style={{ color: '#EF4444' }} size={28} />
+                                <h2 className={styles.modeTitle} style={{ color: '#EF4444' }}>⚠️ DESCARGO DE RESPONSABILIDAD (RISK NOTICE)</h2>
+                            </div>
+                            <p className={styles.description} style={{ color: '#FCA5A5', fontWeight: '500' }}>
+                                El trading de criptoactivos es altamente impredecible. Los mercados pueden moverse de manera irracional, rompiendo patrones técnicos y algoritmos en segundos.
+                                <br /><br />
+                                <strong>REGLA DE ORO:</strong> Nunca arriesgues capital que no estés dispuesto a perder en su totalidad. Este bot es una herramienta de asistencia, no una garantía de ganancias. La responsabilidad final de cada operación recae exclusivamente en el usuario.
+                            </p>
+                        </div>
+
                         <footer style={{ textAlign: 'center', marginTop: '40px', color: '#4B5563', fontSize: '0.8rem' }}>
-                            BINANCE SENTINEL AI v4.0 • SISTEMA AUTÓNOMO DE ALTA PRECISIÓN
+                            BINANCE SENTINEL AI v4.0 • SISTEMA AUTÓNOMO DE ALTA PRECISIÓN • NFA (Not Financial Advice)
                         </footer>
                     </motion.div>
                 </motion.div>

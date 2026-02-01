@@ -671,6 +671,9 @@ function App() {
         <footer className={styles.footer}>
           <div className={styles.copyright}>
             © 2026 Binance Sentinel AI • Todos los derechos reservados
+            <span style={{ marginLeft: '15px', color: '#EF4444', opacity: 0.8 }}>
+              ⚠️ El trading conlleva riesgos. No arriesgues lo que no puedas perder.
+            </span>
           </div>
           <div className={styles.docsLink} onClick={() => setIsDocsOpen(true)}>
             <BookOpen size={16} />
