@@ -116,17 +116,11 @@ class CVDSniper {
             const sniperTradesStr = await redis.get('sentinel_sniper_trades');
             const currentActive = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
 
-            // Prevent multiple active trades (checking both memory and Redis sync)
-            if (currentActive.length > 0) {
-                console.log('🔫 Sniper: Already have an active trade');
-                return;
-            }
-            this.activeTrades = currentActive; // Update in-memory active trades
-
             // Read wallet config
             const configStr = await redis.get('sentinel_wallet_config');
             if (!configStr) {
                 console.warn('⚠️ Sniper: No wallet config found');
+                this.isOpeningTrade = false;
                 return;
             }
 
@@ -135,14 +129,17 @@ class CVDSniper {
             // Check if bot is active
             if (!config.isBotActive) {
                 console.log('🔕 Sniper: Bot is paused');
+                this.isOpeningTrade = false;
                 return;
             }
 
-            // Prevent multiple active trades
-            if (this.activeTrades.length > 0) {
+            // Prevent multiple active trades (checking both memory and Redis sync)
+            if (currentActive.length > 0) {
                 console.log('🔫 Sniper: Already have an active trade');
+                this.isOpeningTrade = false;
                 return;
             }
+            this.activeTrades = currentActive; // Update in-memory active trades
 
             // Check cooldown (prevent reopening immediately after close)
             const cooldownStr = await redis.get('sentinel_sniper_cooldown');
@@ -152,6 +149,7 @@ class CVDSniper {
             if (now - lastCooldownTime < this.COOLDOWN_MS) {
                 const remaining = Math.ceil((this.COOLDOWN_MS - (now - lastCooldownTime)) / 1000);
                 console.log(`⏳ Sniper: Cooldown active (${remaining}s remaining)`);
+                this.isOpeningTrade = false;
                 return;
             }
 
@@ -159,6 +157,7 @@ class CVDSniper {
             const availableBalance = config.currentBalance || 1000;
             if (availableBalance < 10) {
                 console.warn('⚠️ Sniper: Insufficient balance');
+                this.isOpeningTrade = false;
                 return;
             }
 
