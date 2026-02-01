@@ -8,6 +8,7 @@ import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
 import CVDView from './components/CVDView'; // NEW: Sniper View
+import CVDChart from './components/CVDChart'; // NEW: Embedded CVD Chart
 import { sendTelegramAlert } from './utils/telegram';
 
 function App() {
@@ -638,21 +639,33 @@ function App() {
           </button>
         </div>
 
+        {/* --- MARKET ANALYSIS GRID --- */}
+        {activeStrategy !== 'SNIPER' && (
+          <section className={styles.analysisSection}>
+            <h2 className={styles.sectionTitle}>📊 ANÁLISIS DE MERCADO (TOP 10 VOLUMEN)</h2>
+            <div className={styles.cardGrid}>
+              {Object.keys(marketData).map(symbol => (
+                <SentinelCard
+                  key={symbol}
+                  symbol={symbol}
+                  data={marketData[symbol]}
+                  loading={loading}
+                  onSimulate={handleSimulate}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
-        <div id="market-grid-section">
-          <MarketGrid>
-            {pairs.map(symbol => (
-              <SentinelCard
-                key={symbol}
-                symbol={symbol}
-                data={marketData[symbol]}
-                loading={loading}
-                onSimulate={handleSimulate}
-              />
-            ))}
-          </MarketGrid>
-        </div>
-
+        {/* --- SNIPER CVD CHART (Only when SNIPER active) --- */}
+        {activeStrategy === 'SNIPER' && (
+          <section className={styles.analysisSection}>
+            <h2 className={styles.sectionTitle}>🔫 CVD SNIPER - BTCUSDT WHALE TRACKER</h2>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <CVDChart />
+            </div>
+          </section>
+        )}
 
 
         <footer style={{ textAlign: 'center', color: '#5E6673', padding: '40px 20px', fontSize: '0.8rem' }}>
