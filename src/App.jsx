@@ -312,7 +312,7 @@ function App() {
           )}
 
           <span style={{ color: 'var(--color-binance-yellow)' }}>
-            {activeStrategy} ({timeframe})
+            {activeStrategy} {activeStrategy !== 'SNIPER' && `(${timeframe})`}
           </span>
 
           {/* REAL BALANCE INDICATOR - LIVE ONLY */}
