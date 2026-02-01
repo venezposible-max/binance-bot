@@ -294,15 +294,19 @@ export default async function handler(req, res) {
                         slEnforced = USE_STOP_LOSS;    // Only use SL if strategy is SWING
                     }
 
+                    // FEE COMPENSATION: Add 0.2% Buffer to ensure Net Profit matches User Request
+                    // If user wants 1.0%, we trigger at 1.2%
+                    const grossTarget = dynamicTarget + 0.2;
+
                     // EXIT CONDITION (Take Profit)
-                    const isTakeProfitHit = pnl >= dynamicTarget;
+                    const isTakeProfitHit = pnl >= grossTarget;
 
                     // EXIT CONDITION (Stop Loss - User Feature isolated to SWING)
                     const isStopLossHit = slEnforced && (pnl <= -STOP_LOSS_TARGET);
 
                     if (isTakeProfitHit || isStopLossHit) {
                         const isLive = trade.mode === 'LIVE';
-                        const reason = isStopLossHit ? 'STOP LOSS' : 'TARGET HIT';
+                        const reason = isStopLossHit ? 'STOP LOSS' : 'TARGET HIT (Net)';
                         console.log(`🎯 ${reason} (${tradeStrategy}): ${symbol} ${pnl.toFixed(2)}% | Executing SELL (${isLive ? 'LIVE' : 'SIM'})`);
 
                         try {
