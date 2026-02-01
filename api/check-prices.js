@@ -189,12 +189,10 @@ export default async function handler(req, res) {
         // Priority Order: SNIPER (Whale Detection) -> HYBRID (Confluence Master)
         const STRATEGY_PRIORITY = ['SNIPER', 'HYBRID'];
 
-        // Determine which strategies are ACTIVE
+        // Determine which strategies are ACTIVE strictly based on their individual config
         const strategyConfig = wallet.strategyConfig || {};
         const activeStrategies = STRATEGY_PRIORITY.filter(s => {
-            if (strategyConfig[s]) return strategyConfig[s].active === true;
-            // Fallback: If no config, check if it's the "main" selected strategy
-            return s === (wallet.strategy || 'SWING') && wallet.isBotActive !== false;
+            return strategyConfig[s]?.active === true;
         });
 
         if (activeStrategies.length === 0) {

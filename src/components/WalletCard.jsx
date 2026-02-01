@@ -154,7 +154,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     const handleToggleBot = async () => {
         if (!wallet) return;
         const strategyConfig = wallet.strategyConfig || {};
-        const currentConfig = strategyConfig[currentStrategy] || { active: wallet.isBotActive !== false };
+        const currentConfig = strategyConfig[currentStrategy] || { active: false };
         const newState = !currentConfig.active;
 
         const newStrategyConfig = {
@@ -202,13 +202,13 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     const handleSetHybridMode = async (mode) => {
         if (!wallet) return;
         try {
-            setWallet(prev => ({ ...prev, hybridMode: mode, isBotActive: false }));
+            setWallet(prev => ({ ...prev, hybridMode: mode }));
             await fetch('/api/wallet/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hybridMode: mode, isBotActive: false })
+                body: JSON.stringify({ hybridMode: mode })
             });
-            if (onConfigChange) onConfigChange({ ...wallet, hybridMode: mode, isBotActive: false });
+            if (onConfigChange) onConfigChange({ ...wallet, hybridMode: mode });
         } catch (e) {
             console.error(e);
         }
@@ -233,8 +233,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 </div>
 
                 {(function () {
-                    const sConf = wallet.strategyConfig?.[currentStrategy];
-                    const isActive = sConf ? sConf.active : (wallet.isBotActive !== false);
+                    const isActive = (wallet.strategyConfig || {})[currentStrategy]?.active;
                     return isActive ? (
                         <button onClick={handleToggleBot} className={styles.pauseBtn}>⏸️ PAUSE</button>
                     ) : (
