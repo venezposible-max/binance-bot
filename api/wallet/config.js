@@ -37,7 +37,9 @@ export default async function handler(req, res) {
                     tradingMode: req.body.tradingMode || 'SIMULATION', // New: LIVE or SIMULATION
                     riskPercentage: parseFloat(riskPercentage),
                     isBotActive: current.isBotActive !== undefined ? current.isBotActive : true,
-                    multiFrameMode: false
+                    multiFrameMode: false,
+                    strategy: req.body.strategy || current.strategy || 'SWING',
+                    timeframe: req.body.timeframe || current.timeframe || '4h'
                 };
             } else {
                 // Update specific fields

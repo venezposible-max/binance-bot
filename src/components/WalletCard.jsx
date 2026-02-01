@@ -1,7 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styles from './WalletCard.module.css';
 
-const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref) => {
+const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy }, ref) => {
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -58,7 +58,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
                         allocatedCapital: parseFloat(newBalance), // Real Limit
                         tradingMode: newMode,
                         riskPercentage: parseFloat(newRisk),
-                        strategy: wallet?.strategy || 'SWING', // Preserve active strategy
+                        strategy: activeStrategy || wallet?.strategy || 'SWING', // Use current frontend strategy
                         reset: true
                     })
                 });
@@ -153,6 +153,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
 
 
     const getStrategy = () => {
+        if (activeStrategy) return activeStrategy; // Prioritize prop from parent
         if (!wallet) return 'SWING';
         if (wallet.strategy) return wallet.strategy;
         // Migration for legacy flag
