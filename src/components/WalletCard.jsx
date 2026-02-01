@@ -128,7 +128,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     const handleCycleStrategy = async () => {
         if (!wallet) return;
-        const strategies = ['HYBRID', 'SNIPER'];
+        const strategies = ['HYBRID_SWING', 'HYBRID_BLITZ', 'SNIPER'];
         const currentIndex = strategies.indexOf(currentStrategy);
         const nextStrategy = strategies[(currentIndex + 1) % strategies.length];
 
@@ -146,7 +146,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     };
 
     const getStrategyColor = (s) => {
-        if (s === 'HYBRID') return '#00D9FF';
+        if (s.startsWith('HYBRID')) return '#00D9FF';
         if (s === 'SNIPER') return '#D946EF';
         return '#666';
     };
@@ -244,25 +244,46 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
             {/* --- MULTI-STRATEGY PANEL --- */}
             <div style={{ marginBottom: '15px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px', fontWeight: 'bold' }}>🎯 ESTRATEGIAS ACTIVAS</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {['HYBRID', 'SNIPER'].map(s => {
-                        const isActive = (wallet.strategyConfig || {})[s]?.active;
-                        return (
-                            <button
-                                key={s}
-                                onClick={() => handleToggleStrategyActive(s)}
-                                style={{
-                                    padding: '4px 8px', borderRadius: '44px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer',
-                                    border: `1px solid ${isActive ? getStrategyColor(s) : '#333'}`,
-                                    background: isActive ? `${getStrategyColor(s)}22` : 'transparent',
-                                    color: isActive ? getStrategyColor(s) : '#64748B'
-                                }}
-                            >
-                                {s} {isActive ? '✓' : '○'}
-                            </button>
-                        );
-                    })}
+                    {/* --- HYBRID TREE --- */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '2px solid rgba(0,217,255,0.2)', paddingLeft: '8px' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#00D9FF', opacity: 0.8, marginBottom: '2px' }}>HYBRID ENGINE</div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            {['HYBRID_SWING', 'HYBRID_BLITZ'].map(s => {
+                                const isActive = (wallet.strategyConfig || {})[s]?.active;
+                                return (
+                                    <button
+                                        key={s}
+                                        onClick={() => handleToggleStrategyActive(s)}
+                                        style={{
+                                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer',
+                                            border: `1px solid ${isActive ? '#00D9FF' : '#333'}`,
+                                            background: isActive ? '#00D9FF22' : 'transparent',
+                                            color: isActive ? '#00D9FF' : '#64748B'
+                                        }}
+                                    >
+                                        {s === 'HYBRID_SWING' ? '🏛️ SWING' : '⚡ BLITZ'} {isActive ? '✓' : '○'}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* --- SNIPER NODE --- */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '2px solid rgba(217,70,239,0.2)', paddingLeft: '8px', marginLeft: '8px' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#D946EF', opacity: 0.8, marginBottom: '2px' }}>ELITE SNIPER</div>
+                        <button
+                            onClick={() => handleToggleStrategyActive('SNIPER')}
+                            style={{
+                                padding: '4px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer',
+                                border: `1px solid ${(wallet.strategyConfig || {})['SNIPER']?.active ? '#D946EF' : '#333'}`,
+                                background: (wallet.strategyConfig || {})['SNIPER']?.active ? '#D946EF22' : 'transparent',
+                                color: (wallet.strategyConfig || {})['SNIPER']?.active ? '#D946EF' : '#64748B'
+                            }}
+                        >
+                            🎯 SNIPER {(wallet.strategyConfig || {})['SNIPER']?.active ? '✓' : '○'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -298,27 +319,12 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             </div>
 
             {/* --- HYBRID ENGINE CONTROLS --- */}
-            {currentStrategy === 'HYBRID' && (
+            {currentStrategy.startsWith('HYBRID') && (
                 <div className={styles.riskPanel}>
                     <div className={styles.riskItem}>
-                        <div className={styles.label}>HYBRID MODE</div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                                onClick={() => handleSetHybridMode('SWING')}
-                                style={{
-                                    padding: '4px 10px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer',
-                                    background: (wallet.hybridMode || 'SWING') === 'SWING' ? '#00D9FF' : '#1e1e1e',
-                                    color: (wallet.hybridMode || 'SWING') === 'SWING' ? '#000' : '#666'
-                                }}
-                            >🏛️ SWING</button>
-                            <button
-                                onClick={() => handleSetHybridMode('BLITZ')}
-                                style={{
-                                    padding: '4px 10px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', border: 'none', cursor: 'pointer',
-                                    background: wallet.hybridMode === 'BLITZ' ? '#F59E0B' : '#1e1e1e',
-                                    color: wallet.hybridMode === 'BLITZ' ? '#000' : '#666'
-                                }}
-                            >⚡ BLITZ</button>
+                        <div className={styles.label}>MODE: {currentStrategy === 'HYBRID_SWING' ? '🏛️ SWING' : '⚡ BLITZ'}</div>
+                        <div style={{ fontSize: '0.7rem', color: '#fff' }}>
+                            {currentStrategy === 'HYBRID_SWING' ? 'Análisis Velas 1H/4H' : 'Análisis Velas 1m/5m'}
                         </div>
                     </div>
                     <div className={styles.riskItem}>

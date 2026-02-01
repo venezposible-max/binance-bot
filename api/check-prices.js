@@ -187,7 +187,8 @@ export default async function handler(req, res) {
         // --- 🧪 MULTI-STRATEGY PARALLEL EXECUTION ---
         // --- 🧪 ELITE HYBRID ENGINE ---
         // Priority Order: SNIPER (Whale Detection) -> HYBRID (Confluence Master)
-        const STRATEGY_PRIORITY = ['SNIPER', 'HYBRID'];
+        // Priority Order: SNIPER -> HYBRID_SWING -> HYBRID_BLITZ
+        const STRATEGY_PRIORITY = ['SNIPER', 'HYBRID_SWING', 'HYBRID_BLITZ'];
 
         // Determine which strategies are ACTIVE strictly based on their individual config
         const strategyConfig = wallet.strategyConfig || {};
@@ -503,39 +504,51 @@ export default async function handler(req, res) {
                         let candidateBuy = false;
 
                         // Evaluate entry condition for this strategy
-                        // 🧬 HYBRID CONFLUENCE LOGIC
-                        if (candidateStrategy === 'HYBRID') {
+                        // 🧬 HYBRID CONFLUENCE LOGIC (SWING)
+                        if (candidateStrategy === 'HYBRID_SWING') {
                             try {
-                                // 1. Get Klines
                                 const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
-                                const { data: klines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=250`, { timeout: 5000 });
-
-                                // 2. Get Real-time Depth from Cache
+                                const { data: klines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1h&limit=250`, { timeout: 5000 });
                                 const depth = marketCache[symbol]?.depth || { bids: [], asks: [] };
 
-                                // 3. Run Analysis
                                 const analysis = await import('../src/utils/analysis.js').then(m => m.analyzeHybrid(depth, klines.map(c => ({
-                                    open: parseFloat(c[1]),
-                                    high: parseFloat(c[2]),
-                                    low: parseFloat(c[3]),
-                                    close: parseFloat(c[4]),
-                                    volume: parseFloat(c[5])
-                                })), { mode: hybridMode }));
+                                    open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5])
+                                })), { mode: 'SWING' }));
 
                                 candidateBuy = analysis.prediction.signal === 'STRONG_BUY';
-
                                 if (candidateBuy) {
-                                    // Set Dynamic Targets directly from analysis
                                     if (analysis.obZone) {
-                                        wallet._hybridDynamicSL = analysis.obZone.sl;
-                                        wallet._hybridDynamicTP = analysis.obZone.tp;
+                                        wallet._hybridSwingSL = analysis.obZone.sl;
+                                        wallet._hybridSwingTP = analysis.obZone.tp;
                                     }
-                                    wallet._hybridWallPrice = analysis.wallPrice;
-
-                                    console.log(`🎯 [HYBRID ${hybridMode}] ${symbol} | CONFLUENCE DETECTED | Price: $${currentPrice.toFixed(2)} | SL: $${wallet._hybridDynamicSL?.toFixed(2)}`);
+                                    console.log(`🎯 [HYBRID SWING] ${symbol} | CONFLUENCE DETECTED | Price: $${currentPrice.toFixed(2)}`);
                                 }
                             } catch (e) {
-                                console.warn(`Hybrid analysis fail for ${symbol}:`, e.message);
+                                console.warn(`Hybrid Swing fail for ${symbol}:`, e.message);
+                            }
+                        }
+
+                        // 🧬 HYBRID CONFLUENCE LOGIC (BLITZ)
+                        if (candidateStrategy === 'HYBRID_BLITZ') {
+                            try {
+                                const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
+                                const { data: klines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1m&limit=250`, { timeout: 5000 });
+                                const depth = marketCache[symbol]?.depth || { bids: [], asks: [] };
+
+                                const analysis = await import('../src/utils/analysis.js').then(m => m.analyzeHybrid(depth, klines.map(c => ({
+                                    open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5])
+                                })), { mode: 'BLITZ' }));
+
+                                candidateBuy = analysis.prediction.signal === 'STRONG_BUY';
+                                if (candidateBuy) {
+                                    if (analysis.obZone) {
+                                        wallet._hybridBlitzSL = analysis.obZone.sl;
+                                        wallet._hybridBlitzTP = analysis.obZone.tp;
+                                    }
+                                    console.log(`🎯 [HYBRID BLITZ] ${symbol} | CONFLUENCE DETECTED | Price: $${currentPrice.toFixed(2)}`);
+                                }
+                            } catch (e) {
+                                console.warn(`Hybrid Blitz fail for ${symbol}:`, e.message);
                             }
                         }
 
@@ -603,8 +616,8 @@ export default async function handler(req, res) {
                                 quantity: executedQty, // Save COIN Qty for Selling
                                 entryFee: spentUsd * 0.001, // Store for Forensic Audit
                                 strategy: winningStrategy,
-                                dynamicSL: winningStrategy === 'HYBRID' ? wallet._hybridDynamicSL : (winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null)),
-                                dynamicTP: winningStrategy === 'HYBRID' ? wallet._hybridDynamicTP : (winningStrategy === 'OB' ? wallet._obDynamicTP : null),
+                                dynamicSL: winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingSL : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzSL : (winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null))),
+                                dynamicTP: winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingTP : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzTP : (winningStrategy === 'OB' ? wallet._obDynamicTP : null)),
                                 impulse: winningStrategy === 'OB' ? wallet._obImpulse : null,
                                 wallPrice: winningStrategy === 'HYBRID' ? wallet._hybridWallPrice : (winningStrategy === 'FLOW' ? wallet._flowWallPrice : null),
                                 mode: isLive ? 'LIVE' : 'SIMULATION',
