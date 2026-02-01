@@ -279,21 +279,6 @@ function App() {
 
   // ... (Side effects)
 
-  // ⚡ SNIPER MODE OVERRIDE (Full Screen)
-  if (activeStrategy === 'SNIPER') {
-    return (
-      <CVDView onExit={async () => {
-        // Revert to Safe Mode (SWING)
-        setActiveStrategy('SWING');
-        await fetch('/api/wallet/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ strategy: 'SWING' })
-        });
-      }} />
-    );
-  }
-
   return (
     <div className={styles.appContainer}>
       {/* 🌌 DYNAMIC BACKGROUND */}

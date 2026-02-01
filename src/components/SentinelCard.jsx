@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Activity, Minus } from 'lucide-react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 import ProfessionalChart from './ProfessionalChart';
+import CVDChart from './CVDChart';
 import styles from './SentinelCard.module.css';
 
 // Animated Number Component
@@ -184,14 +185,15 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 </motion.button>
             )}
 
-            {/* Professional Chart with Recharts */}
-            {data.candles && data.candles.length > 0 && (
+            {/* CHART AREA - Conditional: CVD for SNIPER, Candlesticks for others */}
+            {indicators.strategy === 'SNIPER' ? (
+                <CVDChart />
+            ) : (
                 <ProfessionalChart
-                    candles={data.candles}
-                    emaData={data.chartData?.ema || []}
-                    color={color}
-                />
-            )}
+                    symbol={symbol}
+                    interval={indicators.interval || '4h'}
+                    theme="dark"
+                />)}
 
         </motion.div>
     );
