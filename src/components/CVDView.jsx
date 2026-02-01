@@ -86,16 +86,16 @@ const CVDView = ({ onExit }) => {
 
             {/* MAIN STATS */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', padding: '20px 0' }}>
-                <StatCard label="NET DELTA (CVD)" value={data.cvd.toLocaleString()} color={isPositive ? '#00ff00' : '#ff0000'} big />
-                <StatCard label="LAST TICK IMPACT" value={lastDelta.toLocaleString()} color={lastDelta > 0 ? '#00ff00' : '#ff0000'} />
-                <StatCard label="MESSAGES / PROCESSED" value={data.stats.messages || 0} icon={<Activity size={16} />} />
-                <StatCard label="WHALE TRIGGERS" value={data.stats.triggers || 0} icon={<Zap size={16} color="yellow" />} />
+                <StatCard label="NET DELTA (CVD)" value={(data.cvd || 0).toLocaleString()} color={isPositive ? '#00ff00' : '#ff0000'} big />
+                <StatCard label="LAST TICK IMPACT" value={(lastDelta || 0).toLocaleString()} color={lastDelta > 0 ? '#00ff00' : '#ff0000'} />
+                <StatCard label="MESSAGES / PROCESSED" value={(data.stats?.messages || 0).toLocaleString()} icon={<Activity size={16} />} />
+                <StatCard label="WHALE TRIGGERS" value={(data.stats?.triggers || 0).toLocaleString()} icon={<Zap size={16} color="yellow" />} />
             </div>
 
             {/* CHART AREA */}
-            <div style={{ flex: 1, background: '#0a0a0a', border: '1px solid #222', borderRadius: '4px', position: 'relative' }}>
+            <div style={{ flex: 1, background: '#0a0a0a', border: '1px solid #222', borderRadius: '4px', position: 'relative', minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data.history}>
+                    <AreaChart data={data.history || []}>
                         <defs>
                             <linearGradient id="colorCvd" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor={isPositive ? '#00ff00' : '#ff0000'} stopOpacity={0.3} />
