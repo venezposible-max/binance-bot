@@ -209,6 +209,7 @@ export default async function handler(req, res) {
                         timestamp: new Date().toISOString(),
                         source: 'FORCE_SCAN_WEB',
                         investedAmount: investedAmount,
+                        entryFee: openFee, // Store for Forensic Audit
                         strategy: strategy,
                         isManual: true
                     };
@@ -332,10 +333,14 @@ export default async function handler(req, res) {
                                 // SIM PnL
                                 let profitUsd = trade.investedAmount * (pnl / 100);
                                 const grossReturn = trade.investedAmount + profitUsd;
-                                fees = grossReturn * 0.001;
+                                fees = grossReturn * 0.001; // Exit Fee
                                 const netReturn = grossReturn - fees;
                                 wallet.currentBalance += netReturn;
-                                netProfit = netReturn - trade.investedAmount;
+
+                                // FORENSIC EXACTNESS:
+                                // Net Profit = Net Return - (Invested + Entry Fee)
+                                const entryFee = trade.entryFee || (trade.investedAmount * 0.001); // Fallback for old trades
+                                netProfit = netReturn - trade.investedAmount - entryFee;
                             }
 
                             const pnlPercent = (netProfit / trade.investedAmount) * 100;
@@ -535,6 +540,7 @@ export default async function handler(req, res) {
                                 timestamp: new Date().toISOString(),
                                 investedAmount: spentUsd,
                                 quantity: executedQty, // Save COIN Qty for Selling
+                                entryFee: spentUsd * 0.001, // Store for Forensic Audit
                                 strategy: strategy,
                                 mode: isLive ? 'LIVE' : 'SIMULATION',
                                 orderId: order.orderId
