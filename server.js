@@ -69,6 +69,10 @@ app.get('/api/cvd', (req, res) => {
     res.json(cvdSniper.getData());
 });
 
+// DEBUG ENDPOINT
+import debug from './api/debug.js';
+app.get('/api/debug', vercelAdapter(debug));
+
 
 // ... (existing code)
 
