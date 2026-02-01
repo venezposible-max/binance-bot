@@ -487,6 +487,44 @@ function App() {
 
                       {t.investedAmount && marketData[t.symbol]?.price && (
                         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+
+                          {/* STOP LOSS VISUALIZATION (New) */}
+                          {(() => {
+                            let slPrice = null;
+                            let slDist = 0;
+
+                            // 1. Sniper / Fixed SL
+                            if (t.stopLoss) {
+                              slPrice = t.stopLoss;
+                              slDist = ((slPrice - t.entryPrice) / t.entryPrice) * 100;
+                            }
+                            // 2. Swing Dynamic SL
+                            else if ((t.strategy === 'SWING' || !t.strategy) && walletConfig.useStopLoss) {
+                              const distVal = walletConfig.stopLoss || 3.0;
+                              slDist = -distVal;
+                              slPrice = t.entryPrice * (1 - (distVal / 100));
+                            }
+
+                            if (slPrice) {
+                              return (
+                                <div style={{
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                                  padding: '4px 8px', borderRadius: '4px', marginBottom: '8px'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: 'bold' }}>🛑 STOP LOSS</span>
+                                    <span style={{ fontSize: '0.65rem', color: '#FECACA' }}>({slDist.toFixed(1)}%)</span>
+                                  </div>
+                                  <span style={{ fontSize: '0.85rem', color: '#fff', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                    ${slPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+
                           {/* Quantity Calculation */}
                           {(() => {
                             const quantity = t.investedAmount / t.entryPrice;
