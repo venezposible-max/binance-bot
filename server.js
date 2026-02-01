@@ -73,6 +73,11 @@ app.get('/api/cvd', (req, res) => {
 import debug from './api/debug.js';
 app.get('/api/debug', vercelAdapter(debug));
 
+// CLEAR SNIPER TRADES (for testing)
+import clearSniper from './api/clear-sniper.js';
+app.post('/api/clear-sniper', vercelAdapter(clearSniper));
+
+
 
 // ... (existing code)
 
