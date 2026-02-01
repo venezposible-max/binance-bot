@@ -127,9 +127,11 @@ class CVDSniper {
                 return;
             }
 
-            // Calculate position size (use 100% of available balance for Sniper - all-in strategy)
-            const positionSize = availableBalance / entryPrice;
-            const fee = availableBalance * 0.001; // 0.1% fee
+            // Calculate position size using riskPercentage (unified with other strategies)
+            const riskPercentage = config.riskPercentage || 10; // Default 10%
+            const investedAmount = availableBalance * (riskPercentage / 100);
+            const positionSize = investedAmount / entryPrice;
+            const fee = investedAmount * 0.001; // 0.1% fee
 
             // Determine if Paper or Live
             const isLive = config.tradingMode === 'LIVE';
@@ -160,6 +162,7 @@ class CVDSniper {
                 side: 'BUY',
                 entryPrice: entryPrice,
                 size: positionSize,
+                investedAmount: investedAmount,
                 targetProfit: entryPrice * 1.01, // TP: 1%
                 stopLoss: entryPrice * 0.995, // SL: 0.5%
                 timestamp: Date.now(),
@@ -172,11 +175,11 @@ class CVDSniper {
             // Persist to Redis
             await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
 
-            // Update balance (deduct capital + fee)
-            config.currentBalance = availableBalance - availableBalance - fee;
+            // Update balance (deduct invested amount + fee)
+            config.currentBalance -= (investedAmount + fee);
             await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
-            console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
+            console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | Invested: $${investedAmount.toFixed(2)} (${riskPercentage}%) | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
 
         } catch (e) {
             console.error('❌ Sniper Trade Execution Error:', e.message);
@@ -206,10 +209,10 @@ class CVDSniper {
                 const fee = exitPrice * trade.size * 0.001;
                 const netProfit = profit - fee;
 
-                // Update balance
+                // Update balance (return invested amount + net profit/loss)
                 const configStr = await redis.get('sentinel_wallet_config');
                 const config = JSON.parse(configStr);
-                config.currentBalance += (exitPrice * trade.size) + netProfit;
+                config.currentBalance += (trade.investedAmount + netProfit);
                 await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
                 console.log(`🎯 SNIPER EXIT: ${trade.id} | ${exitReason} | PnL: $${netProfit.toFixed(2)}`);
