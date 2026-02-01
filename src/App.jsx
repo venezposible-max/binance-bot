@@ -20,7 +20,12 @@ function App() {
   const isFetchingBus = useRef(false); // OPTIMIZATION: Request Lock
   const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
 
-  const [timeframe, setTimeframe] = useState('4h');
+  const [timeframe, setTimeframe] = useState(() => {
+    const s = localStorage.getItem('sentinel_strategy') || 'SWING';
+    if (s.includes('BLITZ') || s === 'SCALP') return '5m';
+    if (s === 'TRIPLE') return '15m';
+    return '4h';
+  });
   const [activeStrategy, setActiveStrategy] = useState(() => localStorage.getItem('sentinel_strategy') || 'SWING');
   const [tradingMode, setTradingMode] = useState('SIMULATION'); // Default safe
   const [walletConfig, setWalletConfig] = useState({}); // bot logic and risk settings
@@ -93,12 +98,14 @@ function App() {
             localStorage.setItem('sentinel_strategy', data.strategy);
 
             // Force Timeframe for Special Modes on Startup
-            if (data.strategy === 'BLITZ') setTimeframe('5m');
-            if (data.strategy === 'SCALP') setTimeframe('5m');
-            if (data.strategy === 'TRIPLE') setTimeframe('15m');
+            if (data.strategy && (data.strategy.includes('BLITZ') || data.strategy === 'SCALP')) {
+              setTimeframe('5m');
+            } else if (data.strategy === 'TRIPLE') {
+              setTimeframe('15m');
+            }
           } else {
             // Even if strategy matches, ensure timeframe is correct for Blitz
-            if (data.strategy === 'BLITZ' && timeframe !== '5m') setTimeframe('5m');
+            if (data.strategy && data.strategy.includes('BLITZ') && timeframe !== '5m') setTimeframe('5m');
           }
         }
       })
@@ -296,7 +303,7 @@ function App() {
       let newTf = '4h';
       if (newConfig.strategy === 'SCALP') newTf = '5m';
       if (newConfig.strategy === 'TRIPLE') newTf = '15m';
-      if (newConfig.strategy === 'BLITZ') newTf = '5m';
+      if (newConfig.strategy.includes('BLITZ')) newTf = '5m';
       // FLOW uses 4h for chart visualization (even though it reads Order Book)
 
       setTimeframe(newTf);
