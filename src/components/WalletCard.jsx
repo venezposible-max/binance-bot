@@ -48,8 +48,12 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         const newUseSL = useSlInput;
         const newSL = newUseSL ? prompt('Distancia del Stop Loss (%):', wallet?.stopLoss || 3.0) : (wallet?.stopLoss || 3.0);
 
-        // 4. Missing Defaults (Hidden from prompt to keep it simple, but needed for API)
-        const maxTrades = wallet?.maxTrades || 3;
+        // 4. Max Trades Configuration
+        const maxTradesInput = prompt('Número Máximo de Trades Simultáneos:', wallet?.maxTrades || 3);
+        if (maxTradesInput === null) return;
+        const maxTrades = parseInt(maxTradesInput);
+
+        // 5. Other Defaults (Still hidden for simplicity as they are less critical)
         const lossLimit = wallet?.dailyLossLimit || 50;
         const cooldown = wallet?.cooldownMinutes || 30;
 
