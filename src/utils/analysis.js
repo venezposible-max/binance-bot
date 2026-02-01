@@ -383,8 +383,8 @@ export const analyzeOB = (candles, config = {}) => {
  * @param {Object} config - { timeframe, mode: 'SWING' | 'BLITZ' }
  */
 export const analyzeHybrid = (depth, candles, config = {}) => {
-    // 1. Run OB analysis
-    const obResult = analyzeOB(candles);
+    // 1. Run OB analysis with shared config (mode, etc)
+    const obResult = analyzeOB(candles, config);
 
     // 2. Run Flow analysis
     const flowResult = analyzeFlow(depth, candles);

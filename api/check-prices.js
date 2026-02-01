@@ -359,19 +359,20 @@ export default async function handler(req, res) {
                     }
 
                     // EXIT CONDITION (Take Profit)
-                    // If OB has a price-based TP, use that. Otherwise use % based target.
+                    // Priority: 1. Target from Strategy Logic (ATR-based) | 2. Adaptive Percentage Target
+                    const adaptiveTarget = dynamicTarget + (marketRegime.regime === 'TRENDING' ? 0.5 : 0.2);
                     const isTakeProfitHit = customTakeProfitPrice
                         ? (exitPrice >= customTakeProfitPrice)
-                        : (pnl >= (dynamicTarget + (marketRegime.regime === 'TRENDING' ? 0.5 : 0.2)));
+                        : (pnl >= adaptiveTarget);
 
                     // EXIT CONDITION (Stop Loss)
-                    // If OB has a price-based SL, use that. Otherwise use % based target for SWING.
+                    // Priority: 1. Safety SL from Strategy Logic (ATR-based) | 2. Safety Stop (Global Percentage)
                     let isStopLossHit = false;
                     if (customStopLossPrice) {
                         isStopLossHit = exitPrice <= customStopLossPrice;
                     } else if (slEnforced) {
-                        const grossSL = STOP_LOSS_TARGET - 0.2;
-                        isStopLossHit = (pnl <= -grossSL);
+                        const safetyMargin = STOP_LOSS_TARGET - 0.2; // Subtracting buffer
+                        isStopLossHit = (pnl <= -safetyMargin);
                     }
 
                     // --- EXPERT MODE: BREAKEVEN PROTECTION ---
