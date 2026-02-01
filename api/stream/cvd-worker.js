@@ -232,9 +232,9 @@ class CVDSniper {
                 investedAmount: investedAmount,
                 // FEE COMPENSATION: Add 0.2% buffer (Entry+Exit fees)
                 // Net Target: 1.0% -> Gross: 1.2%
-                // SL Width: 0.5% -> Gross: 0.7% (User Request "Equal")
+                // SL Width: 0.5% -> Gross: 0.5% (User Request: Max 0.7% Net Loss)
                 targetProfit: entryPrice * 1.012,
-                stopLoss: entryPrice * 0.993,
+                stopLoss: entryPrice * 0.995,
                 timestamp: Date.now(),
                 mode: isLive ? 'LIVE' : 'PAPER'
             };
