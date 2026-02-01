@@ -235,7 +235,7 @@ export default async function handler(req, res) {
         const USE_STOP_LOSS = wallet.useStopLoss || false;
         const STOP_LOSS_TARGET = wallet.stopLoss || 3.0; // % distance
 
-        console.log(`🎯 TARGETS: TP ${PROFIT_TARGET}% | SL: ${USE_STOP_LOSS ? (STOP_LOSS_TARGET + '%') : 'OFF'}`);
+        console.log(`🎯 TARGETS: TP ${PROFIT_TARGET}% | SL (Safety): ${USE_STOP_LOSS ? (STOP_LOSS_TARGET + '%') : 'OFF'} | AI SL: ON 🧠`);
 
         // NOTE: SNIPER is handled by cvd-worker.js WebSocket, not this CRON.
         // It's in activeStrategies for priority tracking (e.g., to reserve BTCUSDT).

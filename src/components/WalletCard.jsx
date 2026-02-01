@@ -44,14 +44,13 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         const newRisk = prompt('Porcentaje de Riesgo por Operación (%):', wallet?.riskPercentage || 10);
         if (newRisk === null) return;
 
-        // 4. ELITE GUARDRAILS (Phase 3)
-        const maxTrades = prompt('🛡️ Máximo de Trades Simultáneos:', wallet?.maxTrades || 3);
-        const lossLimit = prompt('🛑 Límite de Pérdida Diaria (USDT):', wallet?.dailyLossLimit || 50);
-        const cooldown = prompt('⏱️ Cooldown tras Pérdida (Minutos):', wallet?.cooldownMinutes || 30);
+        const useSlInput = confirm('🛡️ ¿Deseas activar un Stop Loss de seguridad GLOBAL?\n(Adicional al SL estructural de la IA)');
+        const newUseSL = useSlInput;
+        const newSL = newUseSL ? prompt('Distancia del Stop Loss (%):', wallet?.stopLoss || 3.0) : (wallet?.stopLoss || 3.0);
 
         const confirmMsg = newMode === 'LIVE'
-            ? `⚠️⚠️ PELIGRO: MODO LIVE ⚠️⚠️\n\nEstás a punto de activar DINERO REAL.\nCapital Asignado: $${newBalance}\nRiesgo: ${newRisk}%\nMax Trades: ${maxTrades}\nLoss Limit: $${lossLimit}\n\n¿CONFIRMAS?`
-            : `Confirmar Reconfiguración:\nModo: SIMULACIÓN\nSaldo: $${newBalance}\nRiesgo: ${newRisk}%\nMax Trades: ${maxTrades}`;
+            ? `⚠️⚠️ PELIGRO: MODO LIVE ⚠️⚠️\n\nEstás a punto de activar DINERO REAL.\nCapital Asignado: $${newBalance}\nRiesgo: ${newRisk}%\nMax Trades: ${maxTrades}\nSL Seguridad: ${newUseSL ? (newSL + '%') : 'OFF'}\n\n¿CONFIRMAS?`
+            : `Confirmar Reconfiguración:\nModo: SIMULACIÓN\nSaldo: $${newBalance}\nRiesgo: ${newRisk}%\nSL Seguridad: ${newUseSL ? (newSL + '%') : 'OFF'}`;
 
         if (confirm(confirmMsg)) {
             try {
@@ -66,7 +65,9 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         maxTrades: parseInt(maxTrades),
                         dailyLossLimit: parseFloat(lossLimit),
                         cooldownMinutes: parseInt(cooldown),
-                        strategy: activeStrategy || wallet?.strategy || 'HYBRID',
+                        useStopLoss: newUseSL,
+                        stopLoss: parseFloat(newSL),
+                        strategy: activeStrategy || wallet?.strategy || 'HYBRID_SWING',
                         reset: true
                     })
                 });
