@@ -123,9 +123,12 @@ class CVDSniper {
             }
 
             // Check cooldown (prevent reopening immediately after close)
+            const cooldownStr = await redis.get('sentinel_sniper_cooldown');
+            const lastCooldownTime = cooldownStr ? parseInt(cooldownStr) : this.lastTradeTime;
+
             const now = Date.now();
-            if (now - this.lastTradeTime < this.COOLDOWN_MS) {
-                const remaining = Math.ceil((this.COOLDOWN_MS - (now - this.lastTradeTime)) / 1000);
+            if (now - lastCooldownTime < this.COOLDOWN_MS) {
+                const remaining = Math.ceil((this.COOLDOWN_MS - (now - lastCooldownTime)) / 1000);
                 console.log(`⏳ Sniper: Cooldown active (${remaining}s remaining)`);
                 return;
             }
