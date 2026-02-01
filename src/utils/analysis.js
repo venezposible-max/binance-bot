@@ -190,3 +190,39 @@ export const analyzeFlow = (depth, currentPrice) => {
         }
     };
 };
+
+/**
+ * STRATEGY: TRIPLE LOUPE (15m + 1h + 4h)
+ * @param {Array} k4h - 4h Candles
+ * @param {Array} k1h - 1h Candles
+ * @param {Array} k15m - 15m Candles
+ */
+export const analyzeTriple = (k4h, k1h, k15m) => {
+    const c4h = k4h.map(c => c.close);
+    const c1h = k1h.map(c => c.close);
+    const c15m = k15m.map(c => c.close);
+
+    const r4h = RSI.calculate({ values: c4h, period: 14 }).slice(-1)[0] || 50;
+    const r1h = RSI.calculate({ values: c1h, period: 14 }).slice(-1)[0] || 50;
+    const r15m = RSI.calculate({ values: c15m, period: 14 }).slice(-1)[0] || 50;
+
+    const lastPrice = c4h[c4h.length - 1];
+    const isStrongBuy = (r4h < 30 && r1h < 30 && r15m < 30);
+
+    return {
+        price: lastPrice,
+        indicators: {
+            rsi: r4h.toFixed(1),
+            rsi1h: r1h.toFixed(1),
+            rsi15m: r15m.toFixed(1),
+            ema: '---'
+        },
+        prediction: {
+            signal: isStrongBuy ? 'STRONG_BUY' : 'NEUTRAL',
+            label: isStrongBuy ? '🚨 TRIPLE CONFIRMED 🚀' : 'ESPERANDO ALINEACIÓN',
+            color: isStrongBuy ? '#00ffaa' : '#64748B',
+            intensity: isStrongBuy ? 100 : 0
+        }
+    };
+};
+

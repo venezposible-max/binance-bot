@@ -142,12 +142,25 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                     /* STANDARD TECHNICALS */
                     <>
                         <div className={styles.indicator}>
-                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>RSI (14)</span>
+                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>
+                                {indicators.rsi1h ? 'RSI (4h|1h|15m)' : 'RSI (14)'}
+                            </span>
                             <div className={styles.indValue} style={{
-                                fontSize: '1.1rem', fontWeight: 'bold',
-                                color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#94A3B8'
+                                fontSize: indicators.rsi1h ? '0.9rem' : '1.1rem',
+                                fontWeight: 'bold',
+                                color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#94A3B8',
+                                display: 'flex',
+                                gap: '4px'
                             }}>
                                 <NumberTicker value={parseFloat(indicators.rsi)} decimals={1} />
+                                {indicators.rsi1h && (
+                                    <>
+                                        <span style={{ opacity: 0.3 }}>|</span>
+                                        <NumberTicker value={parseFloat(indicators.rsi1h)} decimals={1} style={{ color: parseFloat(indicators.rsi1h) < 30 ? '#10B981' : '#888' }} />
+                                        <span style={{ opacity: 0.3 }}>|</span>
+                                        <NumberTicker value={parseFloat(indicators.rsi15m)} decimals={1} style={{ color: parseFloat(indicators.rsi15m) < 30 ? '#10B981' : '#888' }} />
+                                    </>
+                                )}
                             </div>
                         </div>
                         <div className={styles.indicator}>
@@ -155,7 +168,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                             <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
                                 {indicators.ema !== '---' && !isNaN(indicators.ema) ?
                                     <NumberTicker value={parseFloat(indicators.ema)} decimals={price < 1 ? 4 : 2} prefix="$" />
-                                    : 'LOADING...'}
+                                    : '---'}
                             </div>
                         </div>
                     </>
