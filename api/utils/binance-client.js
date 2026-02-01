@@ -73,24 +73,55 @@ export const getAccountBalance = async (asset = 'USDT') => {
     }
 };
 
-// CORREGIDO: Acepta currentPrice como argumento opcional para simulaciones precisas
-// Firma anterior causaba conflicto: (symbol, side, qty, type) vs llamada (symbol, side, qty, price)
-export const executeOrder = async (symbol, side, quantity, currentPrice = 0, type = 'MARKET') => {
-    const isLive = process.env.TRADING_MODE === 'LIVE';
+// --- HELPERS ---
+
+// Helper to round quantity based on symbol (Simulates LOT_SIZE filter)
+const formatQuantity = (symbol, qty) => {
+    // Standard LOT_SIZE approximations for common Binance pairs
+    let decimals = 5; // Default for many alts
+    if (symbol.startsWith('BTC')) decimals = 5;
+    if (symbol.startsWith('ETH')) decimals = 4;
+    if (symbol.startsWith('SOL')) decimals = 3;
+    if (symbol.startsWith('XRP')) decimals = 1;
+    if (symbol.startsWith('DOGE')) decimals = 0;
+
+    const factor = Math.pow(10, decimals);
+    return Math.floor(qty * factor) / factor;
+};
+
+// Helper for price precision (Simulates TICK_SIZE filter)
+const formatPrice = (symbol, price) => {
+    let decimals = 2; // Default for most USDT pairs
+    if (price < 1) decimals = 5;
+    if (price < 0.01) decimals = 8;
+
+    return price.toFixed(decimals);
+};
+
+export const executeOrder = async (symbol, side, quantity, currentPrice = 0, type = 'MARKET', isLiveOverride = null) => {
+    // Priority: 1. Argument Override (from UI/Wallet) | 2. ENV Variable
+    const isLive = isLiveOverride !== null ? isLiveOverride : (process.env.TRADING_MODE === 'LIVE');
+
+    // 1. MIN NOTIONAL SAFETY ($10 Minimum)
+    const investmentInUsd = (side === 'BUY') ? quantity : (quantity * (currentPrice || 1));
+    if (investmentInUsd < 10.5) { // 10.5 to be safe against fees/spread
+        throw new Error(`SAFETY: Investment $${investmentInUsd.toFixed(2)} is below Binance minimum (~$10)`);
+    }
 
     if (!isLive) {
-        console.log(`🧪 SIMULATED ORDER: ${side} ${quantity} ${symbol} @ $${currentPrice}`);
+        const formattedQty = formatQuantity(symbol, side === 'BUY' ? (quantity / (currentPrice || 1)) : quantity);
+        console.log(`🧪 SIMULATED ORDER: ${side} ${formattedQty} ${symbol} @ $${currentPrice}`);
+
         // Math for Sim
-        // If BUY, quantity is USDT. If SELL, quantity is COIN.
         let execQty = 0;
         let quoteQty = 0;
 
         if (side === 'BUY') {
             quoteQty = quantity;
-            execQty = currentPrice > 0 ? (quantity / currentPrice) : 0;
+            execQty = currentPrice > 0 ? formatQuantity(symbol, quantity / currentPrice) : 0;
         } else {
-            execQty = quantity;
-            quoteQty = currentPrice > 0 ? (quantity * currentPrice) : 0;
+            execQty = formatQuantity(symbol, quantity);
+            quoteQty = currentPrice > 0 ? (execQty * currentPrice) : 0;
         }
 
         return {
@@ -113,15 +144,12 @@ export const executeOrder = async (symbol, side, quantity, currentPrice = 0, typ
         symbol: symbol,
         side: side,
         type: type,
-        // quantity: quantity  <-- OJO: Binance pide steps exactos. Mejor usar quoteOrderQty para buys en USDT
     };
 
     if (side === 'BUY') {
-        // Al comprar, solemos decir "Quiero gastar 50 USDT", no "Quiero 0.0023 BTC"
-        params.quoteOrderQty = quantity; // quantity here is amount in USDT
+        params.quoteOrderQty = quantity.toFixed(2); // USDT precision
     } else {
-        // Al vender, es quantity de la moneda base
-        params.quantity = quantity;
+        params.quantity = formatQuantity(symbol, quantity);
     }
 
     return await privateRequest('/api/v3/order', 'POST', params);

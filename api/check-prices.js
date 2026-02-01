@@ -498,7 +498,7 @@ export default async function handler(req, res) {
 
                         try {
                             // Pass currentPrice for Sim Math accuracy
-                            const order = await binanceClient.executeOrder(symbol, 'BUY', investedAmount, currentPrice);
+                            const order = await binanceClient.executeOrder(symbol, 'BUY', investedAmount, currentPrice, 'MARKET', isLive);
 
                             // Parse Result
                             const executedQty = parseFloat(order.executedQty);
@@ -553,11 +553,35 @@ export default async function handler(req, res) {
 
         // Promises removed (Sequential Mode)
 
-        // 4. Save Cloud State
-        await redis.set('sentinel_active_trades', JSON.stringify(newActiveTrades));
+        // --- SAFE SYNC LOGIC (Prevents Zombie Trades) ---
+        // 1. Re-fetch current state from Redis to see if user closed trades manually
+        const finalActiveStr = await redis.get('sentinel_active_trades');
+        let freshActiveTrades = finalActiveStr ? JSON.parse(finalActiveStr) : [];
+
+        // 2. Identify trades we closed in THIS process
+        const initialIds = activeTrades.map(t => t.id);
+        const currentIds = newActiveTrades.map(t => t.id);
+        const closedByUs = initialIds.filter(id => !currentIds.includes(id));
+
+        // 3. Merge: Keep everything in Redis EXCEPT what WE closed
+        // Also add anything NEW we opened (that isn't already there)
+        const finalSaveList = freshActiveTrades.filter(t => !closedByUs.includes(t.id));
+
+        // Add new trades we opened that might not be in Redis yet
+        for (const newT of newActiveTrades) {
+            if (!finalSaveList.find(t => t.id === newT.id)) {
+                finalSaveList.push(newT);
+            }
+        }
+
+        // 4. Final Save
+        await redis.set('sentinel_active_trades', JSON.stringify(finalSaveList));
         await redis.set('sentinel_wallet_config', JSON.stringify(wallet));
+
         if (newWins.length > 0) {
-            const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
+            const currentHistoryStr = await redis.get('sentinel_win_history');
+            const currentHistory = currentHistoryStr ? JSON.parse(currentHistoryStr) : [];
+            const updatedHistory = [...newWins, ...currentHistory].slice(0, 50);
             await redis.set('sentinel_win_history', JSON.stringify(updatedHistory));
         }
 

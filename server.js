@@ -102,17 +102,23 @@ app.get('*', (req, res) => {
 
 
 // --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
+let isScanRunning = false;
 const runInternalScan = async (source = 'TIMER') => {
+    if (isScanRunning) {
+        console.log(`⚠️ [${source}] Scan already in progress. Skipping overlap.`);
+        return;
+    }
+    isScanRunning = true;
     console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
 
     try {
         const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
-            timeout: 20000 // Aumentado a 20s para permitir API calls lentas
+            timeout: 30000 // Aumentado a 30s
         });
 
         const activeCount = response.data.activeCount || 0;
         const alerts = response.data.newAlerts?.length || 0;
-        console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts | Status ${response.status}`);
+        console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts`);
 
         // Keep heartbeat alive in Redis
         import('./src/utils/redisClient.js').then(m => {
@@ -121,9 +127,8 @@ const runInternalScan = async (source = 'TIMER') => {
 
     } catch (e) {
         console.error(`❌ CRON FAIL [${source}]:`, e.message);
-        if (e.code === 'ECONNREFUSED') {
-            console.error('   -> Server might be restarting or port is blocked.');
-        }
+    } finally {
+        isScanRunning = false;
     }
 };
 
