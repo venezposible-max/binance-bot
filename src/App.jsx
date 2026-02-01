@@ -471,6 +471,11 @@ function App() {
                     </div>
                     <div className={styles.tradeEntry}>
                       <div>Entrada: <span style={{ color: '#fff' }}>${t.entryPrice.toLocaleString()}</span></div>
+                      {t.triggerDelta && (
+                        <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '2px', fontWeight: 'bold' }}>
+                          🐋 GATILLO: ${Math.round(t.triggerDelta).toLocaleString()}
+                        </div>
+                      )}
 
                       {t.investedAmount && marketData[t.symbol]?.price && (
                         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>

@@ -103,11 +103,11 @@ class CVDSniper {
         if (delta > this.THRESHOLD) { // Only BUY on positive delta (whale buying)
             console.log(`🐳 WHALE ALERT: BUY POWER: $${Math.abs(delta).toFixed(0)} @ ${price}`);
             this.stats.triggers++;
-            this.executeSniperTrade(price);
+            this.executeSniperTrade(price, delta);
         }
     }
 
-    async executeSniperTrade(entryPrice) {
+    async executeSniperTrade(entryPrice, triggerDelta = 0) {
         if (this.isOpeningTrade) return;
         this.isOpeningTrade = true;
 
@@ -200,6 +200,7 @@ class CVDSniper {
                 strategy: 'SNIPER',
                 side: 'BUY',
                 entryPrice: entryPrice,
+                triggerDelta: triggerDelta, // Store for verification
                 size: positionSize,
                 investedAmount: investedAmount,
                 targetProfit: entryPrice * 1.01, // TP: 1%
