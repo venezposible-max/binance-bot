@@ -55,8 +55,24 @@ export const fetchTopPairs = async () => {
  * @param {string} interval - Time interval (1h, 4h, 1d)
  * @param {number} limit - Number of candles (default 100 for RSI calc)
  */
+/**
+ * Wait for a specified duration (ms)
+ * Used to throttle requests and avoid 429
+ */
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Fetch K-Line data (Candlesticks)
+ * @param {string} symbol - Pair symbol (e.g., BTCUSDT)
+ * @param {string} interval - Time interval (1h, 4h, 1d)
+ * @param {number} limit - Number of candles (default 100 for RSI calc)
+ */
 export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
     try {
+        // JITTER: Random delay (300ms - 800ms) to avoid synchronized bursts hitting rate limits
+        const delay = Math.floor(Math.random() * 500) + 300;
+        await wait(delay);
+
         // Use backend proxy to bypass browser geo-blocks
         const response = await axios.get(`/api/candles`, {
             params: { symbol, interval, limit },
