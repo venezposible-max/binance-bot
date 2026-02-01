@@ -187,13 +187,17 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         };
 
         try {
-            setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig }));
+            // Update state and also select this strategy to sync the main button
+            setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, strategy: strategyName }));
             await fetch('/api/wallet/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyConfig: newStrategyConfig })
+                body: JSON.stringify({ strategyConfig: newStrategyConfig, strategy: strategyName })
             });
-            if (onConfigChange) onConfigChange({ ...wallet, strategyConfig: newStrategyConfig });
+
+            if (onConfigChange) {
+                onConfigChange({ ...wallet, strategyConfig: newStrategyConfig, strategy: strategyName });
+            }
         } catch (e) {
             console.error(e);
         }
