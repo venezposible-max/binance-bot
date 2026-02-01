@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { RSI, EMA, BollingerBands } from 'technicalindicators';
 import * as analysis from '../src/utils/analysis.js';
 import redis from '../src/utils/redisClient.js';
