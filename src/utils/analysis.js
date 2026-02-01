@@ -315,7 +315,7 @@ export const analyzeOB = (candles, config = {}) => {
         const impulse = ((close - prevOpen) / prevOpen) * 100;
         const isBearish = prevClose < prevOpen;
 
-        const impulseThreshold = isBlitz ? 0.8 : 2.0; // TURBO: Lower impulse for Blitz
+        const impulseThreshold = isBlitz ? 0.5 : 2.0; // TURBO: Aggressive impulse for Blitz (Tuned from 0.8)
 
         if (impulse >= impulseThreshold && isBearish) {
             // Found a bullish OB Zone: prevLow to prevHigh
@@ -401,8 +401,8 @@ export const analyzeHybrid = (depth, candles, config = {}) => {
     const isMacroBullish = isBlitz ? true : (lastPrice > (obResult.ema || 0));
     const isBullishOB = obResult.prediction.signal === 'BUY' || obResult.prediction.signal === 'BULLISH';
 
-    // TURBO: Lower flow requirement for Blitz
-    const flowThreshold = isBlitz ? 1.2 : 1.5;
+    // TURBO: Ultra-low flow requirement for Blitz (Tuned from 1.2)
+    const flowThreshold = isBlitz ? 1.1 : 1.5;
     const isBullishFlow = buyPressure >= flowThreshold;
 
     let signal = 'NEUTRAL';

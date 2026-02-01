@@ -268,7 +268,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                             color: isActive ? '#00D9FF' : '#64748B'
                                         }}
                                     >
-                                        {s === 'HYBRID_SWING' ? '🏛️ SWING' : '⚡ BLITZ'} {isActive ? '✓' : '○'}
+                                        <span>{s === 'HYBRID_SWING' ? '🏛️ SWING' : '⚡ BLITZ'} {isActive ? '✓' : '○'}</span>
                                     </button>
                                 );
                             })}
@@ -287,7 +287,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                 color: (wallet.strategyConfig || {})['SNIPER']?.active ? '#D946EF' : '#64748B'
                             }}
                         >
-                            🎯 SNIPER {(wallet.strategyConfig || {})['SNIPER']?.active ? '✓' : '○'}
+                            <span>🎯 SNIPER {(wallet.strategyConfig || {})['SNIPER']?.active ? '✓' : '○'}</span>
                         </button>
                     </div>
 
@@ -310,30 +310,30 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             {/* --- PORTFOLIO HEALTH (Phase 3) --- */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '15px' }}>
                 <div className={styles.statMini}>
-                    <div className={styles.label}>TRADES</div>
+                    <div className={styles.label}><span>TRADES</span></div>
                     <div style={{ color: (activeTrades?.length || 0) >= (wallet.maxTrades || 3) ? '#EF4444' : '#10B981', fontWeight: 'bold' }}>
-                        {activeTrades?.length || 0} / {wallet.maxTrades || 3}
+                        <span>{activeTrades?.length || 0} / {wallet.maxTrades || 3}</span>
                     </div>
                 </div>
                 <div className={styles.statMini}>
-                    <div className={styles.label}>LOSS LIMIT</div>
-                    <div style={{ color: '#E2E8F0', fontWeight: 'bold' }}>${wallet.dailyLossLimit || 50}</div>
+                    <div className={styles.label}><span>LOSS LIMIT</span></div>
+                    <div style={{ color: '#E2E8F0', fontWeight: 'bold' }}><span>${wallet.dailyLossLimit || 50}</span></div>
                 </div>
                 <div className={styles.statMini}>
-                    <div className={styles.label}>ATR MODE</div>
-                    <div style={{ color: '#F59E0B', fontWeight: 'bold' }}>AUTO ✅</div>
+                    <div className={styles.label}><span>ATR MODE</span></div>
+                    <div style={{ color: '#F59E0B', fontWeight: 'bold' }}><span>AUTO ✅</span></div>
                 </div>
             </div>
 
             <div className={styles.mainStats}>
                 <div className={styles.balanceGroup}>
-                    <div className={styles.label}>CASH</div>
-                    <div className={styles.value}>${currentBalance.toFixed(2)}</div>
+                    <div className={styles.label}><span>CASH</span></div>
+                    <div className={styles.value}><span>${currentBalance.toFixed(2)}</span></div>
                 </div>
                 <div className={styles.balanceGroup} style={{ borderLeft: '1px solid #333', paddingLeft: '20px' }}>
-                    <div className={styles.label}>EQUITY</div>
+                    <div className={styles.label}><span>EQUITY</span></div>
                     <div className={styles.value} style={{ color: equity >= initialBalance ? '#10B981' : '#EF4444' }}>
-                        ${equity.toFixed(2)}
+                        <span>${equity.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -356,12 +356,12 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
             <div className={styles.configGroup}>
                 <div className={styles.statItem}>
-                    <div className={styles.label}>RIESGO</div>
-                    <div style={{ fontWeight: 'bold' }}>{wallet.riskPercentage}%</div>
+                    <div className={styles.label}><span>RIESGO</span></div>
+                    <div style={{ fontWeight: 'bold' }}><span>{wallet.riskPercentage}%</span></div>
                 </div>
                 <div className={styles.statItem} onClick={handleCycleStrategy} style={{ cursor: 'pointer' }}>
-                    <div className={styles.label}>ESTRATEGIA</div>
-                    <div style={{ fontWeight: 'bold', color: getStrategyColor(currentStrategy) }}>{currentStrategy}</div>
+                    <div className={styles.label}><span>ESTRATEGIA</span></div>
+                    <div style={{ fontWeight: 'bold', color: getStrategyColor(currentStrategy) }}><span>{currentStrategy}</span></div>
                 </div>
                 <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>
             </div>

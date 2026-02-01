@@ -346,7 +346,7 @@ export default async function handler(req, res) {
                     const tradeStrategy = trade.strategy || strategy;
 
                     // NEW: Isolate User TP/SL to SWING ONLY
-                    let dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : (tradeStrategy === 'TRIPLE' ? 3.0 : 1.25);
+                    let dynamicTarget = (tradeStrategy === 'SCALP') ? 0.80 : (tradeStrategy === 'TRIPLE' ? 3.0 : 1.25); // Tuned for higher Blitz profitability (from 0.50)
                     let slEnforced = false;
                     let customStopLossPrice = trade.dynamicSL || null;
                     let customTakeProfitPrice = trade.dynamicTP || null;

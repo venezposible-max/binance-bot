@@ -589,7 +589,9 @@ function App() {
               })}
             </div>
           ) : (
-            <div className={styles.emptyPortfolio}>El Motor Elite Hybrid AI está patrullando... Esperando señal de alta probabilidad.</div>
+            <div className={styles.emptyPortfolio}>
+              <span>El Motor Elite Hybrid AI está patrullando... Esperando señal de alta probabilidad.</span>
+            </div>
           )
           }
         </section >
