@@ -306,6 +306,14 @@ export default async function handler(req, res) {
                         isStopLossHit = (pnl <= -grossSL);
                     }
 
+                    // --- EXPERT MODE: BREAKEVEN PROTECTION ---
+                    // If trade is in profit > 1.5%, move SL to entry price
+                    if (pnl >= 1.5 && !trade.isBreakeven) {
+                        trade.dynamicSL = trade.entryPrice * 1.001; // Entry + tiny buffer
+                        trade.isBreakeven = true;
+                        console.log(`🛡️  ${symbol} | BREAKEVEN ACTIVATED (+1.5% hit) | SL moved to entry.`);
+                    }
+
                     if (isTakeProfitHit || isStopLossHit) {
                         const isLive = trade.mode === 'LIVE';
                         const reason = isStopLossHit ? 'STOP LOSS' : 'TARGET HIT (Net)';
@@ -459,7 +467,16 @@ export default async function handler(req, res) {
 
                                 // Detect Bullish Order Block
                                 // Look for impulse move (+2% min) and mark last bearish candle as OB
-                                for (let i = 5; i < obKlinesRaw.length; i++) {
+                                const closes = obKlinesRaw.map(c => parseFloat(c[4]));
+                                const ema200_4h = EMA.calculate({ period: 200, values: closes }).slice(-1)[0];
+                                const isAboveTrend = currentPrice > ema200_4h;
+
+                                if (!isAboveTrend) {
+                                    // EXPERT MODE: Skip if below EMA 200 (Macro Trend is Bearish)
+                                    continue;
+                                }
+
+                                for (let i = obKlinesRaw.length - 2; i > obKlinesRaw.length - 25 && i > 0; i--) {
                                     const candle = obKlinesRaw[i];
                                     const prevCandle = obKlinesRaw[i - 1];
 
@@ -471,31 +488,30 @@ export default async function handler(req, res) {
 
                                     // Check for bullish impulse: candle closed +2% higher than prev open
                                     const impulse = ((candleClose - prevOpen) / prevOpen) * 100;
-
-                                    // Previous candle was bearish (potential OB)
                                     const prevWasBearish = prevClose < prevOpen;
 
                                     if (impulse >= 2.0 && prevWasBearish) {
-                                        // Order Block zone: prevLow to prevHigh
+                                        // OB zone: prevLow to prevHigh
                                         const obLow = prevLow;
                                         const obHigh = prevHigh;
+                                        const obMid = (obLow + obHigh) / 2; // 50% EQUILIBRIUM ENTRY
 
-                                        // Check if current price is inside OB zone
-                                        if (currentPrice >= obLow && currentPrice <= obHigh) {
+                                        // EXPERT MODE: Entry at 50% of the zone (obMid)
+                                        // We trigger if current price is BETWEEN obLow and obMid (deeper entry)
+                                        if (currentPrice >= obLow && currentPrice <= obMid) {
                                             candidateBuy = true;
 
-                                            // Store dynamic SL/TP for this OB trade
                                             // SL: Just below OB low (-0.3% buffer)
-                                            // TP: Impulse size from entry
+                                            // TP: Based on impulse size from the 50% entry
                                             const dynamicSL = obLow * 0.997;
                                             const dynamicTP = currentPrice * (1 + (impulse / 100));
 
-                                            // Store in temporary variable for trade creation
                                             wallet._obDynamicSL = dynamicSL;
                                             wallet._obDynamicTP = dynamicTP;
                                             wallet._obImpulse = impulse;
+                                            wallet._obEntryType = '50%_EQUILIBRIUM';
 
-                                            console.log(`📦 ${symbol} | ORDER BLOCK: Price $${currentPrice.toFixed(2)} in OB zone [$${obLow.toFixed(2)}-$${obHigh.toFixed(2)}] | Impulse: +${impulse.toFixed(1)}% | Dynamic SL: $${dynamicSL.toFixed(2)} | TP: $${dynamicTP.toFixed(2)}`);
+                                            console.log(`📦 [EXPERT OB] ${symbol} | Precision Entry at $${currentPrice.toFixed(2)} (Mid: $${obMid.toFixed(2)}) | Trend: OK (> EMA 200) | Impulse: +${impulse.toFixed(1)}% | SL: $${dynamicSL.toFixed(2)}`);
                                             break;
                                         }
                                     }

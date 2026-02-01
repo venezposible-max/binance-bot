@@ -107,6 +107,9 @@ const ProfessionalChart = ({ candles, emaData, color, obZone }) => {
                     {obZone && (
                         <ReferenceLine y={obZone.tp} stroke="#10B981" strokeWidth={1} strokeDasharray="5 5" label={{ value: 'TP', position: 'right', fill: '#10B981', fontSize: 10 }} />
                     )}
+                    {obZone && obZone.mid && (
+                        <ReferenceLine y={obZone.mid} stroke="#F59E0B" strokeWidth={1.5} strokeDasharray="3 3" label={{ value: 'MID ENTRY', position: 'insideTopRight', fill: '#F59E0B', fontSize: 9 }} />
+                    )}
                     {obZone && (
                         <ReferenceLine y={obZone.sl} stroke="#EF4444" strokeWidth={1} strokeDasharray="5 5" label={{ value: 'SL', position: 'right', fill: '#EF4444', fontSize: 10 }} />
                     )}

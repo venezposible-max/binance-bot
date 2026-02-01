@@ -293,31 +293,41 @@ export const analyzeOB = (candles) => {
 
         if (impulse >= 2.0 && isBearish) {
             // Found a bullish OB Zone: prevLow to prevHigh
+            const obMid = (prevLow + prevHigh) / 2; // 50% EQUILIBRIUM
+
             obZone = {
                 low: prevLow,
                 high: prevHigh,
+                mid: obMid,
                 impulse: impulse,
                 tp: lastPrice * (1 + (impulse / 100)),
                 sl: prevLow * 0.997 // 0.3% buffer
             };
 
-            // 2. Check if current price is interacting with this zone
-            if (lastPrice >= obZone.low && lastPrice <= obZone.high) {
+            // 2. Expert Logic: Check Trend + Precision Entry
+            const isTrendBulish = lastPrice > currentEMA;
+            const isAtMidpoint = lastPrice >= obZone.low && lastPrice <= obMid;
+
+            if (isTrendBulish && isAtMidpoint) {
                 signal = 'BUY';
-                label = `📦 OB ZONE (Imp: +${impulse.toFixed(1)}%)`;
+                label = `🎯 EXPERT OB (+${impulse.toFixed(1)}%)`;
                 color = '#10B981';
-                intensity = 80;
-            } else if (lastPrice > obZone.high) {
+                intensity = 90;
+            } else if (!isTrendBulish) {
+                signal = 'NEUTRAL';
+                label = 'FILTRO EMA (ESPERANDO)';
+                color = '#EF4444';
+                intensity = 20;
+            } else {
                 signal = 'BULLISH';
-                label = 'OB SUPERADO (RETEST?)';
+                label = 'OB DETECTADO (BUSCANDO MID)';
                 color = '#34D399';
-                intensity = 40;
+                intensity = 50;
             }
             break; // Stop at first (most recent) OB found
         }
     }
 
-    // EMA & RSI for visual consistency
     const closes = candles.map(c => c.close || parseFloat(c[4]));
     const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
     const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
