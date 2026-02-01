@@ -74,7 +74,7 @@ const CVDChart = () => {
     const currentPrice = data.price || 0;
 
     return (
-        <div style={{ width: '100%', height: '400px', background: '#0a0a0a', borderRadius: '8px', padding: '15px' }}>
+        <div style={{ width: '100%', minHeight: '400px', height: 'auto', background: '#0a0a0a', borderRadius: '8px', padding: '15px', paddingBottom: '100px' /* Mobile Nav Clearance */ }}>
             <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
                 <div>
                     <div style={{ color: '#64748B', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>🔫 CVD SNIPER - BTCUSDT</div>
