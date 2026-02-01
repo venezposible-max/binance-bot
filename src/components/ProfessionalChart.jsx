@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceArea, ReferenceLine } from 'recharts';
 
-import React, { useMemo } from 'react';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceArea, ReferenceLine } from 'recharts';
+
 
 const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice, forecast }) => {
     if (!candles || candles.length === 0) return null;
