@@ -640,7 +640,7 @@ export default async function handler(req, res) {
                                 quantity: executedQty, // Save COIN Qty for Selling
                                 entryFee: spentUsd * 0.001, // Store for Forensic Audit
                                 strategy: winningStrategy,
-                                dynamicSL: winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingSL : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzSL : (winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null))),
+                                dynamicSL: wallet.useStopLoss ? (winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingSL : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzSL : (winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null)))) : null,
                                 dynamicTP: winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingTP : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzTP : (winningStrategy === 'OB' ? wallet._obDynamicTP : null)),
                                 impulse: winningStrategy === 'OB' ? wallet._obImpulse : null,
                                 wallPrice: winningStrategy === 'HYBRID' ? wallet._hybridWallPrice : (winningStrategy === 'FLOW' ? wallet._flowWallPrice : null),
