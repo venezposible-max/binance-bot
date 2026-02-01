@@ -280,7 +280,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             {/* Header with Execution Control */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    💼 BILLETERA
+                    <span>💼 BILLETERA</span>
                     {wallet?.tradingMode === 'LIVE' && (
                         <span style={{
                             fontSize: '0.6rem',
@@ -323,7 +323,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         ${equity.toFixed(2)}
                     </span>
                     <div style={{ fontSize: '0.75rem', color: equity >= wallet.initialBalance ? '#10B981' : '#EF4444' }}>
-                        {equity >= wallet.initialBalance ? '+' : ''}{(equity - wallet.initialBalance).toFixed(2)} USD
+                        <span>{equity >= wallet.initialBalance ? '+' : ''}{(equity - wallet.initialBalance).toFixed(2)} USD</span>
                     </div>
                 </div>
             </div>
@@ -374,14 +374,14 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                 className={`${styles.modeBtn} ${wallet.swingMode === 'AGGRESSIVE' ? styles.modeBtnActive : ''}`}
                                 onClick={() => handleSetSwingMode('AGGRESSIVE')}
                             >
-                                AGRESIVO
+                                <span>AGRESIVO</span>
                                 <span className={styles.modeSub}>(sin EMA 200)</span>
                             </button>
                             <button
                                 className={`${styles.modeBtn} ${wallet.swingMode !== 'AGGRESSIVE' ? styles.modeBtnActive : ''}`}
                                 onClick={() => handleSetSwingMode('CONSERVATIVE')}
                             >
-                                CONSERVADOR
+                                <span>CONSERVADOR</span>
                                 <span className={styles.modeSub}>(con EMA 200)</span>
                             </button>
                         </div>

@@ -346,7 +346,7 @@ function App() {
         <section className={styles.heroSection}>
           <h1 className={styles.heroTitle}>MARKET SENTINEL AI</h1>
           <p className={styles.heroSubtitle}>
-            Patrullando 24/7 de forma autónoma en la nube.
+            <span>Patrullando 24/7 de forma autónoma en la nube.</span>
             {activeStrategy !== 'SNIPER' && (
               <>
                 <br />
@@ -478,7 +478,7 @@ function App() {
                       {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}%
                     </div>
                     <div className={styles.tradeEntry}>
-                      <div>Entrada: <span style={{ color: '#fff' }}>${t.entryPrice.toLocaleString()}</span></div>
+                      <div><span>Entrada: </span><span style={{ color: '#fff' }}>${t.entryPrice.toLocaleString()}</span></div>
                       {t.triggerDelta && (
                         <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '2px', fontWeight: 'bold' }}>
                           🐋 GATILLO: ${Math.round(t.triggerDelta).toLocaleString()}
@@ -497,13 +497,13 @@ function App() {
                             return (
                               <>
                                 <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between' }}>
-                                  <span>Cantidad:</span>
+                                  <span><span>Cantidad:</span></span>
                                   <span style={{ color: '#E2E8F0', fontFamily: 'monospace' }}>
                                     {quantity.toFixed(5)} {t.symbol.replace('USDT', '')}
                                   </span>
                                 </div>
                                 <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
-                                  <span>Valor Actual:</span>
+                                  <span><span>Valor Actual:</span></span>
                                   <span style={{ color: isWin ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                     ${currentVal.toFixed(2)}
                                   </span>
@@ -611,13 +611,13 @@ function App() {
                         marginBottom: '10px'
                       }}>
                         <div>
-                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}>ENTRADA DE</div>
+                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}><span>ENTRADA DE</span></div>
                           <div style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: '#E2E8F0' }}>
                             ${h.entryPrice ? h.entryPrice.toLocaleString() : '---'}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}>SALIDA EN</div>
+                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}><span>SALIDA EN</span></div>
                           <div style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: statusColor, fontWeight: 'bold' }}>
                             ${(h.exitPrice || h.closePrice) ? (h.exitPrice || h.closePrice).toLocaleString() : '---'}
                           </div>
@@ -627,14 +627,14 @@ function App() {
                       {/* Results Footer */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Resultado Neto</span>
+                          <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}><span>Resultado Neto</span></span>
                           <span style={{ color: statusColor, fontWeight: 'bold', fontSize: '1rem' }}>
                             {isWin ? '+' : ''}{h.pnl.toFixed(2)}%
                           </span>
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Valor Final 💵</div>
+                          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}><span>Valor Final 💵</span></div>
                           <div style={{ color: '#fff', fontWeight: 'bold', fontFamily: 'monospace', fontSize: '1rem' }}>
                             ${(h.investedAmount + (h.profitUsd || h.netProfit || 0)).toFixed(2)}
                           </div>
@@ -691,9 +691,9 @@ function App() {
 
         <footer className={styles.footer}>
           <div className={styles.copyright}>
-            © 2026 Binance Sentinel AI • Todos los derechos reservados
+            <span>© 2026 Binance Sentinel AI • Todos los derechos reservados</span>
             <span style={{ marginLeft: '15px', color: '#EF4444', opacity: 0.8 }}>
-              ⚠️ El trading conlleva riesgos. No arriesgues lo que no puedas perder.
+              <span>⚠️ El trading conlleva riesgos. No arriesgues lo que no puedas perder.</span>
             </span>
           </div>
           <div className={styles.docsLink} onClick={() => setIsDocsOpen(true)}>
