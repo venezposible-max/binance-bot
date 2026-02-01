@@ -4,6 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 const CVDChart = () => {
     const [data, setData] = useState({ cvd: 0, history: [], price: 0 });
     const [threshold, setThreshold] = useState(150000);
+    const isFetching = React.useRef(false); // OPTIMIZATION
 
     const fetchConfig = async () => {
         try {
@@ -34,26 +35,34 @@ const CVDChart = () => {
         fetchConfig();
         // Polling loop for CVD data
         const interval = setInterval(async () => {
+            if (isFetching.current) return;
+            isFetching.current = true;
             try {
                 const res = await fetch('/api/cvd');
                 if (res.ok) {
                     const json = await res.json();
 
-                    // Transform history for Recharts
-                    const formattedHistory = json.history.map(h => ({
-                        time: new Date(h.t).toLocaleTimeString(),
-                        cvd: h.c,
-                        delta: h.d
-                    }));
+                    // PERFORMANCE GUARD: Only update if CVD or price changed
+                    setData(prev => {
+                        if (prev.cvd === json.cvd && prev.price === json.price && prev.history.length === json.history.length) {
+                            return prev; // No change, keep same reference (no re-render)
+                        }
 
-                    setData({
-                        price: json.price,
-                        cvd: json.cvd,
-                        history: formattedHistory
+                        return {
+                            price: json.price,
+                            cvd: json.cvd,
+                            history: json.history.map(h => ({
+                                time: new Date(h.t).toLocaleTimeString(),
+                                cvd: h.c,
+                                delta: h.d
+                            }))
+                        };
                     });
                 }
             } catch (e) {
                 console.error("CVD Fetch Error", e);
+            } finally {
+                isFetching.current = false;
             }
         }, 500); // 500ms for smooth updates
 

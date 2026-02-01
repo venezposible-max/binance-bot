@@ -15,6 +15,7 @@ function App() {
   const [pairs, setPairs] = useState(INITIAL_PAIRS); // Dynamic Top 10 Pairs
   const [marketData, setMarketData] = useState({});
   const [loading, setLoading] = useState(true);
+  const isFetchingBus = useRef(false); // OPTIMIZATION: Request Lock
   const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
 
   const [timeframe, setTimeframe] = useState('4h');
@@ -99,14 +100,17 @@ function App() {
   };
 
   const fetchData = async (overrideTimeframe) => {
+    if (isFetchingBus.current) return; // PREVENT OVERLAP
+    isFetchingBus.current = true;
+
     const currentTf = overrideTimeframe || timeframe;
     const results = {};
     let buyCount = 0;
+    let takenCount = 0;
     let sellCount = 0;
     let neutralCount = 0;
 
     try {
-      setLoading(false); // Quick UI feedback
 
       // 1. Fetch Market Context (Binance)
       // 0. Dynamic Pair Selection (Top Volume + Active Trades)
@@ -170,9 +174,10 @@ function App() {
 
           if (analysis.prediction.signal.includes('BUY')) {
             if (!isActive) buyCount++;
+            else takenCount++;
           }
           else if (analysis.prediction.signal.includes('SELL')) {
-            sellCount++; // Sells might be exits, keeping count for reference
+            sellCount++;
           }
           else neutralCount++;
 
@@ -192,51 +197,22 @@ function App() {
       });
 
       setMarketData(results);
+      setStats({ buy: buyCount, taken: takenCount, sell: sellCount, neutral: neutralCount });
 
       // 2. Sync with Cloud Sniper (Vercel KV) - Non-blocking
-      try {
-        const res = await fetch('/api/get-status');
-        if (res.ok) {
-          const data = await res.json();
-          setCloudStatus(data);
-        }
-      } catch (e) {
-        console.warn("Cloud Sync not available yet (Normal if local):", e.message);
+      const statusRes = await fetch('/api/get-status');
+      if (statusRes.ok) {
+        const data = await statusRes.json();
+        setCloudStatus(data);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
+      isFetchingBus.current = false;
     }
   };
 
-  // --- REACTIVE STATS CALCULATION ---
-  useEffect(() => {
-    let buyCount = 0;
-    let takenCount = 0;
-    let sellCount = 0;
-    let neutralCount = 0;
-
-    const normalize = (s) => (s || '').toUpperCase().replace('USDT', '').trim();
-
-    Object.entries(marketData).forEach(([symbol, data]) => {
-      const isActive = cloudStatus.active.some(t => normalize(t.symbol) === normalize(symbol));
-
-      if (data.prediction.signal.includes('BUY')) {
-        if (!isActive) {
-          buyCount++;
-        } else {
-          takenCount++; // Signal exists AND we have the trade = Taken
-        }
-      } else if (data.prediction.signal.includes('SELL')) {
-        sellCount++;
-      } else {
-        neutralCount++;
-      }
-    });
-
-    setStats({ buy: buyCount, taken: takenCount, sell: sellCount, neutral: neutralCount });
-  }, [marketData, cloudStatus.active]);
 
 
   const handleConfigChange = (newConfig) => {
@@ -249,9 +225,8 @@ function App() {
     if (newConfig?.strategy && newConfig.strategy !== activeStrategy) {
       console.log(`🔄 Strategy Changed: ${activeStrategy} -> ${newConfig.strategy}`);
 
-      // CRITICAL: Clear all previous strategy data to ensure independence
-      setMarketData({});
-      setStats({ buy: 0, sell: 0, neutral: 0, taken: 0 });
+      // REMOVED: setMarketData({}) flash for better fluidity
+      // Only set loading to true to show a subtle indicator without clearing current view
       setLoading(true);
 
       let newTf = '4h';
