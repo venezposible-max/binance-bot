@@ -195,28 +195,32 @@ function App() {
           let analysis;
 
           // BRANCHING LOGIC: STRATEGY SELECTION
-          if (activeStrategy === 'FLOW') {
+          if (activeStrategy.includes('FLOW')) {
             // 🌊 FLOW MODE: Order Book Imbalance
-            const depth = await fetchDepth(symbol); // Using New Backend Proxy
+            const depth = await fetchDepth(symbol);
             analysis = analyzeFlow(depth, candles);
-          } else if (activeStrategy === 'TRIPLE') {
+          } else if (activeStrategy.includes('TRIPLE')) {
             // 🧐 TRIPLE LOUPE: 15m + 1h + 4h
             const [k1h, k15m] = await Promise.all([
               fetchCandles(symbol, '1h', 100),
               fetchCandles(symbol, '15m', 100)
             ]);
             analysis = analyzeTriple(candles, k1h, k15m);
-          } else if (activeStrategy === 'OB') {
+          } else if (activeStrategy.includes('OB')) {
             // 📦 OB MODE: Institutional Zones
-            analysis = analyzeOB(candles);
-          } else if (activeStrategy === 'HYBRID') {
+            analysis = analyzeOB(candles, { mode: activeStrategy });
+          } else if (activeStrategy.includes('HYBRID')) {
             // 🧬 ELITE HYBRID: OB + Flow + Trend
-            // Frontend Fetch Depth (fallback or direct)
             const depth = await fetchDepth(symbol);
-            analysis = analyzeHybrid(depth, candles, { mode: walletConfig.hybridMode || 'SWING' });
+            analysis = analyzeHybrid(depth, candles, { mode: activeStrategy });
           } else {
             // 📊 STANDARD MODE: Technicals (RSI/EMA/BB)
-            analysis = analyzePair(candles, walletConfig);
+            analysis = analyzePair(candles, { ...walletConfig, mode: activeStrategy });
+          }
+
+          // [NEW] CRITICAL FIX: Ensure the analysis result always has the correct mode for the UI badge
+          if (analysis && analysis.indicators) {
+            analysis.indicators.mode = activeStrategy;
           }
 
           const history = candles.slice(-50).map(c => c.close || parseFloat(c[4]));
