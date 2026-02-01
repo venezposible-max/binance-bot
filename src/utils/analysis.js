@@ -41,13 +41,13 @@ export const analyzePair = (candles) => {
     const hitLowerBB = lastPrice <= currentBB.lower;
     const hitUpperBB = lastPrice >= currentBB.upper;
 
-    if (isOversold) {
+    if (isOversold && lastPrice > currentEMA) {
         signal = 'BUY';
         label = 'OFERTA / COMPRA';
         color = '#10B981';
         intensity = 60;
 
-        // CONFLUENCE: Oversold + BB Breakout = Sniper entry
+        // CONFLUENCE: Oversold + BB Breakout + Bullish Trend = Sniper entry
         if (hitLowerBB) {
             signal = 'STRONG_BUY';
             label = '🚨 SNIPER BUY 🚀';

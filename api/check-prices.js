@@ -441,8 +441,9 @@ export default async function handler(req, res) {
                         const lastPrice = closes[closes.length - 1];
 
                         let sniperBuy = false;
-                        if (currentBB) {
-                            sniperBuy = (rsi < 30 && lastPrice <= currentBB.lower);
+                        if (currentBB && ema200Val) {
+                            // Filter: Price MUST be above EMA 200 for SWING entries
+                            sniperBuy = (rsi < 30 && lastPrice <= currentBB.lower && lastPrice > ema200Val);
                         }
 
                         if (sniperBuy) {
