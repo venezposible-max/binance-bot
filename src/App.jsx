@@ -339,10 +339,14 @@ function App() {
           <h1 className={styles.heroTitle}>MARKET SENTINEL AI</h1>
           <p className={styles.heroSubtitle}>
             Patrullando 24/7 de forma autónoma en la nube.
-            <br />
-            <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block' }} className="text-glow-yellow">
-              🔥 {stats.buy + stats.taken} Oportunidades Long Detectadas ({stats.taken} Tomadas)
-            </span>
+            {activeStrategy !== 'SNIPER' && (
+              <>
+                <br />
+                <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block' }} className="text-glow-yellow">
+                  🔥 {stats.buy + stats.taken} Oportunidades Long Detectadas ({stats.taken} Tomadas)
+                </span>
+              </>
+            )}
           </p>
         </section>
 
