@@ -315,7 +315,7 @@ export const analyzeOB = (candles, config = {}) => {
         const impulse = ((close - prevOpen) / prevOpen) * 100;
         const isBearish = prevClose < prevOpen;
 
-        const impulseThreshold = isBlitz ? 0.5 : 2.0; // TURBO: Aggressive impulse for Blitz (Tuned from 0.8)
+        const impulseThreshold = isBlitz ? 0.5 : 1.0; // TUNED: Relaxed Swing from 2.0 to 1.0
 
         if (impulse >= impulseThreshold && isBearish) {
             // Found a bullish OB Zone: prevLow to prevHigh
