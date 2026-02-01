@@ -2,8 +2,8 @@
     position: relative;
     background: rgba(10, 14, 20, 0.2);
     /* More transparency for particles */
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 24px;
     padding: 24px;
