@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const BOT_TOKEN = '8025293831:AAF5H56wm1yAzHwbI9foh7lA-tr8WUwHfd0';
-const CHAT_ID = '330749449';
+const BOT_TOKEN = process.env.TELEGRAM_TOKEN || '8025293831:AAF5H56wm1yAzHwbI9foh7lA-tr8WUwHfd0';
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID || '330749449';
 
 // Cooldown Tracker to prevent spam
 // Structure: { 'BTCUSDT': timestamp_of_last_alert }
@@ -51,3 +51,18 @@ _Verificar en Gráfico antes de operar._
         return false;
     }
 };
+export const sendRawTelegram = async (text) => {
+    try {
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            chat_id: CHAT_ID,
+            text,
+            parse_mode: 'Markdown'
+        });
+        return true;
+    } catch (e) {
+        console.warn('Telegram send error:', e.message);
+        return false;
+    }
+};
+
+export default { sendTelegramAlert, sendRawTelegram };

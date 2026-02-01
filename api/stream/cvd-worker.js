@@ -216,9 +216,14 @@ class CVDSniper {
             await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
 
             // Update balance (deduct invested amount + fee)
-            console.log(`💰 BEFORE: Balance = $${config.currentBalance.toFixed(2)} | Deducting: $${(investedAmount + fee).toFixed(2)}`);
-            config.currentBalance -= (investedAmount + fee);
-            console.log(`💰 AFTER: Balance = $${config.currentBalance.toFixed(2)}`);
+            // Deduct capital ONLY in SIMULATION mode
+            if (config.tradingMode !== 'LIVE') {
+                const openFee = investedAmount * 0.001;
+                config.currentBalance -= (investedAmount + openFee);
+                console.log(`🧪 Balance updated (SIM): $${config.currentBalance.toFixed(2)}`);
+            } else {
+                console.log(`💸 LIVE Mode: No deduction from virtual balance (using real wallet)`);
+            }
             await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
             // Update cooldown tracker (both in-memory and Redis)
@@ -267,10 +272,17 @@ class CVDSniper {
 
                 const pnlPercent = (totalCycleProfit / trade.investedAmount) * 100;
 
-                // Update balance (return invested amount + net profit/loss)
+                // Update balance (return invested amount + net profit/loss) ONLY in SIMULATION
                 const configStr = await redis.get('sentinel_wallet_config');
                 const config = JSON.parse(configStr);
-                config.currentBalance += (trade.investedAmount + netProfit);
+                const netReturn = trade.investedAmount + netProfit;
+
+                if (config.tradingMode !== 'LIVE') {
+                    config.currentBalance += netReturn;
+                    console.log(`🧪 SL/TP Exit (SIM): Credited $${netReturn.toFixed(2)} to virtual balance`);
+                } else {
+                    console.log(`💸 SL/TP Exit (LIVE): Real transaction confirmed, virtual balance untouched.`);
+                }
                 await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
                 // Move to history

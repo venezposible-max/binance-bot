@@ -1,8 +1,9 @@
 import redis from '../src/utils/redisClient.js';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
-const BOT_TOKEN = '8025293831:AAF5H56wm1yAzHwbI9foh7lA-tr8WUwHfd0';
-const CHAT_ID = '330749449';
+import binanceClient from './utils/binance-client.js';
+import { sendRawTelegram } from '../src/utils/telegram.js';
+// Telegram hardcoded config removed - using src/utils/telegram.js
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -47,11 +48,7 @@ export default async function handler(req, res) {
             activeTrades.push(newTrade);
 
             // Notify Telegram
-            await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                chat_id: CHAT_ID,
-                text: `👆 **MANUAL ENTRY** ✍️\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 **Inversión:** $${investedAmount.toFixed(2)}\n📉 Fee: -$${openFee.toFixed(3)}\n\n_Vigilando objetivo +1% en la nube..._`,
-                parse_mode: 'Markdown'
-            });
+            await sendRawTelegram(`👆 **MANUAL ENTRY** ✍️\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 **Inversión:** $${investedAmount.toFixed(2)}\n📉 Fee: -$${openFee.toFixed(3)}\n\n_Vigilando objetivo +1% en la nube..._`);
 
         } else if (action === 'CLOSE') {
             // Check both regular and Sniper trades
@@ -70,6 +67,20 @@ export default async function handler(req, res) {
             }
 
             if (trade) {
+                // --- CRITICAL: Execute Real Sell if LIVE ---
+                const isLive = trade.mode === 'LIVE';
+                if (isLive) {
+                    console.log(`💸 Manual Close for LIVE trade: Selling ${trade.symbol} on Binance...`);
+                    try {
+                        // Use quantity if available, else calculate from invested
+                        const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                        await binanceClient.executeOrder(trade.symbol, 'SELL', qty, exitPrice || trade.entryPrice, 'MARKET', true);
+                        console.log('✅ Real SELL executed for manual closure');
+                    } catch (err) {
+                        console.error('❌ FAILED to sell live trade on Binance:', err.message);
+                        // We still continue to remove from UI to avoid stuck state, but user is alerted via console
+                    }
+                }
 
                 // Calculate PnL if exitPrice is provided
                 if (exitPrice && trade.investedAmount) {

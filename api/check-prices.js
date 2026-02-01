@@ -3,6 +3,7 @@ import { RSI, EMA, BollingerBands } from 'technicalindicators';
 import redis from '../src/utils/redisClient.js';
 import binanceClient from './utils/binance-client.js'; // Import Unified Client
 import { v4 as uuidv4 } from 'uuid';
+import { sendRawTelegram } from '../src/utils/telegram.js';
 
 // --- Shared Logic ---
 // --- Shared Logic ---
@@ -47,9 +48,7 @@ async function getDynamicTopPairs() {
     }
 }
 
-// Telegram Config
-const BOT_TOKEN = '8025293831:AAF5H56wm1yAzHwbI9foh7lA-tr8WUwHfd0';
-const CHAT_ID = '330749449';
+// Telegram hardcoded config removed - using src/utils/telegram.js
 
 // Helper: Fetch Accurate Global Price (Coinbase as Oracle or Binance Global if EU)
 async function fetchGlobalPrice(symbol) {
@@ -204,11 +203,7 @@ export default async function handler(req, res) {
                     };
                     newActiveTrades.push(newTrade);
 
-                    await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                        chat_id: CHAT_ID,
-                        text: `${type === 'LONG' ? '🔵' : '🔴'} **FORCE ENTRY (${strategy})** ⚡\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 Inv: $${investedAmount.toFixed(2)}\n\n_Manual Force Scan_`,
-                        parse_mode: 'Markdown'
-                    });
+                    await sendRawTelegram(`${type === 'LONG' ? '🔵' : '🔴'} **FORCE ENTRY (${strategy})** ⚡\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 Inv: $${investedAmount.toFixed(2)}\n\n_Manual Force Scan_`);
                     alertsSent.push(`${symbol} (${type})`);
                 }
             }
@@ -345,11 +340,7 @@ export default async function handler(req, res) {
                             console.log(`🏆 WIN: ${symbol} | PnL: +${pnlPercent.toFixed(2)}% | Profit: $${netProfit.toFixed(2)}`);
 
                             // Telegram Alert
-                            await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                                chat_id: CHAT_ID,
-                                text: `🏆 **CLOUD WIN (${strategy})** 🚀\n\n💎 **${symbol}**\n📈 ROI: **+${pnlPercent.toFixed(2)}%**\n💰 Cierre: $${exitPrice.toFixed(4)}\n💵 Profit: $${netProfit.toFixed(2)}\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`,
-                                parse_mode: 'Markdown'
-                            }).catch(e => { });
+                            await sendRawTelegram(`🏆 **CLOUD WIN (${strategy})** 🚀\n\n💎 **${symbol}**\n📈 ROI: **+${pnlPercent.toFixed(2)}%**\n💰 Cierre: $${exitPrice.toFixed(4)}\n💵 Profit: $${netProfit.toFixed(2)}\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`);
 
                         } catch (err) {
                             console.error(`🚨 SELL FAILED (${symbol}):`, err.message);
@@ -528,11 +519,7 @@ export default async function handler(req, res) {
                             console.log(`✅ ${isLive ? 'LIVE' : 'SIM'} ENTRADA: ${symbol} @ $${fillPrice.toFixed(4)} | Qty: ${executedQty.toFixed(4)}`);
 
                             // Telegram Alert
-                            await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                                chat_id: CHAT_ID,
-                                text: `${isLive ? '💸 **LIVE TRADE**' : '🔵 **SIM TRADE**'} (${strategy}) 🐂\n\n💎 **${symbol}**\n💰 Entrada: $${fillPrice.toFixed(4)}\n💸 Inv: $${spentUsd.toFixed(2)}\n⏱️ 1H Candles\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`,
-                                parse_mode: 'Markdown'
-                            }).catch(e => console.warn('Telegram Fail'));
+                            await sendRawTelegram(`${isLive ? '💸 **LIVE TRADE**' : '🔵 **SIM TRADE**'} (${strategy}) 🐂\n\n💎 **${symbol}**\n💰 Entrada: $${fillPrice.toFixed(4)}\n💸 Inv: $${spentUsd.toFixed(2)}\n⏱️ 1H Candles\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`);
 
                             alertsSent.push(`${symbol} (LONG)`);
 
