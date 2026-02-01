@@ -12,10 +12,10 @@ class CVDSniper {
         this.lastPrice = 0;
         this.activeTrades = []; // Track active Sniper positions
         this.lastTradeTime = 0; // Cooldown tracker
-        this.COOLDOWN_MS = 30 * 1000; // TEMPORARY: 30s for testing (was 5min)
+        this.COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
         // Strategy Parameters
-        this.THRESHOLD = 5000; // TEMPORARY: Lowered for testing (was 150k)
+        this.THRESHOLD = 150000; // 150k USDT Delta
         this.isReconnecting = false;
 
         this.stats = {
@@ -23,6 +23,8 @@ class CVDSniper {
             messages: 0,
             triggers: 0
         };
+
+        this.isOpeningTrade = false; // Lock to prevent race conditions
 
         console.log('🔫 CVD SNIPER: Class Initialized');
         this.connect();
@@ -106,10 +108,20 @@ class CVDSniper {
     }
 
     async executeSniperTrade(entryPrice) {
+        if (this.isOpeningTrade) return;
+        this.isOpeningTrade = true;
+
         try {
             // SYNC: Read current active sniper trades from Redis to ensure we don't double-open
             const sniperTradesStr = await redis.get('sentinel_sniper_trades');
-            this.activeTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+            const currentActive = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+
+            // Prevent multiple active trades (checking both memory and Redis sync)
+            if (currentActive.length > 0) {
+                console.log('🔫 Sniper: Already have an active trade');
+                return;
+            }
+            this.activeTrades = currentActive; // Update in-memory active trades
 
             // Read wallet config
             const configStr = await redis.get('sentinel_wallet_config');
@@ -213,6 +225,8 @@ class CVDSniper {
 
         } catch (e) {
             console.error('❌ Sniper Trade Execution Error:', e.message);
+        } finally {
+            this.isOpeningTrade = false;
         }
     }
 

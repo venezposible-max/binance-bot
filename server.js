@@ -77,6 +77,10 @@ app.get('/api/debug', vercelAdapter(debug));
 import clearSniper from './api/clear-sniper.js';
 app.post('/api/clear-sniper', vercelAdapter(clearSniper));
 
+// SESSION CLEANUP (One-time utility)
+import cleanup from './api/cleanup.js';
+app.get('/api/cleanup', vercelAdapter(cleanup));
+
 
 
 // ... (existing code)
