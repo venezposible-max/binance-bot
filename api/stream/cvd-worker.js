@@ -122,6 +122,12 @@ class CVDSniper {
                 return;
             }
 
+            // Prevent multiple active trades
+            if (this.activeTrades.length > 0) {
+                console.log('🔫 Sniper: Already have an active trade');
+                return;
+            }
+
             // Check cooldown (prevent reopening immediately after close)
             const cooldownStr = await redis.get('sentinel_sniper_cooldown');
             const lastCooldownTime = cooldownStr ? parseInt(cooldownStr) : this.lastTradeTime;
