@@ -22,8 +22,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     useEffect(() => {
         fetchWallet();
-        // Refresh every 10s to reflect autonomous changes
-        const interval = setInterval(fetchWallet, 10000);
+        // Refresh every 2s for fast multi-device sync
+        const interval = setInterval(fetchWallet, 2000);
         return () => clearInterval(interval);
     }, []);
 
