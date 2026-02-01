@@ -137,18 +137,30 @@ export default async function handler(req, res) {
             console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
         }
 
-        // --- 🧪 SAFETY CHECK: BOT STATE ---
-        if (wallet.isBotActive === false) {
-            console.log('⏹️ BOT IS PAUSED: Skipping current patrol cycle.');
+        // --- 🧪 SAFETY CHECK: BOT STATE (Strategy Specific) ---
+        const strategy = wallet.strategy || 'SWING';
+
+        let isStrategyActive = true;
+
+        // 1. Check New Granular Config
+        if (wallet.strategyConfig && wallet.strategyConfig[strategy]) {
+            isStrategyActive = wallet.strategyConfig[strategy].active;
+        } else {
+            // 2. Fallback to Global Legacy Flag
+            isStrategyActive = wallet.isBotActive !== false;
+        }
+
+        if (!isStrategyActive) {
+            console.log(`⏹️ BOT PAUSED (${strategy}): Skipping current patrol cycle.`);
             return res.status(200).json({
                 success: true,
-                message: 'Bot is currently paused via UI.',
+                message: `Bot is paused for ${strategy}.`,
                 activeCount: 0,
                 newAlerts: []
             });
         }
 
-        const strategy = wallet.strategy || 'SWING';
+        // Strategy already defined above
 
         let PROFIT_TARGET = wallet.takeProfit || 1.25;
         const USE_STOP_LOSS = wallet.useStopLoss || false;

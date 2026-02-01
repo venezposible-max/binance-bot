@@ -199,18 +199,33 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     const handleToggleBot = async () => {
         if (!wallet) return;
-        const newState = !(wallet.isBotActive !== false); // Toggle
+
+        // Determine current status (Default to true/Active if undefined/legacy)
+        const strategyConfig = wallet.strategyConfig || {};
+        const currentConfig = strategyConfig[currentStrategy] || { active: wallet.isBotActive !== false };
+
+        const newState = !currentConfig.active;
+
+        // New Strategy Config Object
+        const newStrategyConfig = {
+            ...strategyConfig,
+            [currentStrategy]: { ...currentConfig, active: newState }
+        };
+
         try {
             // Optimistic update
-            setWallet(prev => ({ ...prev, isBotActive: newState }));
+            setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, isBotActive: newState /* Legacy sync visual */ }));
 
             await fetch('/api/wallet/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isBotActive: newState })
+                body: JSON.stringify({
+                    strategyConfig: newStrategyConfig,
+                    isBotActive: newState // Keep legacy sync for now
+                })
             });
 
-            if (onConfigChange) onConfigChange({ ...wallet, isBotActive: newState });
+            if (onConfigChange) onConfigChange({ ...wallet, strategyConfig: newStrategyConfig });
         } catch (e) {
             console.error(e);
             alert('Error al cambiar estado del bot');
@@ -294,21 +309,27 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 </div>
 
                 {/* PAUSED WARNING / START BUTTON */}
-                {wallet.isBotActive === false ? (
-                    <button
-                        onClick={handleToggleBot}
-                        className={styles.startBtn}
-                    >
-                        ▶️ START BOT
-                    </button>
-                ) : (
-                    <button
-                        onClick={handleToggleBot}
-                        className={styles.pauseBtn}
-                    >
-                        ⏸️ PAUSE
-                    </button>
-                )}
+                {(function () {
+                    const sConf = wallet.strategyConfig?.[currentStrategy];
+                    // Active by default if not strictly false
+                    const isActive = sConf ? sConf.active : (wallet.isBotActive !== false);
+
+                    return isActive ? (
+                        <button
+                            onClick={handleToggleBot}
+                            className={styles.pauseBtn}
+                        >
+                            ⏸️ PAUSE ({currentStrategy})
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleToggleBot}
+                            className={styles.startBtn}
+                        >
+                            ▶️ START ({currentStrategy})
+                        </button>
+                    );
+                })()}
             </div>
 
             <div className={styles.mainStats}>
