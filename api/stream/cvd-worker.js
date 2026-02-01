@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import redis from '../../src/utils/redisClient.js';
 import binanceClient from '../utils/binance-client.js';
+import { sendRawTelegram } from '../../src/utils/telegram.js';
 
 class CVDSniper {
     constructor() {
@@ -233,6 +234,9 @@ class CVDSniper {
 
             console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | Invested: $${investedAmount.toFixed(2)} (${riskPercentage}%) | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
 
+            // Notify Telegram
+            await sendRawTelegram(`🔫 **SNIPER ATTACK** 🐋\n\n💎 **BTCUSDT**\n🚀 Entrada: $${entryPrice.toLocaleString()}\n🐳 Whale Trigger: $${Math.round(triggerDelta).toLocaleString()}\n💸 Modo: ${isLive ? 'LIVE 💸' : 'SIM 🧪'}\n\n_Surfeando la ballena..._`);
+
         } catch (e) {
             console.error('❌ Sniper Trade Execution Error:', e.message);
         } finally {
@@ -313,6 +317,9 @@ class CVDSniper {
                 // Remove from active
                 this.activeTrades.splice(i, 1);
                 await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
+
+                // Notify Telegram
+                await sendRawTelegram(`🎯 **SNIPER EXIT** ✅\n\n💎 **BTCUSDT**\n📈 ROI: **${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(2)}%**\n💰 Cierre: $${exitPrice.toLocaleString()}\n💵 Profit: $${totalCycleProfit.toFixed(2)}\n📝 Motivo: ${exitReason}\n\n_Misión cumplida._`);
             }
         }
     }
