@@ -12,8 +12,11 @@ export default async function handler(req, res) {
                 currentBalance: 1000,
                 riskPercentage: 10,
                 whaleThreshold: 150000,
-                isBotActive: true, // Default State: ACTIVATED
-                ...existingConfig // Override with existing values if present
+                isBotActive: true,
+                takeProfit: 1.25,
+                stopLoss: 3.0,
+                useStopLoss: false,
+                ...existingConfig
             };
 
             res.status(200).json(config);

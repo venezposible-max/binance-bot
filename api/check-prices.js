@@ -137,33 +137,32 @@ export default async function handler(req, res) {
             console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
         }
 
-        // --- GLOBAL KILL SWITCH ---
+        // --- 🧪 SAFETY CHECK: BOT STATE ---
         if (wallet.isBotActive === false) {
-            console.log('💤 Bot is PAUSED by User. Skipping Scan.');
-            return res.status(200).json({ status: 'PAUSED', message: 'Bot Desactivado', alerts: [] });
+            console.log('⏹️ BOT IS PAUSED: Skipping current patrol cycle.');
+            return res.status(200).json({
+                success: true,
+                message: 'Bot is currently paused via UI.',
+                activeCount: 0,
+                newAlerts: []
+            });
         }
 
-        // Determine Configured Strategy (Default: SWING)
-        let strategy = wallet.strategy || (wallet.multiFrameMode ? 'TRIPLE' : 'SWING');
+        const strategy = wallet.strategy || 'SWING';
 
-        // Define Targets based on Strategy
-        let PROFIT_TARGET = 1.25; // Default for Swing/Triple
-        if (strategy === 'SCALP') PROFIT_TARGET = 0.50; // Tubo Mode: 0.5% Gross (~0.3% Net)
+        let PROFIT_TARGET = wallet.takeProfit || 1.25;
+        const USE_STOP_LOSS = wallet.useStopLoss || false;
+        const STOP_LOSS_TARGET = wallet.stopLoss || 3.0; // % distance
 
-        console.log(`🧠 STRATEGY: ${strategy} | TARGET: ${PROFIT_TARGET}% | MODE: LONG-ONLY 🐂`);
+        console.log(`🧠 STRATEGY: ${strategy} | TARGET: ${PROFIT_TARGET}% | SL: ${USE_STOP_LOSS ? (STOP_LOSS_TARGET + '%') : 'OFF'}`);
 
         // 🔫 SNIPER MODE: Skip Cron Execution (Handled by cvd-worker.js WebSocket)
         if (strategy === 'SNIPER') {
             console.log('🔫 SNIPER MODE ACTIVE: Skipping cron scan (WebSocket handles BTCUSDT only)');
-
-            // Still monitor existing trades for TP/SL
-            const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-            const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
-
             return res.status(200).json({
                 success: true,
                 message: 'Sniper mode: Monitoring only',
-                activeCount: activeTrades.length,
+                activeCount: 0,
                 newAlerts: []
             });
         }
@@ -270,18 +269,16 @@ export default async function handler(req, res) {
                         pnl = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
                     }
 
-                    // Determine Target based on Trade's Strategy (with fallback)
-                    // Determine Target based on Trade's Strategy (with fallback)
-                    const tradeStrategy = trade.strategy || strategy;
-                    const dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : 1.25;
+                    // EXIT CONDITION (Take Profit)
+                    const isTakeProfitHit = pnl >= dynamicTarget;
 
-                    // DEBUG LOG (Enhanced)
-                    alertsSent.push(`🔍 ${symbol}: Entry $${trade.entryPrice} vs Current $${currentPrice} -> ${pnl.toFixed(2)}%`);
+                    // EXIT CONDITION (Stop Loss - User Feature)
+                    const isStopLossHit = USE_STOP_LOSS && (pnl <= -STOP_LOSS_TARGET);
 
-                    // EXIT CONDITION
-                    if (pnl >= dynamicTarget) {
+                    if (isTakeProfitHit || isStopLossHit) {
                         const isLive = trade.mode === 'LIVE';
-                        console.log(`🎯 TARGET HIT (${tradeStrategy}): ${symbol} ${pnl.toFixed(2)}% | Executing SELL (${isLive ? 'LIVE' : 'SIM'})`);
+                        const reason = isStopLossHit ? 'STOP LOSS' : 'TARGET HIT';
+                        console.log(`🎯 ${reason} (${tradeStrategy}): ${symbol} ${pnl.toFixed(2)}% | Executing SELL (${isLive ? 'LIVE' : 'SIM'})`);
 
                         try {
                             // Determine Qty to Sell

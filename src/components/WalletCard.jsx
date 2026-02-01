@@ -209,15 +209,57 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isBotActive: newState })
             });
+
+            if (onConfigChange) onConfigChange({ ...wallet, isBotActive: newState });
         } catch (e) {
             console.error(e);
             alert('Error al cambiar estado del bot');
         }
     };
 
+    const handleUpdateRiskValue = async (field, value) => {
+        if (!wallet) return;
+        try {
+            const numericValue = parseFloat(value);
+            if (isNaN(numericValue)) return;
+
+            // AUTO-PAUSE on change for safety
+            setWallet(prev => ({ ...prev, [field]: numericValue, isBotActive: false }));
+
+            await fetch('/api/wallet/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: numericValue, isBotActive: false })
+            });
+
+            if (onConfigChange) onConfigChange({ ...wallet, [field]: numericValue, isBotActive: false });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleToggleSL = async () => {
+        if (!wallet) return;
+        const newState = !wallet.useStopLoss;
+        try {
+            // AUTO-PAUSE on change for safety
+            setWallet(prev => ({ ...prev, useStopLoss: newState, isBotActive: false }));
+
+            await fetch('/api/wallet/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ useStopLoss: newState, isBotActive: false })
+            });
+
+            if (onConfigChange) onConfigChange({ ...wallet, useStopLoss: newState, isBotActive: false });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     return (
         <div className={styles.card}>
-            {/* Header with Kill Switch */}
+            {/* Header with Execution Control */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
                 <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     💼 BILLETERA
@@ -232,41 +274,78 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         }}>LIVE MONEY 💸</span>
                     )}
                 </div>
-                <button
-                    onClick={handleToggleBot}
-                    style={{
-                        background: wallet.isBotActive !== false ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                        color: wallet.isBotActive !== false ? '#10B981' : '#EF4444',
-                        border: `1px solid ${wallet.isBotActive !== false ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                        borderRadius: '20px',
-                        padding: '6px 14px',
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: wallet.isBotActive !== false ? '#10B981' : '#EF4444', boxShadow: wallet.isBotActive !== false ? '0 0 8px #10B981' : 'none' }}></div>
-                    {wallet.isBotActive !== false ? 'BOT ACTIVO' : 'BOT PAUSADO'}
-                </button>
+
+                {/* PAUSED WARNING / START BUTTON */}
+                {wallet.isBotActive === false ? (
+                    <button
+                        onClick={handleToggleBot}
+                        className={styles.startBtn}
+                    >
+                        ▶️ START BOT
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleToggleBot}
+                        className={styles.pauseBtn}
+                    >
+                        ⏸️ PAUSE
+                    </button>
+                )}
             </div>
 
-            <div className={styles.balanceGroup}>
-                <span className={styles.label}>CAPITAL DISPONIBLE (CASH)</span>
-                <span className={styles.value}>${wallet.currentBalance.toFixed(2)}</span>
-            </div>
-
-            <div className={styles.balanceGroup} style={{ borderLeft: '1px solid #333', paddingLeft: '20px' }}>
-                <span className={styles.label}>EQUITY (PATRIMONIO REAL)</span>
-                <span className={styles.value} style={{ color: equity >= wallet.initialBalance ? '#10B981' : '#E2E8F0' }}>
-                    ${equity.toFixed(2)}
-                </span>
-                <div style={{ fontSize: '0.75rem', color: equity >= wallet.initialBalance ? '#10B981' : '#EF4444' }}>
-                    {equity >= wallet.initialBalance ? '+' : ''}{(equity - wallet.initialBalance).toFixed(2)} USD
+            <div className={styles.mainStats}>
+                <div className={styles.balanceGroup}>
+                    <span className={styles.label}>CAPITAL DISPONIBLE (CASH)</span>
+                    <span className={styles.value}>${wallet.currentBalance.toFixed(2)}</span>
                 </div>
+
+                <div className={styles.balanceGroup} style={{ borderLeft: '1px solid #333', paddingLeft: '20px' }}>
+                    <span className={styles.label}>EQUITY (PATRIMONIO REAL)</span>
+                    <span className={styles.value} style={{ color: equity >= wallet.initialBalance ? '#10B981' : '#E2E8F0' }}>
+                        ${equity.toFixed(2)}
+                    </span>
+                    <div style={{ fontSize: '0.75rem', color: equity >= wallet.initialBalance ? '#10B981' : '#EF4444' }}>
+                        {equity >= wallet.initialBalance ? '+' : ''}{(equity - wallet.initialBalance).toFixed(2)} USD
+                    </div>
+                </div>
+            </div>
+
+            {/* --- RISK MANAGEMENT CONTROLS --- */}
+            <div className={styles.riskPanel}>
+                <div className={styles.riskItem}>
+                    <div className={styles.label}>TAKE PROFIT (%)</div>
+                    <input
+                        type="number"
+                        step="0.1"
+                        className={styles.riskInput}
+                        value={wallet.takeProfit || 1.25}
+                        onChange={(e) => handleUpdateRiskValue('takeProfit', e.target.value)}
+                    />
+                </div>
+
+                <div className={styles.riskItem}>
+                    <div className={styles.label}>USE STOP LOSS?</div>
+                    <div
+                        className={`${styles.toggle} ${wallet.useStopLoss ? styles.toggleOn : ''}`}
+                        onClick={handleToggleSL}
+                    >
+                        <div className={styles.toggleThumb}></div>
+                    </div>
+                </div>
+
+                {wallet.useStopLoss && (
+                    <div className={styles.riskItem}>
+                        <div className={styles.label}>STOP LOSS (%)</div>
+                        <input
+                            type="number"
+                            step="0.1"
+                            className={styles.riskInput}
+                            style={{ color: '#EF4444' }}
+                            value={wallet.stopLoss || 3.0}
+                            onChange={(e) => handleUpdateRiskValue('stopLoss', e.target.value)}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className={styles.configGroup}>
