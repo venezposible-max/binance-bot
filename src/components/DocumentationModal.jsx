@@ -6,52 +6,44 @@ import styles from './DocumentationModal.module.css';
 const DocumentationModal = ({ isOpen, onClose }) => {
     const modes = [
         {
-            id: 'swing',
-            title: 'MODO SWING (Reversión de Tendencia)',
-            icon: <ShieldCheck className={styles.modeIcon} size={28} />,
-            description: 'Diseñado para capturar rebotes en zonas de capitulación dentro de una tendencia alcista macro. Es el modo más equilibrado del sistema.',
-            indicators: ['RSI (14)', 'Bandas de Bollinger (20, 2)', 'EMA 200 (Filtro Macro)'],
-            logic: 'Entra cuando el precio está sobrevendido (RSI < 30) Y toca la banda inferior de Bollinger, siempre que el precio esté por encima de la EMA 200.'
+            id: 'hybrid-swing',
+            title: 'HYBRID ENGINE: SWING (Institucional)',
+            icon: <ShieldCheck className={styles.modeIcon} style={{ color: '#00D9FF' }} size={28} />,
+            description: 'Motor de confluencia avanzado que fusiona Order Blocks, Presión de Flujo y Tendencia Macro. Optimizado para capturar giros de mercado en temporalidades de 1H/4H.',
+            indicators: ['Order Blocks', 'Buy/Sell Flow', 'EMA 200', 'RSI Confluence'],
+            logic: 'Exige confluencia triple: 1. Precio en zona OB. 2. Presión de compra > 1.5x. 3. Tendencia confirmada. Es el modo de mayor precisión.'
         },
         {
-            id: 'flow',
-            title: 'MODO FLOW (Desequilibrio de Ordenes)',
-            icon: <Waves className={styles.modeIcon} size={28} />,
-            description: 'Ignora los indicadores técnicos tradicionales para centrarse en la presión real del Libro de Órdenes (Order Book). Detecta muros de compra.',
-            indicators: ['Order Book Depth (Top 20)', 'Buy/Sell Pressure Ratio'],
-            logic: 'Analiza los muros de compra y venta. Una señal "STRONG BUY" se genera cuando el volumen de compra duplica al de venta (Ratio > 2.0x).'
+            id: 'hybrid-blitz',
+            title: 'HYBRID ENGINE: BLITZ (Alta Frecuencia)',
+            icon: <Zap className={styles.modeIcon} style={{ color: '#F59E0B' }} size={28} />,
+            description: 'Versión ultrasensible del motor Híbrido. Diseñado para detectar micro-desequilibrios en el libro de órdenes y atrapar rebotes rápidos en 1m.',
+            indicators: ['Order Book Skew', 'Momentum de 1m', 'ATR Scalping'],
+            logic: 'Busca confluencia de flujo y agotamiento de RSI en marcos temporales cortos. Ideal para mercados volátiles con mucho volumen.'
         },
         {
-            id: 'ob',
-            title: 'MODO ORDER BLOCK (Zonas Institucionales)',
-            icon: <Target className={styles.modeIcon} style={{ color: '#10B981' }} size={28} />,
-            description: 'Detecta huellas de dinero institucional analizando impulsos fuertes (+2%) seguidos de retrocesos a la zona de origen.',
-            indicators: ['4H Candles', 'Structural Impulses', 'Smart Money Concepts'],
-            logic: 'Identifica la última vela contraria antes de un disparo fuerte. Entra cuando el precio regresa a esa "caja" para un re-test de alta probabilidad.'
-        },
-        {
-            id: 'triple',
-            title: 'MODO TRIPLE LOUPE (Confluencia Temporal)',
-            icon: <Layers className={styles.modeIcon} size={28} />,
-            description: 'El modo de mayor seguridad. Busca que tres marcos temporales diferentes se pongan de acuerdo antes de autorizar una entrada.',
-            indicators: ['RSI (15m)', 'RSI (1h)', 'RSI (4h)'],
-            logic: 'Solo dispara una señal si el activo está en zona de sobreventa (RSI < 30) en las gráficas de 15 minutos, 1 hora y 4 horas simultáneamente.'
+            id: 'ai-brain',
+            title: 'AI BRAIN: REGIME & KELLY (Fase 5)',
+            icon: <Layers className={styles.modeIcon} style={{ color: '#FFA500' }} size={28} />,
+            description: 'El cerebro del sistema. Analiza el clima global del mercado y ajusta el comportamiento del bot de forma autónoma.',
+            indicators: ['ADX (Regime)', 'Kelly Criterion (Risk)', 'Streak Analysis'],
+            logic: 'Detecta si el mercado es TENDENCIAL o LATERAL. Ajusta el multiplicador de riesgo (Kelly) según tu racha de acierto para proteger el capital.'
         },
         {
             id: 'sniper',
             title: 'CVD SNIPER (Rastreo de Ballenas)',
-            icon: <Target className={styles.modeIcon} size={28} />,
-            description: 'Monitoreo en tiempo real vía WebSockets de transacciones individuales de gran capital (Ballenas) en el par BTCUSDT.',
-            indicators: ['CVD (Cumulative Volume Delta)', 'WebSocket Tick Data'],
-            logic: 'Rastrea el delta de volumen acumulado. Entra de forma agresiva cuando detecta una orden única o un clúster que supera el umbral de USDT configurado.'
+            icon: <Target className={styles.modeIcon} style={{ color: '#D946EF' }} size={28} />,
+            description: 'Monitoreo vía WebSockets de transacciones individuales de gran capital (Ballenas) en tiempo real.',
+            indicators: ['CVD (Cumulative Volume Delta)', 'Whale Cluster Detection'],
+            logic: 'Rastrea el delta de volumen acumulado. Dispara cuando detecta una orden única o un clúster que supera el umbral de ballenas configurado.'
         },
         {
-            id: 'scalp',
-            title: 'MODO SCALP (Alta Frecuencia)',
-            icon: <Zap className={styles.modeIcon} size={28} />,
-            description: 'Búsqueda de beneficios rápidos en micro-caídas del mercado. Ideal para periodos de alta volatilidad diaria.',
-            indicators: ['RSI (14)', 'Velas de 5 Minutos'],
-            logic: 'Detecta fatiga instantánea en marcos temporales cortos (5m). Entra en sobreventa máxima para capturar rebotes rápidos de poco porcentaje.'
+            id: 'atr-risk',
+            title: 'ATR PRECISION (Gestión de Riesgo)',
+            icon: <ShieldCheck className={styles.modeIcon} style={{ color: '#10B981' }} size={28} />,
+            description: 'Sistema de salidas dinámicas basadas en la volatilidad real del mercado (Average True Range). No usa stops fijos.',
+            indicators: ['ATR (14)', 'Dynamic TP/SL', 'Volatility Multipliers'],
+            logic: 'Calcula el Stop Loss y el Take Profit basándose en la "respiración" del activo. Evita que el ruido del mercado te saque de una buena posición.'
         }
     ];
 
@@ -118,7 +110,7 @@ const DocumentationModal = ({ isOpen, onClose }) => {
                         </div>
 
                         <footer style={{ textAlign: 'center', marginTop: '40px', color: '#4B5563', fontSize: '0.8rem' }}>
-                            BINANCE SENTINEL AI v4.0 • SISTEMA AUTÓNOMO DE ALTA PRECISIÓN • NFA (Not Financial Advice)
+                            BINANCE SENTINEL AI v5.0 • SISTEMA AUTÓNOMO DE ALTA PRECISIÓN • NFA (Not Financial Advice)
                         </footer>
                     </motion.div>
                 </motion.div>

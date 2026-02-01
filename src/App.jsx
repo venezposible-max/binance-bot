@@ -366,7 +366,7 @@ function App() {
               <>
                 <br />
                 <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block' }} className="text-glow-yellow">
-                  🔥 {stats.buy + stats.taken} Oportunidades Long Detectadas ({stats.taken} Tomadas)
+                  🔥 {stats.buy + stats.taken} Oportunidades Híbridas Detectadas ({stats.taken} Tomadas)
                 </span>
               </>
             )}
@@ -589,7 +589,7 @@ function App() {
               })}
             </div>
           ) : (
-            <div className={styles.emptyPortfolio}>El Cloud Sniper está patrullando... Esperando señal fuerte para entrar.</div>
+            <div className={styles.emptyPortfolio}>El Motor Elite Hybrid AI está patrullando... Esperando señal de alta probabilidad.</div>
           )
           }
         </section >
