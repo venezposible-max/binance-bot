@@ -124,15 +124,16 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                             <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>BID PRESSURE</span>
                             <div className={styles.indValue} style={{
                                 fontSize: '1.1rem', fontWeight: 'bold',
-                                color: parseFloat(indicators.flow.ratio) > 1.5 ? '#10B981' : parseFloat(indicators.flow.ratio) < 0.7 ? '#EF4444' : '#94A3B8'
+                                color: parseFloat(indicators.flow.ratio) > 1.5 ? '#10B981' : parseFloat(indicators.flow.ratio) < 0.7 ? '#EF4444' : '#94A3B8',
+                                transition: 'color 0.5s ease'
                             }}>
-                                {indicators.flow.ratio}x
+                                <NumberTicker value={parseFloat(indicators.flow.ratio)} decimals={2} suffix="x" />
                             </div>
                         </div>
                         <div className={styles.indicator}>
                             <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>BUY VOL %</span>
                             <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
-                                {indicators.flow.bidPercent}%
+                                <NumberTicker value={parseFloat(indicators.flow.bidPercent)} decimals={1} suffix="%" />
                             </div>
                         </div>
                     </>
