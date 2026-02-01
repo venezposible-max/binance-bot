@@ -271,13 +271,21 @@ export default async function handler(req, res) {
 
                     // Determine Target based on Trade's Strategy (with fallback)
                     const tradeStrategy = trade.strategy || strategy;
-                    const dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : PROFIT_TARGET;
+
+                    // NEW: Isolate User TP/SL to SWING ONLY
+                    let dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : 1.25;
+                    let slEnforced = false;
+
+                    if (tradeStrategy === 'SWING') {
+                        dynamicTarget = PROFIT_TARGET; // Use the one from wallet (custom)
+                        slEnforced = USE_STOP_LOSS;    // Only use SL if strategy is SWING
+                    }
 
                     // EXIT CONDITION (Take Profit)
                     const isTakeProfitHit = pnl >= dynamicTarget;
 
-                    // EXIT CONDITION (Stop Loss - User Feature)
-                    const isStopLossHit = USE_STOP_LOSS && (pnl <= -STOP_LOSS_TARGET);
+                    // EXIT CONDITION (Stop Loss - User Feature isolated to SWING)
+                    const isStopLossHit = slEnforced && (pnl <= -STOP_LOSS_TARGET);
 
                     if (isTakeProfitHit || isStopLossHit) {
                         const isLive = trade.mode === 'LIVE';

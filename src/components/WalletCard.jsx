@@ -328,45 +328,45 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 </div>
             </div>
 
-            {/* --- RISK MANAGEMENT CONTROLS --- */}
-            <div className={styles.riskPanel}>
-                <div className={styles.riskItem}>
-                    <div className={styles.label}>TAKE PROFIT (%)</div>
-                    <input
-                        type="number"
-                        step="0.1"
-                        className={styles.riskInput}
-                        value={wallet.takeProfit || 1.25}
-                        onChange={(e) => handleUpdateRiskValue('takeProfit', e.target.value)}
-                    />
-                </div>
-
-                <div className={styles.riskItem}>
-                    <div className={styles.label}>USE STOP LOSS?</div>
-                    <div
-                        className={`${styles.toggle} ${wallet.useStopLoss ? styles.toggleOn : ''}`}
-                        onClick={handleToggleSL}
-                    >
-                        <div className={styles.toggleThumb}></div>
-                    </div>
-                </div>
-
-                {wallet.useStopLoss && (
+            {/* --- RISK MANAGEMENT CONTROLS (SWING ONLY) --- */}
+            {currentStrategy === 'SWING' && (
+                <div className={styles.riskPanel}>
                     <div className={styles.riskItem}>
-                        <div className={styles.label}>STOP LOSS (%)</div>
+                        <div className={styles.label}>TAKE PROFIT (%)</div>
                         <input
                             type="number"
                             step="0.1"
                             className={styles.riskInput}
-                            style={{ color: '#EF4444' }}
-                            value={wallet.stopLoss || 3.0}
-                            onChange={(e) => handleUpdateRiskValue('stopLoss', e.target.value)}
+                            value={wallet.takeProfit || 1.25}
+                            onChange={(e) => handleUpdateRiskValue('takeProfit', e.target.value)}
                         />
                     </div>
-                )}
 
-                {/* --- SWING SPECIFIC MODE (Agresivo vs Conservador) --- */}
-                {currentStrategy === 'SWING' && (
+                    <div className={styles.riskItem}>
+                        <div className={styles.label}>USE STOP LOSS?</div>
+                        <div
+                            className={`${styles.toggle} ${wallet.useStopLoss ? styles.toggleOn : ''}`}
+                            onClick={handleToggleSL}
+                        >
+                            <div className={styles.toggleThumb}></div>
+                        </div>
+                    </div>
+
+                    {wallet.useStopLoss && (
+                        <div className={styles.riskItem}>
+                            <div className={styles.label}>STOP LOSS (%)</div>
+                            <input
+                                type="number"
+                                step="0.1"
+                                className={styles.riskInput}
+                                style={{ color: '#EF4444' }}
+                                value={wallet.stopLoss || 3.0}
+                                onChange={(e) => handleUpdateRiskValue('stopLoss', e.target.value)}
+                            />
+                        </div>
+                    )}
+
+                    {/* --- SWING SPECIFIC MODE (Agresivo vs Conservador) --- */}
                     <div className={styles.riskItem} style={{ gridColumn: '1 / -1' }}>
                         <div className={styles.label}>MODO SWING</div>
                         <div className={styles.modeSelector}>
@@ -386,8 +386,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                             </button>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             <div className={styles.configGroup}>
                 <div className={styles.statItem}>
