@@ -119,9 +119,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
 
     const getStrategy = () => {
+        // Favor local wallet state as it is more reactive to immediate clicks
+        if (wallet?.strategy) return wallet.strategy;
         if (activeStrategy) return activeStrategy;
-        if (!wallet) return 'HYBRID';
-        return wallet.strategy || 'HYBRID';
+        return 'HYBRID_SWING';
     };
 
     const currentStrategy = getStrategy();

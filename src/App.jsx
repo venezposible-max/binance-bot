@@ -66,7 +66,14 @@ function App() {
     fetch('/api/wallet/config')
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data) setWalletConfig(data);
+        if (data) {
+          setWalletConfig(data);
+          // SYNC: Ensure frontend activeStrategy matches database on startup
+          if (data.strategy && data.strategy !== activeStrategy) {
+            setActiveStrategy(data.strategy);
+            localStorage.setItem('sentinel_strategy', data.strategy);
+          }
+        }
       })
       .catch(err => console.error('Failed to load initial config:', err));
   }, []);
