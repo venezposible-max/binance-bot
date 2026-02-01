@@ -209,13 +209,20 @@ export const analyzeTriple = (k4h, k1h, k15m) => {
     const lastPrice = c4h[c4h.length - 1];
     const isStrongBuy = (r4h < 30 && r1h < 30 && r15m < 30);
 
+    // EMA for visual trend (using 4h)
+    const emaValues = EMA.calculate({ period: 200, values: c4h }) || [];
+    const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
+
     return {
         price: lastPrice,
+        chartData: {
+            ema: emaValues.slice(-50)
+        },
         indicators: {
             rsi: r4h.toFixed(1),
             rsi1h: r1h.toFixed(1),
             rsi15m: r15m.toFixed(1),
-            ema: '---'
+            ema: currentEMA ? currentEMA.toFixed(1) : '---'
         },
         prediction: {
             signal: isStrongBuy ? 'STRONG_BUY' : 'NEUTRAL',

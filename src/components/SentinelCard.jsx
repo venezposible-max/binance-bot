@@ -203,10 +203,11 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 <CVDChart />
             ) : (
                 <ProfessionalChart
-                    symbol={symbol}
-                    interval={indicators.interval || '4h'}
-                    theme="dark"
-                />)}
+                    candles={data.candles}
+                    emaData={data.chartData?.ema}
+                    color={color}
+                />
+            )}
 
         </motion.div>
     );
