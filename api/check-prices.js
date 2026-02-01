@@ -598,7 +598,7 @@ export default async function handler(req, res) {
         res.status(200).json({
             status: 'Process Finished',
             region: REGION, // Return current region for debug
-            strategy: strategy,
+            activeStrategies: activeStrategies,
             activeCount: newActiveTrades.length,
             newAlerts: alertsSent
         });
