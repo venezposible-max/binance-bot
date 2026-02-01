@@ -269,6 +269,10 @@ export default async function handler(req, res) {
                         pnl = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
                     }
 
+                    // Determine Target based on Trade's Strategy (with fallback)
+                    const tradeStrategy = trade.strategy || strategy;
+                    const dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : PROFIT_TARGET;
+
                     // EXIT CONDITION (Take Profit)
                     const isTakeProfitHit = pnl >= dynamicTarget;
 
