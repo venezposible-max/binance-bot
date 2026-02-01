@@ -289,6 +289,20 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                             🎯 SNIPER {(wallet.strategyConfig || {})['SNIPER']?.active ? '✓' : '○'}
                         </button>
                     </div>
+
+                    {/* --- AI BRAIN INDICATOR (Phase 5) --- */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '2px solid rgba(255,165,0,0.2)', paddingLeft: '8px', marginLeft: '8px' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#FFA500', opacity: 0.8, marginBottom: '2px' }}>🧠 AI BRAIN</div>
+                        <div style={{
+                            fontSize: '0.65rem', color: wallet.aiRegime?.color || '#FFA500', fontWeight: 'bold',
+                            display: 'flex', alignItems: 'center', gap: '4px'
+                        }}>
+                            {wallet.aiRegime?.label || 'ANALIZANDO...'}
+                            <span style={{ fontSize: '0.6rem', opacity: 0.7, fontWeight: 'normal' }}>
+                                ({wallet.aiRegime?.riskMultiplier || 1.0}x Risk)
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

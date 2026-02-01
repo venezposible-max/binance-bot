@@ -1,4 +1,4 @@
-import { RSI, EMA, BollingerBands, ATR } from 'technicalindicators';
+import { RSI, EMA, BollingerBands, ATR, ADX } from 'technicalindicators';
 
 /**
  * Analyzes market data to generate a signal
@@ -432,4 +432,66 @@ export const analyzeHybrid = (depth, candles, config = {}) => {
             intensity
         }
     };
+};
+
+/**
+ * PHASE 5: AI REGIME DETECTION
+ * Identifies if the market is Trending or Ranging using ADX.
+ * @param {Array} candles - Price history
+ */
+export const detectRegime = (candles) => {
+    if (!candles || candles.length < 30) return { regime: 'UNKNOWN', adx: 0 };
+
+    const highs = candles.map(c => c.high || parseFloat(c[2]));
+    const lows = candles.map(c => c.low || parseFloat(c[3]));
+    const closes = candles.map(c => c.close || parseFloat(c[4]));
+
+    const adxValues = ADX.calculate({
+        high: highs,
+        low: lows,
+        close: closes,
+        period: 14
+    });
+
+    const currentADX = adxValues.length > 0 ? adxValues[adxValues.length - 1].adx : 0;
+
+    // ADX Logic: > 25 = Strong Trend, < 20 = Ranging/Weak Trend
+    let regime = 'RANGING';
+    let label = 'LATERAL / RANGO ⚖️';
+    if (currentADX > 25) {
+        regime = 'TRENDING';
+        label = 'TENDENCIAL 📈';
+    } else if (currentADX > 20) {
+        label = 'INICIO TENDENCIA ↗️';
+    }
+
+    return {
+        regime,
+        adx: currentADX,
+        label,
+        color: regime === 'TRENDING' ? '#00D9FF' : '#94A3B8'
+    };
+};
+
+/**
+ * PHASE 5: AI KELLY CRITERION (Dynamic Risk)
+ * Suggests a risk multiplier based on recent win rate from history.
+ * @param {Array} history - Trading history
+ */
+export const calculateKelly = (history) => {
+    if (!history || history.length < 5) return 1.0; // Default multiplier
+
+    const recent = history.slice(-10); // Look at last 10 trades
+    const wins = recent.filter(t => t.pnl > 0).length;
+    const winRate = wins / recent.length;
+
+    // Simplified Kelly: Risk more when win rate is high, less when low.
+    // We cap the multiplier between 0.5x and 1.5x for safety.
+    let multiplier = 1.0;
+    if (winRate > 0.6) multiplier = 1.3; // Hot streak
+    if (winRate > 0.8) multiplier = 1.5; // Burning
+    if (winRate < 0.4) multiplier = 0.7; // Cold streak
+    if (winRate < 0.2) multiplier = 0.5; // Defensive
+
+    return multiplier;
 };

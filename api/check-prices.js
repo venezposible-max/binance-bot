@@ -1,5 +1,5 @@
-import axios from 'axios';
 import { RSI, EMA, BollingerBands } from 'technicalindicators';
+import * as analysis from '../src/utils/analysis.js';
 import redis from '../src/utils/redisClient.js';
 import binanceClient from './utils/binance-client.js'; // Import Unified Client
 import { v4 as uuidv4 } from 'uuid';
@@ -184,6 +184,27 @@ export default async function handler(req, res) {
             console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
         }
 
+        // --- PHASE 5: AI REGIME DETECTION (Global Market Climate) ---
+        // Using BTCUSDT as a global proxy for market regime
+        let marketRegime = { regime: 'RANGING', label: 'LATERAL ⚖️', multiplier: 1.0 };
+        try {
+            const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
+            const { data: btcKlines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=50`, { timeout: 3000 });
+            const processedKlines = btcKlines.map(c => ({
+                open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5])
+            }));
+            const regimeData = analysis.detectRegime(processedKlines);
+            const riskMultiplier = analysis.calculateKelly(winHistory);
+
+            marketRegime = { ...regimeData, riskMultiplier };
+            console.log(`🧠 AI CLIMATE: ${marketRegime.label} | ADX: ${marketRegime.adx?.toFixed(1)} | Risk Mult: ${riskMultiplier}x`);
+
+            // Sync regime to wallet for UI visibility
+            wallet.aiRegime = marketRegime;
+        } catch (e) {
+            console.warn('AI Regime detection failed, using defaults:', e.message);
+        }
+
         // --- 🧪 MULTI-STRATEGY PARALLEL EXECUTION ---
         // --- 🧪 ELITE HYBRID ENGINE ---
         // Priority Order: SNIPER (Whale Detection) -> HYBRID (Confluence Master)
@@ -340,7 +361,7 @@ export default async function handler(req, res) {
                     // If OB has a price-based TP, use that. Otherwise use % based target.
                     const isTakeProfitHit = customTakeProfitPrice
                         ? (exitPrice >= customTakeProfitPrice)
-                        : (pnl >= (dynamicTarget + 0.2));
+                        : (pnl >= (dynamicTarget + (marketRegime.regime === 'TRENDING' ? 0.5 : 0.2)));
 
                     // EXIT CONDITION (Stop Loss)
                     // If OB has a price-based SL, use that. Otherwise use % based target for SWING.
@@ -571,7 +592,8 @@ export default async function handler(req, res) {
                         // 1. BALANCE / CAPITAL CHECK
                         // In Sim, use currentBalance. In Live, use allocatedCapital limit.
                         const capitalBase = isLive ? (wallet.allocatedCapital || 500) : wallet.currentBalance;
-                        const risk = wallet.riskPercentage || 10;
+                        const baseRisk = wallet.riskPercentage || 10;
+                        const risk = baseRisk * (marketRegime.riskMultiplier || 1.0);
                         let investedAmount = capitalBase * (risk / 100);
 
                         // Safety: Min Order Size (Binance usually 5-10 USDT)
