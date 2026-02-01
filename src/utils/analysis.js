@@ -259,11 +259,13 @@ export const analyzeTriple = (k4h, k1h, k15m) => {
 };
 
 /**
- * STRATEGY: ORDER BLOCK (Institutional Zones)
- * Detects impulses and the preceding opposite candle (OB).
- * @param {Array} candles - Price history candles
+ * STRATEGY: ORDER BLOCKS (OB)
+ * Detects institutional zones and reversals.
+ * @param {Array} candles
+ * @param {Object} config - { mode: 'SWING' | 'BLITZ' }
  */
-export const analyzeOB = (candles) => {
+export const analyzeOB = (candles, config = {}) => {
+    const isBlitz = config.mode === 'BLITZ';
     if (!candles || candles.length < 10) {
         return {
             price: 0,
@@ -309,11 +311,13 @@ export const analyzeOB = (candles) => {
         const prevHigh = parseFloat(prevCandle.high || prevCandle[2]);
         const prevLow = parseFloat(prevCandle.low || prevCandle[3]);
 
-        // 1. Check for Bullish Impulse (current candle closed > prev open by 2%+)
+        // 1. Check for Bullish Impulse (current candle closed > prev open)
         const impulse = ((close - prevOpen) / prevOpen) * 100;
         const isBearish = prevClose < prevOpen;
 
-        if (impulse >= 2.0 && isBearish) {
+        const impulseThreshold = isBlitz ? 0.8 : 2.0; // TURBO: Lower impulse for Blitz
+
+        if (impulse >= impulseThreshold && isBearish) {
             // Found a bullish OB Zone: prevLow to prevHigh
             const obMid = (prevLow + prevHigh) / 2; // 50% EQUILIBRIUM
 
@@ -391,21 +395,27 @@ export const analyzeHybrid = (depth, candles, config = {}) => {
     const buyPressure = parseFloat(flow.ratio);
 
     // 3. Confluence Logic
-    // LONG: Price in OB Zone + High Buy Pressure + Bullish Trend
+    const isBlitz = config.mode === 'BLITZ';
+
+    // ELITE FILTER: Relax EMA 200 for Blitz (allow mean reversion)
+    const isMacroBullish = isBlitz ? true : (lastPrice > (obResult.ema || 0));
     const isBullishOB = obResult.prediction.signal === 'BUY' || obResult.prediction.signal === 'BULLISH';
-    const isBullishFlow = buyPressure >= 1.5;
+
+    // TURBO: Lower flow requirement for Blitz
+    const flowThreshold = isBlitz ? 1.2 : 1.5;
+    const isBullishFlow = buyPressure >= flowThreshold;
 
     let signal = 'NEUTRAL';
     let label = 'BUSCANDO CONFLUENCIA';
     let color = '#94A3B8';
     let intensity = 0;
 
-    if (isBullishOB && isBullishFlow) {
+    if (isBullishOB && isBullishFlow && isMacroBullish) {
         signal = 'STRONG_BUY';
-        label = `🎯 HYBRID CONFLUENCE (${flow.bidPercent}%)`;
-        color = '#00D9FF'; // Neon Cyan
+        label = `🎯 HYBRID ${isBlitz ? 'BLITZ' : 'CONFLUENCE'} (${flow.bidPercent}%)`;
+        color = isBlitz ? '#F59E0B' : '#00D9FF';
         intensity = 100;
-    } else if (isBullishOB) {
+    } else if (isBullishOB && isMacroBullish) {
         label = 'OB ZONA (ESPERANDO FLOW)';
         color = '#10B981';
         intensity = 40;

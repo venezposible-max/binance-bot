@@ -18,8 +18,8 @@ const DocumentationModal = ({ isOpen, onClose }) => {
             title: 'HYBRID ENGINE: BLITZ (Alta Frecuencia)',
             icon: <Zap className={styles.modeIcon} style={{ color: '#F59E0B' }} size={28} />,
             description: 'Versión ultrasensible del motor Híbrido. Diseñado para detectar micro-desequilibrios en el libro de órdenes y atrapar rebotes rápidos en 1m.',
-            indicators: ['Order Book Skew', 'Momentum de 1m', 'ATR Scalping'],
-            logic: 'Busca confluencia de flujo y agotamiento de RSI en marcos temporales cortos. Ideal para mercados volátiles con mucho volumen.'
+            indicators: ['Order Book Skew', 'Momentum de 1m', 'Turbo Impulse (1.0%)'],
+            logic: 'Usa umbrales reducidos (Impulso 1.0% y Flow 1.2x) para disparar con mayor frecuencia. Ideal para capturar micro-tendencias.'
         },
         {
             id: 'ai-brain',
