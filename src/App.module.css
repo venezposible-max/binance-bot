@@ -21,19 +21,41 @@
 
 .logo {
     font-family: var(--font-main);
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 800;
-    color: var(--color-binance-yellow);
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    text-shadow: var(--glow-gold);
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
 }
 
-.logo span {
+.logo:hover {
+    transform: scale(1.02);
+}
+
+.brandNameBinance {
+    background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.brandNameSentinel {
     color: #fff;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+.brandIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    filter: drop-shadow(0 0 8px var(--color-binance-yellow));
+    margin-left: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .portfolioSection {

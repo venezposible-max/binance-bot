@@ -270,7 +270,9 @@ function App() {
       {/* <ParticlesBackground /> */}
       <header className={styles.header}>
         <div className={styles.logo}>
-          BINANCE <span>SENTINEL</span>
+          <span className={styles.brandNameBinance}>BINANCE</span>
+          <span className={styles.brandNameSentinel}>SENTINEL</span>
+          <img src="/logo-192.png" className={styles.brandIcon} alt="Sentinel Icon" />
         </div>
         <nav style={{ display: 'flex', gap: '20px', color: '#EAECEF', fontWeight: '600', fontSize: '0.9rem' }}>
           {/* TRADING MODE BADGE */}
