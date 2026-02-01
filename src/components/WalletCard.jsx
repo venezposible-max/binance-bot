@@ -163,7 +163,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
 
     const handleCycleStrategy = async () => {
         if (!wallet) return;
-        const strategies = ['SWING', 'TRIPLE', 'SCALP', 'FLOW'];
+        const strategies = ['SWING', 'TRIPLE', 'SCALP', 'FLOW', 'SNIPER'];
         const currentIndex = strategies.indexOf(currentStrategy);
         const nextStrategy = strategies[(currentIndex + 1) % strategies.length];
 
@@ -180,17 +180,20 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData }, ref
                 })
             });
 
+            // Notify Parent immediately to switch views
             if (onConfigChange) onConfigChange({ ...wallet, strategy: nextStrategy, multiFrameMode: nextStrategy === 'TRIPLE' });
-        } catch (error) {
-            console.error('Error cycling strategy:', error);
+        } catch (e) {
+            console.error('Failed to cycle strategy', e);
         }
     };
 
     const getStrategyColor = (s) => {
-        if (s === 'TRIPLE') return '#8B5CF6'; // Purple
-        if (s === 'SCALP') return '#F59E0B'; // Orange
+        if (s === 'SWING') return '#3B82F6'; // Blue
+        if (s === 'TRIPLE') return '#8B5CF6'; // Violet
+        if (s === 'SCALP') return '#F59E0B'; // Amber
         if (s === 'FLOW') return '#00D9FF'; // Neon Blue
-        return '#10B981'; // Teal (Default/Swing)
+        if (s === 'SNIPER') return '#D946EF'; // Neon Magenta
+        return '#666';
     };
 
     const handleToggleBot = async () => {

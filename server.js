@@ -59,7 +59,15 @@ app.post('/api/manual-trade', vercelAdapter(manualTrade));
 app.get('/api/get-status', vercelAdapter(getStatus));
 app.get('/api/wallet/config', vercelAdapter(walletConfig));
 app.post('/api/wallet/config', vercelAdapter(walletConfig));
+app.get('/api/wallet/config', vercelAdapter(walletConfig));
+app.post('/api/wallet/config', vercelAdapter(walletConfig));
 app.get('/api/wallet/balance', vercelAdapter(walletBalance)); // New Route
+
+// CVD SNIPER SERVICE (Singleton)
+import cvdSniper from './api/stream/cvd-worker.js';
+app.get('/api/cvd', (req, res) => {
+    res.json(cvdSniper.getData());
+});
 
 
 // ... (existing code)
