@@ -230,8 +230,11 @@ class CVDSniper {
                 triggerDelta: triggerDelta, // Store for verification
                 size: positionSize,
                 investedAmount: investedAmount,
-                targetProfit: entryPrice * 1.01, // TP: 1%
-                stopLoss: entryPrice * 0.995, // SL: 0.5%
+                // FEE COMPENSATION: Add 0.2% buffer (Entry+Exit fees)
+                // Net Target: 1.0% -> Gross: 1.2%
+                // SL Width: 0.5% -> Gross: 0.7% (User Request "Equal")
+                targetProfit: entryPrice * 1.012,
+                stopLoss: entryPrice * 0.993,
                 timestamp: Date.now(),
                 mode: isLive ? 'LIVE' : 'PAPER'
             };
@@ -284,11 +287,11 @@ class CVDSniper {
 
             // Check TP
             if (currentPrice >= trade.targetProfit) {
-                exitReason = 'TP (+1.0%)';
+                exitReason = 'TP (+1.0% Net)';
             }
             // Check SL
             else if (currentPrice <= trade.stopLoss) {
-                exitReason = 'SL (-0.5%)';
+                exitReason = 'SL (-0.7% Gross)';
             }
 
             if (exitReason) {
