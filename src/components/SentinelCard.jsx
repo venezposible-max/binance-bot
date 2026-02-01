@@ -28,19 +28,24 @@ const NumberTicker = ({ value, decimals = 2, prefix = '', suffix = '', style }) 
 };
 
 const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
-    if (loading || !data) {
+    // ONLY show skeleton if we have NO data at all
+    if (!data) {
         return (
             <motion.div
                 className={`${styles.card} ${styles.loading}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
             >
-                Loading...
+                ⏳ Cargando Radar...
             </motion.div>
         );
     }
 
     const { price, prediction, indicators } = data;
+
+    // Optimization: Subtle opacity during background refresh
+    const cardOpacity = loading ? 0.7 : 1;
+
 
     // Override SELL to NEUTRAL for Long-Only visual clarity
     let { signal, label, color, intensity } = prediction;
@@ -85,7 +90,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
     return (
         <motion.div
             className={`${styles.card} ${isSniper ? styles.sniperPulse : ''}`}
-            style={glowStyle}
+            style={{ ...glowStyle, opacity: cardOpacity }}
             variants={cardVariants}
             initial="hidden"
             animate="visible"

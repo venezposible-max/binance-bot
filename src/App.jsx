@@ -636,9 +636,9 @@ function App() {
 
         {/* --- MARKET ANALYSIS GRID --- */}
         {activeStrategy !== 'SNIPER' && (
-          <section className={styles.analysisSection}>
+          <section style={{ width: '100%', marginTop: '20px' }}>
             <h2 className={styles.sectionTitle}>📊 ANÁLISIS DE MERCADO (TOP 10 VOLUMEN)</h2>
-            <div className={styles.cardGrid}>
+            <MarketGrid>
               {Object.keys(marketData).map(symbol => (
                 <SentinelCard
                   key={symbol}
@@ -648,7 +648,7 @@ function App() {
                   onSimulate={handleSimulate}
                 />
               ))}
-            </div>
+            </MarketGrid>
           </section>
         )}
 
