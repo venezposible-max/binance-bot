@@ -248,3 +248,94 @@ export const analyzeTriple = (k4h, k1h, k15m) => {
     };
 };
 
+/**
+ * STRATEGY: ORDER BLOCK (Institutional Zones)
+ * Detects impulses and the preceding opposite candle (OB).
+ * @param {Array} candles - Price history candles
+ */
+export const analyzeOB = (candles) => {
+    if (!candles || candles.length < 10) {
+        return {
+            price: 0,
+            prediction: { signal: 'NEUTRAL', label: 'CARGANDO OB' }
+        };
+    }
+
+    const lastCandle = candles[candles.length - 1];
+    const lastPrice = lastCandle.close || parseFloat(lastCandle[4]);
+
+    let obZone = null;
+    let signal = 'NEUTRAL';
+    let label = 'BUSCANDO ZONA';
+    let color = '#94A3B8';
+    let intensity = 0;
+
+    // Scan backwards for a bullish Order Block (Impulse + Bearish Candle)
+    // We look at the last 30 candles to find the most recent valid zone
+    for (let i = candles.length - 2; i > candles.length - 30 && i > 0; i--) {
+        const candle = candles[i];
+        const prevCandle = candles[i - 1];
+
+        const open = parseFloat(candle.open || candle[1]);
+        const close = parseFloat(candle.close || candle[4]);
+        const low = parseFloat(candle.low || candle[3]);
+        const high = parseFloat(candle.high || candle[2]);
+
+        const prevOpen = parseFloat(prevCandle.open || prevCandle[1]);
+        const prevClose = parseFloat(prevCandle.close || prevCandle[4]);
+        const prevHigh = parseFloat(prevCandle.high || prevCandle[2]);
+        const prevLow = parseFloat(prevCandle.low || prevCandle[3]);
+
+        // 1. Check for Bullish Impulse (current candle closed > prev open by 2%+)
+        const impulse = ((close - prevOpen) / prevOpen) * 100;
+        const isBearish = prevClose < prevOpen;
+
+        if (impulse >= 2.0 && isBearish) {
+            // Found a bullish OB Zone: prevLow to prevHigh
+            obZone = {
+                low: prevLow,
+                high: prevHigh,
+                impulse: impulse,
+                tp: lastPrice * (1 + (impulse / 100)),
+                sl: prevLow * 0.997 // 0.3% buffer
+            };
+
+            // 2. Check if current price is interacting with this zone
+            if (lastPrice >= obZone.low && lastPrice <= obZone.high) {
+                signal = 'BUY';
+                label = `📦 OB ZONE (Imp: +${impulse.toFixed(1)}%)`;
+                color = '#10B981';
+                intensity = 80;
+            } else if (lastPrice > obZone.high) {
+                signal = 'BULLISH';
+                label = 'OB SUPERADO (RETEST?)';
+                color = '#34D399';
+                intensity = 40;
+            }
+            break; // Stop at first (most recent) OB found
+        }
+    }
+
+    // EMA for visual trend (using 4h)
+    const closes = candles.map(c => c.close || parseFloat(c[4]));
+    const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
+    const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
+
+    return {
+        price: lastPrice,
+        obZone,
+        chartData: {
+            ema: emaValues.slice(-50)
+        },
+        indicators: {
+            rsi: '---', // OB doesn't strictly use RSI
+            ema: currentEMA ? currentEMA.toFixed(1) : '---'
+        },
+        prediction: {
+            signal,
+            label,
+            color,
+            intensity
+        }
+    };
+};

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
 import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
-import { analyzePair, analyzeFlow, analyzeTriple } from './utils/analysis';
+import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
@@ -165,6 +165,9 @@ function App() {
               fetchCandles(symbol, '15m', 100)
             ]);
             analysis = analyzeTriple(candles, k1h, k15m);
+          } else if (activeStrategy === 'OB') {
+            // 📦 OB MODE: Institutional Zones
+            analysis = analyzeOB(candles);
           } else {
             // 📊 STANDARD MODE: Technicals (RSI/EMA/BB)
             analysis = analyzePair(candles, walletConfig);

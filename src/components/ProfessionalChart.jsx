@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceArea, ReferenceLine } from 'recharts';
 
-const ProfessionalChart = ({ candles, emaData, color }) => {
+const ProfessionalChart = ({ candles, emaData, color, obZone }) => {
     if (!candles || candles.length === 0) return null;
 
     // MEMOIZED: Transform candle data for recharts
@@ -31,11 +31,14 @@ const ProfessionalChart = ({ candles, emaData, color }) => {
 
     const { minPrice, maxPrice, padding } = useMemo(() => {
         const prices = chartData.flatMap(d => [d.high, d.low]);
+        if (obZone) {
+            prices.push(obZone.sl, obZone.tp);
+        }
         const min = Math.min(...prices);
         const max = Math.max(...prices);
         const pad = (max - min) * 0.1;
         return { minPrice: min, maxPrice: max, padding: pad };
-    }, [chartData]);
+    }, [chartData, obZone]);
 
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
@@ -86,6 +89,28 @@ const ProfessionalChart = ({ candles, emaData, color }) => {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.03)" vertical={false} />
                     <XAxis dataKey="index" hide />
                     <YAxis domain={[minPrice - padding, maxPrice + padding]} hide />
+
+                    {/* OB ZONE VISUALIZATION */}
+                    {obZone && (
+                        <ReferenceArea
+                            y1={obZone.low}
+                            y2={obZone.high}
+                            fill="#10B981"
+                            fillOpacity={0.15}
+                            stroke="#10B981"
+                            strokeOpacity={0.3}
+                            strokeDasharray="3 3"
+                        />
+                    )}
+
+                    {/* DYNAMIC TARGETS */}
+                    {obZone && (
+                        <ReferenceLine y={obZone.tp} stroke="#10B981" strokeWidth={1} strokeDasharray="5 5" label={{ value: 'TP', position: 'right', fill: '#10B981', fontSize: 10 }} />
+                    )}
+                    {obZone && (
+                        <ReferenceLine y={obZone.sl} stroke="#EF4444" strokeWidth={1} strokeDasharray="5 5" label={{ value: 'SL', position: 'right', fill: '#EF4444', fontSize: 10 }} />
+                    )}
+
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255, 255, 255, 0.1)' }} />
                     <Bar dataKey="wick" shape={<CustomWick />} isAnimationActive={false} />
                     <Bar dataKey="body" shape={<CustomCandleBody />} barSize={12} isAnimationActive={false} />
