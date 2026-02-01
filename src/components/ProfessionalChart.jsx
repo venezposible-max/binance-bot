@@ -164,16 +164,15 @@ const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice, forecas
                     {forecast && forecast.points && (
                         <>
                             {/* 2 SD (Outer) - Dotted */}
-                            <Line data={forecast.points} dataKey="upper2" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="1 4" dot={false} isAnimationActive={false} strokeOpacity={0.4} />
-                            <Line data={forecast.points} dataKey="lower2" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="1 4" dot={false} isAnimationActive={false} strokeOpacity={0.4} />
+                            <Line dataKey="upper2" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="1 4" dot={false} isAnimationActive={false} strokeOpacity={0.4} />
+                            <Line dataKey="lower2" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="1 4" dot={false} isAnimationActive={false} strokeOpacity={0.4} />
 
                             {/* 1 SD (Inner) - Dashed */}
-                            <Line data={forecast.points} dataKey="upper1" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} strokeOpacity={0.7} />
-                            <Line data={forecast.points} dataKey="lower1" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} strokeOpacity={0.7} />
+                            <Line dataKey="upper1" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} strokeOpacity={0.7} />
+                            <Line dataKey="lower1" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} strokeOpacity={0.7} />
 
                             {/* Main Projection */}
                             <Line
-                                data={forecast.points}
                                 dataKey="price"
                                 stroke="#8B5CF6"
                                 strokeWidth={2}
