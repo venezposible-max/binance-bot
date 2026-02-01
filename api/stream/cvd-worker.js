@@ -11,6 +11,8 @@ class CVDSniper {
         this.maxHistory = 1000; // Keep last 1000 ticks for graph
         this.lastPrice = 0;
         this.activeTrades = []; // Track active Sniper positions
+        this.lastTradeTime = 0; // Cooldown tracker
+        this.COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes between trades
 
         // Strategy Parameters
         this.THRESHOLD = 150000; // 150k USDT Delta
@@ -120,6 +122,14 @@ class CVDSniper {
                 return;
             }
 
+            // Check cooldown (prevent reopening immediately after close)
+            const now = Date.now();
+            if (now - this.lastTradeTime < this.COOLDOWN_MS) {
+                const remaining = Math.ceil((this.COOLDOWN_MS - (now - this.lastTradeTime)) / 1000);
+                console.log(`⏳ Sniper: Cooldown active (${remaining}s remaining)`);
+                return;
+            }
+
             // Check available capital
             const availableBalance = config.currentBalance || 1000;
             if (availableBalance < 10) {
@@ -180,6 +190,9 @@ class CVDSniper {
             config.currentBalance -= (investedAmount + fee);
             console.log(`💰 AFTER: Balance = $${config.currentBalance.toFixed(2)}`);
             await redis.set('sentinel_wallet_config', JSON.stringify(config));
+
+            // Update cooldown tracker
+            this.lastTradeTime = Date.now();
 
             console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | Invested: $${investedAmount.toFixed(2)} (${riskPercentage}%) | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
 
