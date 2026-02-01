@@ -176,7 +176,9 @@ class CVDSniper {
             await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
 
             // Update balance (deduct invested amount + fee)
+            console.log(`💰 BEFORE: Balance = $${config.currentBalance.toFixed(2)} | Deducting: $${(investedAmount + fee).toFixed(2)}`);
             config.currentBalance -= (investedAmount + fee);
+            console.log(`💰 AFTER: Balance = $${config.currentBalance.toFixed(2)}`);
             await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
             console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | Invested: $${investedAmount.toFixed(2)} (${riskPercentage}%) | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
