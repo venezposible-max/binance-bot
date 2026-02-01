@@ -239,10 +239,14 @@ class CVDSniper {
 
             if (exitReason) {
                 // Execute exit
-                const profit = (exitPrice - trade.entryPrice) * trade.size;
-                const fee = exitPrice * trade.size * 0.001;
-                const netProfit = profit - fee;
-                const pnlPercent = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                const grossProfit = (exitPrice - trade.entryPrice) * trade.size;
+                const exitFee = exitPrice * trade.size * 0.001;
+                const entryFee = trade.investedAmount * 0.001; // Re-calculate entry fee paid
+                const totalFees = exitFee + entryFee;
+                const netProfit = grossProfit - exitFee; // This is the amount relative to investedAmount to add back to balance
+                const totalCycleProfit = grossProfit - totalFees; // Actual PnL for history
+
+                const pnlPercent = (totalCycleProfit / trade.investedAmount) * 100;
 
                 // Update balance (return invested amount + net profit/loss)
                 const configStr = await redis.get('sentinel_wallet_config');
@@ -263,7 +267,7 @@ class CVDSniper {
                     exitPrice: exitPrice,
                     investedAmount: trade.investedAmount || 0,
                     pnl: pnlPercent,
-                    netProfit: netProfit,
+                    netProfit: totalCycleProfit, // Correct: Profit minus ALL fees
                     timestamp: trade.timestamp,
                     closeTime: Date.now(),
                     reason: exitReason
