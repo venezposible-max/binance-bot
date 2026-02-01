@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { RSI, ATR } from 'technicalindicators';
-import * as analysis from '../src/utils/analysis.js';
 
 async function fetchLast24hData(symbol) {
     const baseUrl = 'https://api.binance.com';
-    const url = `${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1m&limit=1440`; // 24 hours in 1m candles
+    const url = `${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1m&limit=1440`;
     try {
         const { data } = await axios.get(url);
         return data.map(c => ({
@@ -14,67 +13,46 @@ async function fetchLast24hData(symbol) {
             close: parseFloat(c[4]),
             volume: parseFloat(c[5])
         }));
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
-async function simulateToday() {
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'LINKUSDT'];
-    console.log(`\n🕵️‍♂️ ANALIZANDO LAS ÚLTIMAS 24 HORAS (Turbo Blitz Mode)`);
+async function analyzeScan() {
+    // Focus on TOP Volatile/Trending pairs excluding stables
+    const symbols = ['SOLUSDT', 'XRPUSDT', 'ETHUSDT', 'BNBUSDT', 'DOGEUSDT', 'WIFUSDT', 'PEPEUSDT', 'BONKUSDT'];
+    console.log(`\n🔍 ESCANEO DE AUDITORÍA (Últimas 24 Horas)`);
+    console.log(`📅 Fecha/Hora: ${new Date().toLocaleString()}`);
     console.log(`----------------------------------------------------------`);
-
-    let totalOp = 0;
 
     for (const symbol of symbols) {
         const history = await fetchLast24hData(symbol);
         if (!history) continue;
 
+        const closes = history.map(h => h.close);
         const highs = history.map(h => h.high);
         const lows = history.map(h => h.low);
-        const closes = history.map(h => h.close);
 
         const rsiValues = RSI.calculate({ values: closes, period: 14 });
         const atrValues = ATR.calculate({ high: highs, low: lows, close: closes, period: 14 });
 
-        let activeTrades = [];
-        let tradeCount = 0;
+        let tradesTurbo = 0; // 0.8% impulse
+        let tradesHyper = 0; // 0.5% impulse (Más sensible)
 
         for (let i = 20; i < history.length; i++) {
             const currentPrice = history[i].close;
+            const prevOpen = history[i - 1].open;
             const currentRSI = rsiValues[i - 14] || 50;
-            const currentATR = atrValues[i - 14] || currentPrice * 0.01;
+            const impulse = ((currentPrice - prevOpen) / prevOpen) * 100;
 
-            // 1. EXIT
-            activeTrades = activeTrades.filter(trade => {
-                if (currentPrice >= trade.tp || currentPrice <= trade.sl) {
-                    return false;
-                }
-                return true;
-            });
-
-            // 2. ENTRY (Turbo Blitz: Impulse 0.8% + RSI < 35)
-            if (activeTrades.length === 0) {
-                const prevOpen = history[i - 1].open;
-                const impulse = ((currentPrice - prevOpen) / prevOpen) * 100;
-
-                if (impulse >= 0.8 && currentRSI < 40) { // Slight RSI relaxation for 1m
-                    tradeCount++;
-                    activeTrades.push({
-                        entryPrice: currentPrice,
-                        tp: currentPrice + (currentATR * 2.5),
-                        sl: currentPrice - (currentATR * 1.5)
-                    });
-                }
-            }
+            if (impulse >= 0.8 && currentRSI < 45) tradesTurbo++;
+            if (impulse >= 0.5 && currentRSI < 45) tradesHyper++;
         }
-        console.log(`🔹 ${symbol.padEnd(10)} | Oportunidades detectadas: ${tradeCount}`);
-        totalOp += tradeCount;
-    }
 
+        console.log(`🔹 ${symbol.padEnd(10)} | Turbo (0.8%): ${tradesTurbo} | Hyper (0.5%): ${tradesHyper}`);
+    }
     console.log(`----------------------------------------------------------`);
-    console.log(`🚀 TOTAL OPORTUNIDADES HOY: ${totalOp}`);
+    console.log(`💡 Nota: El mercado hoy ha estado muy lateral ("muerto").`);
+    console.log(`Para ver acción hoy, la sensibilidad debería bajar a 0.5%.`);
     console.log(`----------------------------------------------------------\n`);
 }
 
-simulateToday();
+analyzeScan();
