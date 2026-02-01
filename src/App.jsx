@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
 import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
-import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB, analyzeHybrid } from './utils/analysis';
+import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB, analyzeHybrid, getStrategyRecommendation } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
@@ -29,6 +29,25 @@ function App() {
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
+
+  // --- MARKET RECOMMENDATION STATE ---
+  const [recommendation, setRecommendation] = useState(null);
+
+  const fetchRecommendation = async () => {
+    try {
+      const candles = await fetchCandles('BTCUSDT', '1h', 100);
+      const rec = getStrategyRecommendation(candles);
+      setRecommendation(rec);
+    } catch (e) {
+      console.warn('Recommendation fetch failed:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecommendation();
+    const interval = setInterval(fetchRecommendation, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   // --- BINANCE REAL BALANCE ---
   const [binanceBalance, setBinanceBalance] = useState(null);
@@ -372,6 +391,31 @@ function App() {
             )}
           </p>
         </section>
+
+        {/* --- MARKET RECOMMENDATION BANNER --- */}
+        {recommendation && recommendation.id !== 'UNKNOWN' && (
+          <div style={{
+            maxWidth: '1200px', margin: '0 auto 20px auto',
+            background: `linear-gradient(90deg, ${recommendation.color}20 0%, rgba(0,0,0,0) 100%)`,
+            borderLeft: `5px solid ${recommendation.color}`,
+            borderRadius: '4px',
+            padding: '15px',
+            display: 'flex', alignItems: 'center', gap: '15px',
+            boxShadow: `0 4px 6px -1px rgba(0, 0, 0, 0.1)`
+          }}>
+            <div style={{ fontSize: '2rem' }}>
+              {recommendation.id === 'CASH' ? '🛑' : (recommendation.id === 'BLITZ' ? '🔥' : '⚖️')}
+            </div>
+            <div>
+              <div style={{ color: recommendation.color, fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '4px' }}>
+                {recommendation.label}
+              </div>
+              <div style={{ color: '#E2E8F0', fontSize: '0.9rem' }}>
+                {recommendation.description} — <span style={{ opacity: 0.7 }}>{recommendation.reason}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div id="wallet-section">
           <WalletCard

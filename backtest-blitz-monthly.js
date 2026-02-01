@@ -4,7 +4,31 @@ import { analyzeOB } from './src/utils/analysis.js';
 
 // --- HELPER: Top 10 Pairs
 async function getDynamicTopPairs() {
-    return ['ZKUSDT', 'ZECUSDT'];
+    try {
+        console.log('🔄 Fetching Top 10 Pairs by Volume...');
+        let baseUrl = 'https://api.binance.com';
+        let res;
+        try {
+            res = await axios.get(`${baseUrl}/api/v3/ticker/24hr`, { timeout: 5000 });
+        } catch (e) {
+            baseUrl = 'https://api.binance.us';
+            res = await axios.get(`${baseUrl}/api/v3/ticker/24hr`, { timeout: 5000 });
+        }
+
+        const allPairs = res.data;
+        const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USDE'];
+
+        const relevant = allPairs.filter(p => {
+            if (!p.symbol.endsWith('USDT')) return false;
+            if (BLACKLIST.some(blocked => p.symbol.includes(blocked))) return false;
+            return parseFloat(p.quoteVolume) > 5000000;
+        });
+
+        relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
+        return relevant.slice(0, 10).map(p => p.symbol);
+    } catch (e) {
+        return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'BNBUSDT', 'ADAUSDT', 'TRXUSDT', 'AVAXUSDT', 'LINKUSDT'];
+    }
 }
 
 // --- BACKTEST LOGIC ---

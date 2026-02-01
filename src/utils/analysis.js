@@ -315,7 +315,7 @@ export const analyzeOB = (candles, config = {}) => {
         const impulse = ((close - prevOpen) / prevOpen) * 100;
         const isBearish = prevClose < prevOpen;
 
-        const impulseThreshold = isBlitz ? 0.5 : 1.0; // TUNED: Relaxed Swing from 2.0 to 1.0
+        const impulseThreshold = isBlitz ? 0.5 : 2.0; // RESTORED: Strict Swing (2.0)
 
         if (impulse >= impulseThreshold && isBearish) {
             // Found a bullish OB Zone: prevLow to prevHigh
@@ -504,4 +504,68 @@ export const calculateKelly = (history) => {
     if (winRate < 0.2) multiplier = 0.5; // Defensive
 
     return multiplier;
+};
+
+/**
+ * PHASE 6: STRATEGY RECOMMENDATION (Dashboard Alert)
+ * Analyzes market conditions (Volatility + Trend) to suggest best mode.
+ * @param {Array} candles - Price history (usually BTCUSDT)
+ * @returns {Object} { id: 'BLITZ'|'SWING'|'CASH', label: string, color: string, reason: string }
+ */
+export const getStrategyRecommendation = (candles) => {
+    if (!candles || candles.length < 50) return { id: 'UNKNOWN', label: 'ANÁLISIS PENDIENTE', color: '#64748B', reason: 'Recopilando datos...' };
+
+    // 1. Calculate Indicators
+    const highs = candles.map(c => c.high || parseFloat(c[2]));
+    const lows = candles.map(c => c.low || parseFloat(c[3]));
+    const closes = candles.map(c => c.close || parseFloat(c[4]));
+
+    // ATR (Volatility)
+    const atrValues = ATR.calculate({ high: highs, low: lows, close: closes, period: 14 });
+    const currentATR = atrValues.length > 0 ? atrValues[atrValues.length - 1] : 0;
+    const currentPrice = closes[closes.length - 1];
+    const atrPercent = (currentATR / currentPrice) * 100;
+
+    // RSI (Momentum)
+    const rsiValues = RSI.calculate({ values: closes, period: 14 });
+    const currentRSI = rsiValues.length > 0 ? rsiValues[rsiValues.length - 1] : 50;
+
+    // Dump Detection (Last 4h candle drop > 3%)
+    const lastOpen = candles[candles.length - 1].open || parseFloat(candles[candles.length - 1][1]);
+    const dropPercent = ((lastOpen - currentPrice) / lastOpen) * 100;
+
+    // 2. Logic Matrix
+
+    // 🚨 CRASH SCENARIO (CASH)
+    // If Price Drop > 3% recently OR RSI < 25 (Oversold Panic) combined with High Volatility
+    if (dropPercent > 3.0 || (currentRSI < 25 && atrPercent > 1.5)) {
+        return {
+            id: 'CASH',
+            label: '🛑 RECOMENDACIÓN: PAUSA / CASH',
+            color: '#EF4444', // Red
+            description: 'ALTA VOLATILIDAD BAJISTA DETECTADA',
+            reason: `DUMP ACTIVADO (${dropPercent.toFixed(1)}% Caída). Mejor esperar a que pase la tormenta.`
+        };
+    }
+
+    // 🔥 HIGH VOLATILITY SCENARIO (BLITZ)
+    // If ATR > 0.8% (Price moves a lot)
+    if (atrPercent > 0.8) {
+        return {
+            id: 'BLITZ',
+            label: '🔥 RECOMENDACIÓN: BLITZ',
+            color: '#F59E0B', // Amber/Orange
+            description: 'MERCADO VOLÁTIL Y RÁPIDO',
+            reason: `Volatilidad Alta (${atrPercent.toFixed(2)}%). El modo Blitz aprovecha estos movimientos rápidos.`
+        };
+    }
+
+    // ⚖️ LOW VOLATILITY / RANGING (SWING)
+    return {
+        id: 'SWING',
+        label: '⚖️ RECOMENDACIÓN: SWING',
+        color: '#10B981', // Emerald/Green
+        description: 'MERCADO ESTABLE / LATERAL',
+        reason: `Volatilidad Baja (${atrPercent.toFixed(2)}%). Mejor buscar entradas precisas y pacientes con Swing.`
+    };
 };
