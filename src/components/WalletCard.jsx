@@ -164,7 +164,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     const handleCycleStrategy = async () => {
         if (!wallet) return;
-        const strategies = ['SWING', 'TRIPLE', 'SCALP', 'FLOW', 'SNIPER'];
+        const strategies = ['SWING', 'TRIPLE', 'SCALP', 'FLOW', 'SNIPER', 'OB'];
         const currentIndex = strategies.indexOf(currentStrategy);
         const nextStrategy = strategies[(currentIndex + 1) % strategies.length];
 
