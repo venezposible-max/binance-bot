@@ -107,6 +107,10 @@ class CVDSniper {
 
     async executeSniperTrade(entryPrice) {
         try {
+            // SYNC: Read current active sniper trades from Redis to ensure we don't double-open
+            const sniperTradesStr = await redis.get('sentinel_sniper_trades');
+            this.activeTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+
             // Read wallet config
             const configStr = await redis.get('sentinel_wallet_config');
             if (!configStr) {
@@ -213,6 +217,10 @@ class CVDSniper {
     }
 
     async checkExits(currentPrice) {
+        // SYNC: Read current active sniper trades from Redis before checking
+        const sniperTradesStr = await redis.get('sentinel_sniper_trades');
+        this.activeTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+
         // Monitor active trades for TP/SL
         for (let i = this.activeTrades.length - 1; i >= 0; i--) {
             const trade = this.activeTrades[i];
