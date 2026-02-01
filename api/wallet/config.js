@@ -41,6 +41,9 @@ export default async function handler(req, res) {
                     allocatedCapital: req.body.allocatedCapital ? parseFloat(req.body.allocatedCapital) : parseFloat(initialBalance), // New: Real Money Cap
                     tradingMode: req.body.tradingMode || 'SIMULATION', // New: LIVE or SIMULATION
                     riskPercentage: parseFloat(riskPercentage),
+                    maxTrades: req.body.maxTrades ? parseInt(req.body.maxTrades) : (current.maxTrades || 3),
+                    dailyLossLimit: req.body.dailyLossLimit ? parseFloat(req.body.dailyLossLimit) : (current.dailyLossLimit || 50),
+                    cooldownMinutes: req.body.cooldownMinutes ? parseInt(req.body.cooldownMinutes) : (current.cooldownMinutes || 30),
                     isBotActive: current.isBotActive !== undefined ? current.isBotActive : true,
                     multiFrameMode: false,
                     strategy: req.body.strategy || current.strategy || 'SWING',
