@@ -18,7 +18,7 @@ function App() {
   const [marketData, setMarketData] = useState({});
   const [loading, setLoading] = useState(true);
   const isFetchingBus = useRef(false); // OPTIMIZATION: Request Lock
-  const [stats, setStats] = useState({ buy: 0, sell: 0, neutral: 0 });
+
 
   const [timeframe, setTimeframe] = useState(() => {
     const s = localStorage.getItem('sentinel_strategy') || 'SWING';
@@ -161,10 +161,7 @@ function App() {
 
     const currentTf = overrideTimeframe || timeframe;
     const results = {};
-    let buyCount = 0;
-    let takenCount = 0;
-    let sellCount = 0;
-    let neutralCount = 0;
+
 
     try {
 
@@ -233,20 +230,7 @@ function App() {
             return null;
           }
 
-          // LOGIC FIX: Normalized comparison to be bulletproof
-          // Compare "ETH" vs "ETHUSDT" correctly by stripping "USDT" from both sides
-          const normalize = (s) => (s || '').toUpperCase().replace('USDT', '').trim();
 
-          const isActive = cloudStatus.active.some(t => normalize(t.symbol) === normalize(symbol));
-
-          if (analysis.prediction.signal.includes('BUY')) {
-            if (!isActive) buyCount++;
-            else takenCount++;
-          }
-          else if (analysis.prediction.signal.includes('SELL')) {
-            sellCount++;
-          }
-          else neutralCount++;
 
           // ORACLE PREDICTION (New)
           const forecast = calculateForecast(candles);
@@ -267,7 +251,7 @@ function App() {
       });
 
       setMarketData(results);
-      setStats({ buy: buyCount, taken: takenCount, sell: sellCount, neutral: neutralCount });
+
 
       // 2. Sync with Cloud Sniper (Vercel KV) - Non-blocking
       const statusRes = await fetch('/api/get-status');
@@ -404,14 +388,7 @@ function App() {
           <h1 className={styles.heroTitle}>MARKET SENTINEL AI</h1>
           <p className={styles.heroSubtitle}>
             <span>Patrullando 24/7 de forma autónoma en la nube.</span>
-            {activeStrategy !== 'SNIPER' && (
-              <>
-                <br />
-                <span style={{ fontSize: '1rem', marginTop: '10px', display: 'block' }} className="text-glow-yellow">
-                  🔥 {stats.buy + stats.taken} Oportunidades Híbridas Detectadas ({stats.taken} Tomadas)
-                </span>
-              </>
-            )}
+
           </p>
         </section>
 
