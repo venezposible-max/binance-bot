@@ -144,8 +144,16 @@ export const analyzeFlow = (depth, candles) => {
     }
 
     // 1. Calculate Buying Pressure (Sum of Bid Volume) vs Selling Pressure
-    const bidVol = depth.bids.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+    const topBids = depth.bids.slice(0, 20);
+    const bidVol = topBids.reduce((acc, [p, q]) => acc + parseFloat(q), 0);
     const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+
+    // Identify Master Wall (Highest Volume Bid)
+    let masterWall = { price: 0, volume: 0 };
+    topBids.forEach(([price, qty]) => {
+        const v = parseFloat(qty);
+        if (v > masterWall.volume) masterWall = { price: parseFloat(price), volume: v };
+    });
 
     const buyPressure = askVol > 0 ? bidVol / askVol : 1;
     const totalVol = bidVol + askVol;
@@ -185,6 +193,7 @@ export const analyzeFlow = (depth, candles) => {
 
     return {
         price: lastPrice,
+        wallPrice: masterWall.price,
         chartData: {
             ema: emaValues.slice(-50)
         },

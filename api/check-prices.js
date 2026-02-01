@@ -314,6 +314,20 @@ export default async function handler(req, res) {
                         console.log(`🛡️  ${symbol} | BREAKEVEN ACTIVATED (+1.5% hit) | SL moved to entry.`);
                     }
 
+                    // --- EXPERT MODE: TRAILING STOP ---
+                    // If trade is in profit > 1.2%, start a trailing stop at 0.5% distance
+                    if (pnl >= 1.2) {
+                        const trailingDistance = 0.5; // 0.5% trailing distance
+                        const newTrailingSL = exitPrice * (1 - (trailingDistance / 100));
+
+                        // Only update if the new trailing SL is higher than the current SL
+                        if (!trade.dynamicSL || newTrailingSL > trade.dynamicSL) {
+                            trade.dynamicSL = newTrailingSL;
+                            trade.isTrailing = true;
+                            // console.log(`🚀 ${symbol} | TRAILING SL UPDATED: $${newTrailingSL.toFixed(2)}`);
+                        }
+                    }
+
                     if (isTakeProfitHit || isStopLossHit) {
                         const isLive = trade.mode === 'LIVE';
                         const reason = isStopLossHit ? 'STOP LOSS' : 'TARGET HIT (Net)';
@@ -449,11 +463,31 @@ export default async function handler(req, res) {
                                 const depthResponse = await axios.get((REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us') + `/api/v3/depth?symbol=${symbol}&limit=50`, { timeout: 4000 });
                                 const depth = depthResponse.data;
                                 if (depth && depth.bids && depth.asks) {
-                                    const bidVol = depth.bids.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+                                    // Identify the "Master Wall" (Highest Volume Bid in Top 20)
+                                    const topBids = depth.bids.slice(0, 20);
+                                    let masterWall = { price: 0, volume: 0 };
+                                    topBids.forEach(([price, qty]) => {
+                                        const v = parseFloat(qty);
+                                        if (v > masterWall.volume) masterWall = { price: parseFloat(price), volume: v };
+                                    });
+
+                                    const bidVol = topBids.reduce((acc, [p, q]) => acc + parseFloat(q), 0);
                                     const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
                                     const buyPressure = askVol > 0 ? bidVol / askVol : 1;
+
                                     candidateBuy = (buyPressure >= 2.0);
-                                    if (candidateBuy) console.log(`🌊 ${symbol} | FLOW: ${buyPressure.toFixed(2)}x Pressure | TRIGGERED`);
+
+                                    if (candidateBuy) {
+                                        // Set Dynamic SL below the Master Wall
+                                        // If wall is too close or far, use a safeguard buffer
+                                        const structuralSL = masterWall.price * 0.997; // -0.3% below the wall
+
+                                        wallet._flowDynamicSL = structuralSL;
+                                        wallet._flowWallPrice = masterWall.price;
+                                        wallet._flowRatio = buyPressure;
+
+                                        console.log(`🌊 ${symbol} | FLOW: ${buyPressure.toFixed(2)}x Pressure | Master Wall: $${masterWall.price.toFixed(2)} | SL: $${structuralSL.toFixed(2)}`);
+                                    }
                                 }
                             } catch (e) { /* ignore */ }
                         }
@@ -612,9 +646,10 @@ export default async function handler(req, res) {
                                 quantity: executedQty, // Save COIN Qty for Selling
                                 entryFee: spentUsd * 0.001, // Store for Forensic Audit
                                 strategy: winningStrategy,
-                                dynamicSL: winningStrategy === 'OB' ? wallet._obDynamicSL : null,
+                                dynamicSL: winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null),
                                 dynamicTP: winningStrategy === 'OB' ? wallet._obDynamicTP : null,
                                 impulse: winningStrategy === 'OB' ? wallet._obImpulse : null,
+                                wallPrice: winningStrategy === 'FLOW' ? wallet._flowWallPrice : null,
                                 mode: isLive ? 'LIVE' : 'SIMULATION',
                                 orderId: order.orderId
                             };

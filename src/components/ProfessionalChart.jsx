@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceArea, ReferenceLine } from 'recharts';
 
-const ProfessionalChart = ({ candles, emaData, color, obZone }) => {
+const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice }) => {
     if (!candles || candles.length === 0) return null;
 
     // MEMOIZED: Transform candle data for recharts
@@ -112,6 +112,11 @@ const ProfessionalChart = ({ candles, emaData, color, obZone }) => {
                     )}
                     {obZone && (
                         <ReferenceLine y={obZone.sl} stroke="#EF4444" strokeWidth={1} strokeDasharray="5 5" label={{ value: 'SL', position: 'right', fill: '#EF4444', fontSize: 10 }} />
+                    )}
+
+                    {/* FLOW MASTER WALL */}
+                    {wallPrice && (
+                        <ReferenceLine y={wallPrice} stroke="#00D9FF" strokeWidth={2} label={{ value: 'WALL', position: 'insideBottomRight', fill: '#00D9FF', fontSize: 9, fontWeight: 'bold' }} />
                     )}
 
                     <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255, 255, 255, 0.1)' }} />
