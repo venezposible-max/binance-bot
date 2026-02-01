@@ -139,7 +139,7 @@ export default async function handler(req, res) {
 
         // --- 🧪 MULTI-STRATEGY PARALLEL EXECUTION ---
         // Priority Order (Higher = More Priority)
-        const STRATEGY_PRIORITY = ['SNIPER', 'FLOW', 'SWING', 'SCALP', 'TRIPLE'];
+        const STRATEGY_PRIORITY = ['SNIPER', 'FLOW', 'OB', 'SWING', 'SCALP', 'TRIPLE'];
 
         // Determine which strategies are ACTIVE
         const strategyConfig = wallet.strategyConfig || {};
@@ -278,26 +278,33 @@ export default async function handler(req, res) {
                     const tradeStrategy = trade.strategy || strategy;
 
                     // NEW: Isolate User TP/SL to SWING ONLY
-                    let dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : 1.25;
+                    let dynamicTarget = (tradeStrategy === 'SCALP') ? 0.50 : (tradeStrategy === 'TRIPLE' ? 3.0 : 1.25);
                     let slEnforced = false;
+                    let customStopLossPrice = trade.dynamicSL || null;
+                    let customTakeProfitPrice = trade.dynamicTP || null;
 
                     if (tradeStrategy === 'SWING') {
                         dynamicTarget = PROFIT_TARGET; // Use the one from wallet (custom)
                         slEnforced = USE_STOP_LOSS;    // Only use SL if strategy is SWING
+                    } else if (tradeStrategy === 'OB') {
+                        slEnforced = true; // OB always uses its structural SL
                     }
 
-                    // FEE COMPENSATION: Add 0.2% Buffer to ensure Net Profit matches User Request
-                    // If user wants 1.0%, we trigger at 1.2%
-                    const grossTarget = dynamicTarget + 0.2;
-
                     // EXIT CONDITION (Take Profit)
-                    const isTakeProfitHit = pnl >= grossTarget;
+                    // If OB has a price-based TP, use that. Otherwise use % based target.
+                    const isTakeProfitHit = customTakeProfitPrice
+                        ? (exitPrice >= customTakeProfitPrice)
+                        : (pnl >= (dynamicTarget + 0.2));
 
-                    // EXIT CONDITION (Stop Loss - User Feature isolated to SWING)
-                    // FEE COMPENSATION: Subtract 0.2% buffer so Net Loss matches User Request
-                    // If user sets SL at 3.0%, we trigger at -2.8% Gross -> ~3.0% Net Loss
-                    const grossSL = STOP_LOSS_TARGET - 0.2;
-                    const isStopLossHit = slEnforced && (pnl <= -grossSL);
+                    // EXIT CONDITION (Stop Loss)
+                    // If OB has a price-based SL, use that. Otherwise use % based target for SWING.
+                    let isStopLossHit = false;
+                    if (customStopLossPrice) {
+                        isStopLossHit = exitPrice <= customStopLossPrice;
+                    } else if (slEnforced) {
+                        const grossSL = STOP_LOSS_TARGET - 0.2;
+                        isStopLossHit = (pnl <= -grossSL);
+                    }
 
                     if (isTakeProfitHit || isStopLossHit) {
                         const isLive = trade.mode === 'LIVE';
@@ -442,6 +449,61 @@ export default async function handler(req, res) {
                                 }
                             } catch (e) { /* ignore */ }
                         }
+                        else if (candidateStrategy === 'OB') {
+                            // 📦 ORDER BLOCK STRATEGY: Detect institutional zones
+                            try {
+                                // Fetch 4H klines for OB detection
+                                const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
+                                const obRes = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=4h&limit=50`, { timeout: 5000 });
+                                const obKlinesRaw = obRes.data;
+
+                                // Detect Bullish Order Block
+                                // Look for impulse move (+2% min) and mark last bearish candle as OB
+                                for (let i = 5; i < obKlinesRaw.length; i++) {
+                                    const candle = obKlinesRaw[i];
+                                    const prevCandle = obKlinesRaw[i - 1];
+
+                                    const candleClose = parseFloat(candle[4]);
+                                    const prevOpen = parseFloat(prevCandle[1]);
+                                    const prevClose = parseFloat(prevCandle[4]);
+                                    const prevHigh = parseFloat(prevCandle[2]);
+                                    const prevLow = parseFloat(prevCandle[3]);
+
+                                    // Check for bullish impulse: candle closed +2% higher than prev open
+                                    const impulse = ((candleClose - prevOpen) / prevOpen) * 100;
+
+                                    // Previous candle was bearish (potential OB)
+                                    const prevWasBearish = prevClose < prevOpen;
+
+                                    if (impulse >= 2.0 && prevWasBearish) {
+                                        // Order Block zone: prevLow to prevHigh
+                                        const obLow = prevLow;
+                                        const obHigh = prevHigh;
+
+                                        // Check if current price is inside OB zone
+                                        if (currentPrice >= obLow && currentPrice <= obHigh) {
+                                            candidateBuy = true;
+
+                                            // Store dynamic SL/TP for this OB trade
+                                            // SL: Just below OB low (-0.3% buffer)
+                                            // TP: Impulse size from entry
+                                            const dynamicSL = obLow * 0.997;
+                                            const dynamicTP = currentPrice * (1 + (impulse / 100));
+
+                                            // Store in temporary variable for trade creation
+                                            wallet._obDynamicSL = dynamicSL;
+                                            wallet._obDynamicTP = dynamicTP;
+                                            wallet._obImpulse = impulse;
+
+                                            console.log(`📦 ${symbol} | ORDER BLOCK: Price $${currentPrice.toFixed(2)} in OB zone [$${obLow.toFixed(2)}-$${obHigh.toFixed(2)}] | Impulse: +${impulse.toFixed(1)}% | Dynamic SL: $${dynamicSL.toFixed(2)} | TP: $${dynamicTP.toFixed(2)}`);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn(`OB detection failed for ${symbol}:`, e.message);
+                            }
+                        }
                         else if (candidateStrategy === 'TRIPLE') {
                             try {
                                 const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
@@ -534,6 +596,9 @@ export default async function handler(req, res) {
                                 quantity: executedQty, // Save COIN Qty for Selling
                                 entryFee: spentUsd * 0.001, // Store for Forensic Audit
                                 strategy: winningStrategy,
+                                dynamicSL: winningStrategy === 'OB' ? wallet._obDynamicSL : null,
+                                dynamicTP: winningStrategy === 'OB' ? wallet._obDynamicTP : null,
+                                impulse: winningStrategy === 'OB' ? wallet._obImpulse : null,
                                 mode: isLive ? 'LIVE' : 'SIMULATION',
                                 orderId: order.orderId
                             };

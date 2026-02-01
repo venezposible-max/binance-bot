@@ -194,6 +194,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         if (s === 'SCALP') return '#F59E0B'; // Amber
         if (s === 'FLOW') return '#00D9FF'; // Neon Blue
         if (s === 'SNIPER') return '#D946EF'; // Neon Magenta
+        if (s === 'OB') return '#10B981'; // Emerald/Green
         return '#666';
     };
 
@@ -370,7 +371,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     <span style={{ fontSize: '0.6rem', marginLeft: '6px', color: '#64748B' }}>(Paralelo)</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {['SNIPER', 'FLOW', 'SWING', 'SCALP', 'TRIPLE'].map(s => {
+                    {['SNIPER', 'FLOW', 'OB', 'SWING', 'SCALP', 'TRIPLE'].map(s => {
                         const sConf = wallet.strategyConfig?.[s];
                         const isActive = sConf?.active === true;
                         return (
@@ -392,7 +393,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                <span>{s === 'SNIPER' ? '🔫' : s === 'FLOW' ? '🌊' : s === 'SWING' ? '🐂' : s === 'SCALP' ? '⚡' : '🔬'}</span>
+                                <span>{s === 'SNIPER' ? '🔫' : s === 'FLOW' ? '🌊' : s === 'OB' ? '📦' : s === 'SWING' ? '🐂' : s === 'SCALP' ? '⚡' : '🔬'}</span>
                                 <span>{s}</span>
                                 <span style={{ fontSize: '0.6rem', marginLeft: '2px' }}>{isActive ? '✓' : '○'}</span>
                             </button>
