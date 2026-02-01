@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
 import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
-import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB } from './utils/analysis';
+import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB, analyzeHybrid } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
@@ -168,6 +168,11 @@ function App() {
           } else if (activeStrategy === 'OB') {
             // 📦 OB MODE: Institutional Zones
             analysis = analyzeOB(candles);
+          } else if (activeStrategy === 'HYBRID') {
+            // 🧬 ELITE HYBRID: OB + Flow + Trend
+            // Frontend Fetch Depth (fallback or direct)
+            const depth = await fetchDepth(symbol);
+            analysis = analyzeHybrid(depth, candles, { mode: walletConfig.hybridMode || 'SWING' });
           } else {
             // 📊 STANDARD MODE: Technicals (RSI/EMA/BB)
             analysis = analyzePair(candles, walletConfig);

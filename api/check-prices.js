@@ -148,8 +148,9 @@ export default async function handler(req, res) {
         }
 
         // --- 🧪 MULTI-STRATEGY PARALLEL EXECUTION ---
-        // Priority Order (Higher = More Priority)
-        const STRATEGY_PRIORITY = ['SNIPER', 'FLOW', 'OB', 'SWING', 'SCALP', 'TRIPLE'];
+        // --- 🧪 ELITE HYBRID ENGINE ---
+        // Priority Order: SNIPER (Whale Detection) -> HYBRID (Confluence Master)
+        const STRATEGY_PRIORITY = ['SNIPER', 'HYBRID'];
 
         // Determine which strategies are ACTIVE
         const strategyConfig = wallet.strategyConfig || {};
@@ -245,9 +246,10 @@ export default async function handler(req, res) {
 
         // SEQUENTIAL LOOP (Par por Par - User Request)
         for (const symbol of uniquePairs) {
-            // Determine Timeframe EARLY for logging
-            let primaryInterval = wallet.timeframe || (strategy === 'SCALP' ? '5m' : '4h');
-            if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = '4h';
+            // Determine Hybrid Configuration
+            const hybridMode = wallet.hybridMode || 'SWING'; // 'SWING' or 'BLITZ'
+            let primaryInterval = wallet.timeframe || (hybridMode === 'BLITZ' ? '1m' : '4h');
+            if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = (hybridMode === 'BLITZ' ? '1m' : '4h');
 
             // console.log(`.. 🔎 ANALYZING: ${symbol} [${primaryInterval}]`); // Duplicate removed to show RSI later
 
@@ -296,8 +298,8 @@ export default async function handler(req, res) {
                     if (tradeStrategy === 'SWING') {
                         dynamicTarget = PROFIT_TARGET; // Use the one from wallet (custom)
                         slEnforced = USE_STOP_LOSS;    // Only use SL if strategy is SWING
-                    } else if (tradeStrategy === 'OB') {
-                        slEnforced = true; // OB always uses its structural SL
+                    } else if (tradeStrategy === 'OB' || tradeStrategy === 'HYBRID') {
+                        slEnforced = true; // OB and HYBRID always use structural SL
                     }
 
                     // EXIT CONDITION (Take Profit)
@@ -468,135 +470,40 @@ export default async function handler(req, res) {
                         let candidateBuy = false;
 
                         // Evaluate entry condition for this strategy
-                        if (candidateStrategy === 'FLOW') {
+                        // 🧬 HYBRID CONFLUENCE LOGIC
+                        if (candidateStrategy === 'HYBRID') {
                             try {
-                                // 🚀 Phase 1: Use cache for Depth if available
-                                let depth = null;
-                                if (marketCache[symbol]) {
-                                    depth = marketCache[symbol].depth;
-                                } else {
-                                    const depthResponse = await axios.get((REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us') + `/api/v3/depth?symbol=${symbol}&limit=50`, { timeout: 4000 });
-                                    depth = depthResponse.data;
-                                }
-
-                                if (depth && depth.bids && depth.asks) {
-                                    // Identify the "Master Wall" (Highest Volume Bid in Top 20)
-                                    const topBids = depth.bids.slice(0, 20);
-                                    let masterWall = { price: 0, volume: 0 };
-                                    topBids.forEach(([price, qty]) => {
-                                        const v = parseFloat(qty);
-                                        if (v > masterWall.volume) masterWall = { price: parseFloat(price), volume: v };
-                                    });
-
-                                    const bidVol = topBids.reduce((acc, [p, q]) => acc + parseFloat(q), 0);
-                                    const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
-                                    const buyPressure = askVol > 0 ? bidVol / askVol : 1;
-
-                                    candidateBuy = (buyPressure >= 2.0);
-
-                                    if (candidateBuy) {
-                                        // Set Dynamic SL below the Master Wall
-                                        // If wall is too close or far, use a safeguard buffer
-                                        const structuralSL = masterWall.price * 0.997; // -0.3% below the wall
-
-                                        wallet._flowDynamicSL = structuralSL;
-                                        wallet._flowWallPrice = masterWall.price;
-                                        wallet._flowRatio = buyPressure;
-
-                                        console.log(`🌊 ${symbol} | FLOW: ${buyPressure.toFixed(2)}x Pressure | Master Wall: $${masterWall.price.toFixed(2)} | SL: $${structuralSL.toFixed(2)}`);
-                                    }
-                                }
-                            } catch (e) { /* ignore */ }
-                        }
-                        else if (candidateStrategy === 'OB') {
-                            // 📦 ORDER BLOCK STRATEGY: Detect institutional zones
-                            try {
-                                // Fetch 4H klines for OB detection
+                                // 1. Get Klines
                                 const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
-                                const obRes = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=4h&limit=50`, { timeout: 5000 });
-                                const obKlinesRaw = obRes.data;
+                                const { data: klines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=250`, { timeout: 5000 });
 
-                                // Detect Bullish Order Block
-                                // Look for impulse move (+2% min) and mark last bearish candle as OB
-                                const closes = obKlinesRaw.map(c => parseFloat(c[4]));
-                                const ema200_4h = EMA.calculate({ period: 200, values: closes }).slice(-1)[0];
-                                const isAboveTrend = currentPrice > ema200_4h;
+                                // 2. Get Real-time Depth from Cache
+                                const depth = marketCache[symbol]?.depth || { bids: [], asks: [] };
 
-                                if (!isAboveTrend) {
-                                    // EXPERT MODE: Skip if below EMA 200 (Macro Trend is Bearish)
-                                    continue;
-                                }
+                                // 3. Run Analysis
+                                const analysis = await import('../src/utils/analysis.js').then(m => m.analyzeHybrid(depth, klines.map(c => ({
+                                    open: parseFloat(c[1]),
+                                    high: parseFloat(c[2]),
+                                    low: parseFloat(c[3]),
+                                    close: parseFloat(c[4]),
+                                    volume: parseFloat(c[5])
+                                })), { mode: hybridMode }));
 
-                                for (let i = obKlinesRaw.length - 2; i > obKlinesRaw.length - 25 && i > 0; i--) {
-                                    const candle = obKlinesRaw[i];
-                                    const prevCandle = obKlinesRaw[i - 1];
+                                candidateBuy = analysis.prediction.signal === 'STRONG_BUY';
 
-                                    const candleClose = parseFloat(candle[4]);
-                                    const prevOpen = parseFloat(prevCandle[1]);
-                                    const prevClose = parseFloat(prevCandle[4]);
-                                    const prevHigh = parseFloat(prevCandle[2]);
-                                    const prevLow = parseFloat(prevCandle[3]);
-
-                                    // Check for bullish impulse: candle closed +2% higher than prev open
-                                    const impulse = ((candleClose - prevOpen) / prevOpen) * 100;
-                                    const prevWasBearish = prevClose < prevOpen;
-
-                                    if (impulse >= 2.0 && prevWasBearish) {
-                                        // OB zone: prevLow to prevHigh
-                                        const obLow = prevLow;
-                                        const obHigh = prevHigh;
-                                        const obMid = (obLow + obHigh) / 2; // 50% EQUILIBRIUM ENTRY
-
-                                        // EXPERT MODE: Entry at 50% of the zone (obMid)
-                                        // We trigger if current price is BETWEEN obLow and obMid (deeper entry)
-                                        if (currentPrice >= obLow && currentPrice <= obMid) {
-                                            candidateBuy = true;
-
-                                            // SL: Just below OB low (-0.3% buffer)
-                                            // TP: Based on impulse size from the 50% entry
-                                            const dynamicSL = obLow * 0.997;
-                                            const dynamicTP = currentPrice * (1 + (impulse / 100));
-
-                                            wallet._obDynamicSL = dynamicSL;
-                                            wallet._obDynamicTP = dynamicTP;
-                                            wallet._obImpulse = impulse;
-                                            wallet._obEntryType = '50%_EQUILIBRIUM';
-
-                                            console.log(`📦 [EXPERT OB] ${symbol} | Precision Entry at $${currentPrice.toFixed(2)} (Mid: $${obMid.toFixed(2)}) | Trend: OK (> EMA 200) | Impulse: +${impulse.toFixed(1)}% | SL: $${dynamicSL.toFixed(2)}`);
-                                            break;
-                                        }
+                                if (candidateBuy) {
+                                    // Set Dynamic Targets directly from analysis
+                                    if (analysis.obZone) {
+                                        wallet._hybridDynamicSL = analysis.obZone.sl;
+                                        wallet._hybridDynamicTP = analysis.obZone.tp;
                                     }
+                                    wallet._hybridWallPrice = analysis.wallPrice;
+
+                                    console.log(`🎯 [HYBRID ${hybridMode}] ${symbol} | CONFLUENCE DETECTED | Price: $${currentPrice.toFixed(2)} | SL: $${wallet._hybridDynamicSL?.toFixed(2)}`);
                                 }
                             } catch (e) {
-                                console.warn(`OB detection failed for ${symbol}:`, e.message);
+                                console.warn(`Hybrid analysis fail for ${symbol}:`, e.message);
                             }
-                        }
-                        else if (candidateStrategy === 'TRIPLE') {
-                            try {
-                                const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
-                                const [res1h, res15m] = await Promise.all([
-                                    axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1h&limit=50`, { timeout: 5000 }),
-                                    axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=15m&limit=50`, { timeout: 5000 })
-                                ]);
-                                const rsi1h = RSI.calculate({ values: res1h.data.map(c => parseFloat(c[4])), period: 14 }).slice(-1)[0] || 50;
-                                const rsi15m = RSI.calculate({ values: res15m.data.map(c => parseFloat(c[4])), period: 14 }).slice(-1)[0] || 50;
-                                candidateBuy = (rsi < 30 && rsi1h < 30 && rsi15m < 30);
-                                if (candidateBuy) console.log(`🔬 ${symbol} | TRIPLE: RSI 4h/1h/15m ALL < 30 | TRIGGERED`);
-                            } catch (e) { /* ignore */ }
-                        }
-                        else if (candidateStrategy === 'SCALP') {
-                            candidateBuy = (rsi < 30);
-                            if (candidateBuy) console.log(`⚡ ${symbol} | SCALP SIGNAL (RSI ${rsi.toFixed(2)})`);
-                        }
-                        else if (candidateStrategy === 'SWING') {
-                            const bbValues = BollingerBands.calculate({ period: 20, values: closes, stdDev: 2 });
-                            const currentBB = bbValues[bbValues.length - 1] || null;
-                            const lastPrice = closes[closes.length - 1];
-                            const swingMode = wallet.swingMode || 'CONSERVATIVE';
-                            const emaFilter = swingMode === 'CONSERVATIVE' ? (lastPrice > ema200Val) : true;
-                            let sniperBuy = currentBB && (rsi < 30 && lastPrice <= currentBB.lower && emaFilter);
-                            candidateBuy = sniperBuy || (rsi < 30);
-                            if (candidateBuy) console.log(`🐂 ${symbol} | SWING SIGNAL (RSI ${rsi.toFixed(2)})`);
                         }
 
                         if (candidateBuy) {
@@ -663,10 +570,10 @@ export default async function handler(req, res) {
                                 quantity: executedQty, // Save COIN Qty for Selling
                                 entryFee: spentUsd * 0.001, // Store for Forensic Audit
                                 strategy: winningStrategy,
-                                dynamicSL: winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null),
-                                dynamicTP: winningStrategy === 'OB' ? wallet._obDynamicTP : null,
+                                dynamicSL: winningStrategy === 'HYBRID' ? wallet._hybridDynamicSL : (winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null)),
+                                dynamicTP: winningStrategy === 'HYBRID' ? wallet._hybridDynamicTP : (winningStrategy === 'OB' ? wallet._obDynamicTP : null),
                                 impulse: winningStrategy === 'OB' ? wallet._obImpulse : null,
-                                wallPrice: winningStrategy === 'FLOW' ? wallet._flowWallPrice : null,
+                                wallPrice: winningStrategy === 'HYBRID' ? wallet._hybridWallPrice : (winningStrategy === 'FLOW' ? wallet._flowWallPrice : null),
                                 mode: isLive ? 'LIVE' : 'SIMULATION',
                                 orderId: order.orderId
                             };

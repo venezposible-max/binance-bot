@@ -360,3 +360,66 @@ export const analyzeOB = (candles) => {
         }
     };
 };
+
+/**
+ * STRATEGY: HYBRID CONFLUENCE (OB + FLOW + TREND)
+ * The Elite engine. Requires structural and momentum alignment.
+ * @param {Object} depth - Order Book depth
+ * @param {Array} candles - Price history
+ * @param {Object} config - { timeframe, mode: 'SWING' | 'BLITZ' }
+ */
+export const analyzeHybrid = (depth, candles, config = {}) => {
+    // 1. Run OB analysis
+    const obResult = analyzeOB(candles);
+
+    // 2. Run Flow analysis
+    const flowResult = analyzeFlow(depth, candles);
+
+    const lastPrice = obResult.price;
+    const obZone = obResult.obZone;
+    const flow = flowResult.indicators.flow;
+    const buyPressure = parseFloat(flow.ratio);
+
+    // 3. Confluence Logic
+    // LONG: Price in OB Zone + High Buy Pressure + Bullish Trend
+    const isBullishOB = obResult.prediction.signal === 'BUY' || obResult.prediction.signal === 'BULLISH';
+    const isBullishFlow = buyPressure >= 1.5;
+
+    let signal = 'NEUTRAL';
+    let label = 'BUSCANDO CONFLUENCIA';
+    let color = '#94A3B8';
+    let intensity = 0;
+
+    if (isBullishOB && isBullishFlow) {
+        signal = 'STRONG_BUY';
+        label = `🎯 HYBRID CONFLUENCE (${flow.bidPercent}%)`;
+        color = '#00D9FF'; // Neon Cyan
+        intensity = 100;
+    } else if (isBullishOB) {
+        label = 'OB ZONA (ESPERANDO FLOW)';
+        color = '#10B981';
+        intensity = 40;
+    } else if (isBullishFlow) {
+        label = 'FLOW ALCISTA (SIN ZONA)';
+        color = '#34D399';
+        intensity = 40;
+    }
+
+    return {
+        price: lastPrice,
+        obZone: obZone,
+        wallPrice: flowResult.wallPrice,
+        indicators: {
+            ...flowResult.indicators,
+            ...obResult.indicators,
+            mode: config.mode || 'SWING'
+        },
+        chartData: obResult.chartData,
+        prediction: {
+            signal,
+            label,
+            color,
+            intensity
+        }
+    };
+};

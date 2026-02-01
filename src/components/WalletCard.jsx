@@ -164,7 +164,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     const handleCycleStrategy = async () => {
         if (!wallet) return;
-        const strategies = ['SWING', 'TRIPLE', 'SCALP', 'FLOW', 'SNIPER', 'OB'];
+        const strategies = ['HYBRID', 'SNIPER'];
         const currentIndex = strategies.indexOf(currentStrategy);
         const nextStrategy = strategies[(currentIndex + 1) % strategies.length];
 
@@ -189,12 +189,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     };
 
     const getStrategyColor = (s) => {
-        if (s === 'SWING') return '#3B82F6'; // Blue
-        if (s === 'TRIPLE') return '#8B5CF6'; // Violet
-        if (s === 'SCALP') return '#F59E0B'; // Amber
-        if (s === 'FLOW') return '#00D9FF'; // Neon Blue
+        if (s === 'HYBRID') return '#00D9FF'; // Neon Cyan
         if (s === 'SNIPER') return '#D946EF'; // Neon Magenta
-        if (s === 'OB') return '#10B981'; // Emerald/Green
         return '#666';
     };
 
@@ -371,9 +367,9 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     <span style={{ fontSize: '0.6rem', marginLeft: '6px', color: '#64748B' }}>(Paralelo)</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {['SNIPER', 'FLOW', 'OB', 'SWING', 'SCALP', 'TRIPLE'].map(s => {
-                        const sConf = wallet.strategyConfig?.[s];
-                        const isActive = sConf?.active === true;
+                    {['HYBRID', 'SNIPER'].map(s => {
+                        const strategyConfig = wallet.strategyConfig || {};
+                        const isActive = strategyConfig[s]?.active || (s === currentStrategy && wallet.isBotActive !== false);
                         return (
                             <button
                                 key={s}
@@ -383,7 +379,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                     alignItems: 'center',
                                     gap: '4px',
                                     padding: '4px 8px',
-                                    borderRadius: '4px',
+                                    borderRadius: '44px',
                                     border: `1px solid ${isActive ? getStrategyColor(s) : '#333'}`,
                                     background: isActive ? `${getStrategyColor(s)}22` : 'transparent',
                                     color: isActive ? getStrategyColor(s) : '#64748B',
@@ -393,7 +389,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                <span>{s === 'SNIPER' ? '🔫' : s === 'FLOW' ? '🌊' : s === 'OB' ? '📦' : s === 'SWING' ? '🐂' : s === 'SCALP' ? '⚡' : '🔬'}</span>
+                                <span>{s === 'SNIPER' ? '🔫' : '🧬'}</span>
                                 <span>{s}</span>
                                 <span style={{ fontSize: '0.6rem', marginLeft: '2px' }}>{isActive ? '✓' : '○'}</span>
                             </button>
@@ -419,63 +415,44 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 </div>
             </div>
 
-            {/* --- RISK MANAGEMENT CONTROLS (SWING ONLY) --- */}
-            {currentStrategy === 'SWING' && (
+            {/* --- HYBRID ENGINE CONTROLS --- */}
+            {currentStrategy === 'HYBRID' && (
                 <div className={styles.riskPanel}>
                     <div className={styles.riskItem}>
-                        <div className={styles.label}>TAKE PROFIT (%)</div>
-                        <input
-                            type="number"
-                            step="0.1"
-                            className={styles.riskInput}
-                            value={wallet.takeProfit || 1.25}
-                            onChange={(e) => handleUpdateRiskValue('takeProfit', e.target.value)}
-                        />
+                        <div className={styles.label}>HYBRID MODE</div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                                onClick={() => handleUpdateRiskValue('hybridMode', 'SWING')}
+                                style={{
+                                    padding: '4px 10px',
+                                    borderRadius: '4px',
+                                    background: (wallet.hybridMode || 'SWING') === 'SWING' ? '#00D9FF' : '#1e1e1e',
+                                    color: (wallet.hybridMode || 'SWING') === 'SWING' ? '#000' : '#666',
+                                    fontSize: '0.7rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}
+                            >🏛️ SWING</button>
+                            <button
+                                onClick={() => handleUpdateRiskValue('hybridMode', 'BLITZ')}
+                                style={{
+                                    padding: '4px 10px',
+                                    borderRadius: '4px',
+                                    background: wallet.hybridMode === 'BLITZ' ? '#F59E0B' : '#1e1e1e',
+                                    color: wallet.hybridMode === 'BLITZ' ? '#000' : '#666',
+                                    fontSize: '0.7rem',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}
+                            >⚡ BLITZ</button>
+                        </div>
                     </div>
 
                     <div className={styles.riskItem}>
-                        <div className={styles.label}>USE STOP LOSS?</div>
-                        <div
-                            className={`${styles.toggle} ${wallet.useStopLoss ? styles.toggleOn : ''}`}
-                            onClick={handleToggleSL}
-                        >
-                            <div className={styles.toggleThumb}></div>
-                        </div>
-                    </div>
-
-                    {wallet.useStopLoss && (
-                        <div className={styles.riskItem}>
-                            <div className={styles.label}>STOP LOSS (%)</div>
-                            <input
-                                type="number"
-                                step="0.1"
-                                className={styles.riskInput}
-                                style={{ color: '#EF4444' }}
-                                value={wallet.stopLoss || 3.0}
-                                onChange={(e) => handleUpdateRiskValue('stopLoss', e.target.value)}
-                            />
-                        </div>
-                    )}
-
-                    {/* --- SWING SPECIFIC MODE (Agresivo vs Conservador) --- */}
-                    <div className={styles.riskItem} style={{ gridColumn: '1 / -1' }}>
-                        <div className={styles.label}>MODO SWING</div>
-                        <div className={styles.modeSelector}>
-                            <button
-                                className={`${styles.modeBtn} ${wallet.swingMode === 'AGGRESSIVE' ? styles.modeBtnActive : ''}`}
-                                onClick={() => handleSetSwingMode('AGGRESSIVE')}
-                            >
-                                <span>AGRESIVO</span>
-                                <span className={styles.modeSub}>(sin EMA 200)</span>
-                            </button>
-                            <button
-                                className={`${styles.modeBtn} ${wallet.swingMode !== 'AGGRESSIVE' ? styles.modeBtnActive : ''}`}
-                                onClick={() => handleSetSwingMode('CONSERVATIVE')}
-                            >
-                                <span>CONSERVADOR</span>
-                                <span className={styles.modeSub}>(con EMA 200)</span>
-                            </button>
-                        </div>
+                        <div className={styles.label}>STOP LOSS</div>
+                        <div style={{ color: '#F59E0B', fontSize: '0.7rem', fontWeight: 'bold' }}>AUTOMATIC (STRUCTURAL)</div>
                     </div>
                 </div>
             )}
@@ -502,7 +479,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
                 <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>
             </div>
-        </div>
+        </div >
     );
 });
 

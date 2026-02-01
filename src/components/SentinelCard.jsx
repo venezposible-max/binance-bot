@@ -123,23 +123,27 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 position: 'relative',
                 zIndex: 2
             }}>
-                {indicators.flow ? (
-                    /* FLOW STRATEGY VISUALIZATION */
+                {(indicators.flow || indicators.mode) ? (
+                    /* FLOW / HYBRID STRATEGY VISUALIZATION */
                     <>
                         <div className={styles.indicator}>
                             <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>BID PRESSURE</span>
                             <div className={styles.indValue} style={{
                                 fontSize: '1.1rem', fontWeight: 'bold',
-                                color: parseFloat(indicators.flow.ratio) > 1.5 ? '#10B981' : parseFloat(indicators.flow.ratio) < 0.7 ? '#EF4444' : '#94A3B8',
+                                color: parseFloat(indicators.flow?.ratio || 1) > 1.5 ? '#10B981' : parseFloat(indicators.flow?.ratio || 1) < 0.7 ? '#EF4444' : '#94A3B8',
                                 transition: 'color 0.5s ease'
                             }}>
-                                <NumberTicker value={parseFloat(indicators.flow.ratio)} decimals={2} suffix="x" />
+                                <NumberTicker value={parseFloat(indicators.flow?.ratio || 0)} decimals={2} suffix="x" />
                             </div>
                         </div>
                         <div className={styles.indicator}>
-                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>BUY VOL %</span>
-                            <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
-                                <NumberTicker value={parseFloat(indicators.flow.bidPercent)} decimals={1} suffix="%" />
+                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>RSI (CONFLUENCE)</span>
+                            <div className={styles.indValue} style={{
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold',
+                                color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#F59E0B'
+                            }}>
+                                <NumberTicker value={parseFloat(indicators.rsi)} decimals={1} />
                             </div>
                         </div>
                     </>
