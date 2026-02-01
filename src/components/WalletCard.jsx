@@ -232,6 +232,31 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         }
     };
 
+    // --- MULTI-STRATEGY TOGGLE ---
+    const handleToggleStrategyActive = async (strategyName) => {
+        if (!wallet) return;
+        const strategyConfig = wallet.strategyConfig || {};
+        const currentConfig = strategyConfig[strategyName] || { active: false };
+        const newState = !currentConfig.active;
+
+        const newStrategyConfig = {
+            ...strategyConfig,
+            [strategyName]: { ...currentConfig, active: newState }
+        };
+
+        try {
+            setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig }));
+            await fetch('/api/wallet/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategyConfig: newStrategyConfig })
+            });
+            if (onConfigChange) onConfigChange({ ...wallet, strategyConfig: newStrategyConfig });
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const handleUpdateRiskValue = async (field, value) => {
         if (!wallet) return;
         try {
@@ -330,6 +355,50 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         </button>
                     );
                 })()}
+            </div>
+
+            {/* --- MULTI-STRATEGY PARALLEL TOGGLE PANEL --- */}
+            <div style={{
+                marginBottom: '15px',
+                padding: '10px',
+                background: 'rgba(255,255,255,0.03)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '8px', fontWeight: 'bold' }}>
+                    <span>🎯 ESTRATEGIAS ACTIVAS</span>
+                    <span style={{ fontSize: '0.6rem', marginLeft: '6px', color: '#64748B' }}>(Paralelo)</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {['SNIPER', 'FLOW', 'SWING', 'SCALP', 'TRIPLE'].map(s => {
+                        const sConf = wallet.strategyConfig?.[s];
+                        const isActive = sConf?.active === true;
+                        return (
+                            <button
+                                key={s}
+                                onClick={() => handleToggleStrategyActive(s)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    border: `1px solid ${isActive ? getStrategyColor(s) : '#333'}`,
+                                    background: isActive ? `${getStrategyColor(s)}22` : 'transparent',
+                                    color: isActive ? getStrategyColor(s) : '#64748B',
+                                    cursor: 'pointer',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 'bold',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <span>{s === 'SNIPER' ? '🔫' : s === 'FLOW' ? '🌊' : s === 'SWING' ? '🐂' : s === 'SCALP' ? '⚡' : '🔬'}</span>
+                                <span>{s}</span>
+                                <span style={{ fontSize: '0.6rem', marginLeft: '2px' }}>{isActive ? '✓' : '○'}</span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             <div className={styles.mainStats}>

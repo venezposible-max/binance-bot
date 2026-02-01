@@ -137,47 +137,39 @@ export default async function handler(req, res) {
             console.log('🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)');
         }
 
-        // --- 🧪 SAFETY CHECK: BOT STATE (Strategy Specific) ---
-        const strategy = wallet.strategy || 'SWING';
+        // --- 🧪 MULTI-STRATEGY PARALLEL EXECUTION ---
+        // Priority Order (Higher = More Priority)
+        const STRATEGY_PRIORITY = ['SNIPER', 'FLOW', 'SWING', 'SCALP', 'TRIPLE'];
 
-        let isStrategyActive = true;
+        // Determine which strategies are ACTIVE
+        const strategyConfig = wallet.strategyConfig || {};
+        const activeStrategies = STRATEGY_PRIORITY.filter(s => {
+            if (strategyConfig[s]) return strategyConfig[s].active === true;
+            // Fallback: If no config, check if it's the "main" selected strategy
+            return s === (wallet.strategy || 'SWING') && wallet.isBotActive !== false;
+        });
 
-        // 1. Check New Granular Config
-        if (wallet.strategyConfig && wallet.strategyConfig[strategy]) {
-            isStrategyActive = wallet.strategyConfig[strategy].active;
-        } else {
-            // 2. Fallback to Global Legacy Flag
-            isStrategyActive = wallet.isBotActive !== false;
-        }
-
-        if (!isStrategyActive) {
-            console.log(`⏹️ BOT PAUSED (${strategy}): Skipping current patrol cycle.`);
+        if (activeStrategies.length === 0) {
+            console.log('⏹️ ALL STRATEGIES PAUSED: Skipping patrol cycle.');
             return res.status(200).json({
                 success: true,
-                message: `Bot is paused for ${strategy}.`,
+                message: 'All strategies paused.',
                 activeCount: 0,
                 newAlerts: []
             });
         }
 
-        // Strategy already defined above
+        console.log(`🧠 ACTIVE STRATEGIES: ${activeStrategies.join(', ')}`);
 
+        // Extract User Settings (Apply to all strategies that use them)
         let PROFIT_TARGET = wallet.takeProfit || 1.25;
         const USE_STOP_LOSS = wallet.useStopLoss || false;
         const STOP_LOSS_TARGET = wallet.stopLoss || 3.0; // % distance
 
-        console.log(`🧠 STRATEGY: ${strategy} | TARGET: ${PROFIT_TARGET}% | SL: ${USE_STOP_LOSS ? (STOP_LOSS_TARGET + '%') : 'OFF'}`);
+        console.log(`🎯 TARGETS: TP ${PROFIT_TARGET}% | SL: ${USE_STOP_LOSS ? (STOP_LOSS_TARGET + '%') : 'OFF'}`);
 
-        // 🔫 SNIPER MODE: Skip Cron Execution (Handled by cvd-worker.js WebSocket)
-        if (strategy === 'SNIPER') {
-            console.log('🔫 SNIPER MODE ACTIVE: Skipping cron scan (WebSocket handles BTCUSDT only)');
-            return res.status(200).json({
-                success: true,
-                message: 'Sniper mode: Monitoring only',
-                activeCount: 0,
-                newAlerts: []
-            });
-        }
+        // NOTE: SNIPER is handled by cvd-worker.js WebSocket, not this CRON.
+        // It's in activeStrategies for priority tracking (e.g., to reserve BTCUSDT).
 
 
         // Parse active trades and history
@@ -408,94 +400,87 @@ export default async function handler(req, res) {
                     const rsi = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
                     // ✨ HYBRID LOG: Analysis + Result (User Request)
-                    console.log(`.. 🔎 ANALYZING: ${symbol} [${primaryInterval}] | RSI: ${rsi.toFixed(2)}`);
+                    console.log(`.. 🔎 ANALYZING: ${symbol} | RSI: ${rsi.toFixed(2)}`);
 
                     // EMA 200 Calculation (Trend Filter) - Not used for Entry Blocking anymore to match Frontend
                     const ema200Val = EMA.calculate({ values: closes, period: 200 }).slice(-1)[0];
 
-                    // ALIGNMENT WITH FRONTEND (analysis.js):
-                    // Frontend 'BUY' signal is purely based on RSI < 30 (Oversold).
-                    // We remove 'isBullishTrend' check to ensure "detected opportunities" are executed.
+                    // --- MULTI-STRATEGY ENTRY EVALUATION ---
+                    // Loop through active strategies in priority order (already sorted)
+                    // Find the FIRST (highest priority) that wants to BUY
+                    let winningStrategy = null;
                     let isStrongBuy = false;
 
-                    // --- STRATEGY LOGIC SELECTOR ---
-                    if (strategy === 'FLOW') {
-                        // 🌊 FLOW MODE: Order Book Imbalance
-                        try {
-                            const depthResponse = await axios.get((REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us') + `/api/v3/depth?symbol=${symbol}&limit=50`, {
-                                timeout: 4000
-                            });
-                            const depth = depthResponse.data;
-                            if (depth && depth.bids && depth.asks) {
-                                // Calculate Imbalance
-                                const bidVol = depth.bids.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
-                                const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
-                                const buyPressure = askVol > 0 ? bidVol / askVol : 1;
+                    for (const candidateStrategy of activeStrategies) {
+                        // Skip SNIPER (handled by WebSocket)
+                        if (candidateStrategy === 'SNIPER') continue;
 
-                                // Criterion: 2.0x More Buyers than Sellers
-                                isStrongBuy = (buyPressure >= 2.0);
-                                console.log(`🌊 ${symbol} | FLOW: ${buyPressure.toFixed(2)}x Pressure | Buy: ${isStrongBuy}`);
+                        // Check if a trade already exists for this symbol by a HIGHER priority strategy
+                        const existingTrade = newActiveTrades.find(t => t.symbol === symbol);
+                        if (existingTrade) {
+                            const existingPriority = STRATEGY_PRIORITY.indexOf(existingTrade.strategy || 'SWING');
+                            const candidatePriority = STRATEGY_PRIORITY.indexOf(candidateStrategy);
+                            if (existingPriority <= candidatePriority) {
+                                // Existing trade has equal or higher priority, skip
+                                continue;
                             }
-                        } catch (depthErr) {
-                            console.warn(`Depth check failed for ${symbol}:`, depthErr.message);
-                        }
-                    }
-                    else if (strategy === 'TRIPLE') {
-                        try {
-                            // --- TRIPLE LOUPE (15m + 1h + 4h) ---
-                            // Respect Region -- Existing Logic
-                            const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
-
-                            const [res1h, res15m] = await Promise.all([
-                                axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1h&limit=50`, { timeout: 5000 }),
-                                axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=15m&limit=50`, { timeout: 5000 })
-                            ]);
-                            const closes1h = res1h.data.map(c => parseFloat(c[4]));
-                            const closes15m = res15m.data.map(c => parseFloat(c[4]));
-                            const rsi1h = RSI.calculate({ values: closes1h, period: 14 }).slice(-1)[0] || 50;
-                            const rsi15m = RSI.calculate({ values: closes15m, period: 14 }).slice(-1)[0] || 50;
-
-                            isStrongBuy = (rsi < 30 && rsi1h < 30 && rsi15m < 30);
-                        } catch (e) { console.warn('Triple Check Fail', e.message); }
-                    }
-                    else if (strategy === 'SCALP') {
-                        // ⚡ SCALP MODE: Quick entries on 5m/15m charts
-                        // Logic: RSI Oversold (Classic)
-                        isStrongBuy = (rsi < 30);
-                        if (isStrongBuy) console.log(`⚡ ${symbol} | SCALP SIGNAL (RSI ${rsi.toFixed(2)})`);
-                    }
-                    else {
-                        // 🐂 SWING MODE (Default): Deep Dips on 4h charts
-                        // Logic: RSI < 30 OR Sniper (RSI < 30 + Lower Bollinger Band)
-
-                        // Bollinger Bands (20, 2)
-                        const bbValues = BollingerBands.calculate({ period: 20, values: closes, stdDev: 2 });
-                        const currentBB = bbValues[bbValues.length - 1] || null;
-                        const lastPrice = closes[closes.length - 1];
-
-                        const swingMode = wallet.swingMode || 'CONSERVATIVE';
-                        const emaFilter = swingMode === 'CONSERVATIVE' ? (lastPrice > ema200Val) : true;
-
-                        let sniperBuy = false;
-                        if (currentBB) {
-                            // Filter: Price MUST be above EMA 200 for SWING entries IF mode is CONSERVATIVE
-                            sniperBuy = (rsi < 30 && lastPrice <= currentBB.lower && emaFilter);
                         }
 
-                        if (sniperBuy) {
-                            console.log(`🎯 ${symbol} | SWING SNIPER (RSI ${rsi.toFixed(2)} + BB Touch)`);
+                        let candidateBuy = false;
+
+                        // Evaluate entry condition for this strategy
+                        if (candidateStrategy === 'FLOW') {
+                            try {
+                                const depthResponse = await axios.get((REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us') + `/api/v3/depth?symbol=${symbol}&limit=50`, { timeout: 4000 });
+                                const depth = depthResponse.data;
+                                if (depth && depth.bids && depth.asks) {
+                                    const bidVol = depth.bids.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+                                    const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+                                    const buyPressure = askVol > 0 ? bidVol / askVol : 1;
+                                    candidateBuy = (buyPressure >= 2.0);
+                                    if (candidateBuy) console.log(`🌊 ${symbol} | FLOW: ${buyPressure.toFixed(2)}x Pressure | TRIGGERED`);
+                                }
+                            } catch (e) { /* ignore */ }
+                        }
+                        else if (candidateStrategy === 'TRIPLE') {
+                            try {
+                                const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
+                                const [res1h, res15m] = await Promise.all([
+                                    axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1h&limit=50`, { timeout: 5000 }),
+                                    axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=15m&limit=50`, { timeout: 5000 })
+                                ]);
+                                const rsi1h = RSI.calculate({ values: res1h.data.map(c => parseFloat(c[4])), period: 14 }).slice(-1)[0] || 50;
+                                const rsi15m = RSI.calculate({ values: res15m.data.map(c => parseFloat(c[4])), period: 14 }).slice(-1)[0] || 50;
+                                candidateBuy = (rsi < 30 && rsi1h < 30 && rsi15m < 30);
+                                if (candidateBuy) console.log(`🔬 ${symbol} | TRIPLE: RSI 4h/1h/15m ALL < 30 | TRIGGERED`);
+                            } catch (e) { /* ignore */ }
+                        }
+                        else if (candidateStrategy === 'SCALP') {
+                            candidateBuy = (rsi < 30);
+                            if (candidateBuy) console.log(`⚡ ${symbol} | SCALP SIGNAL (RSI ${rsi.toFixed(2)})`);
+                        }
+                        else if (candidateStrategy === 'SWING') {
+                            const bbValues = BollingerBands.calculate({ period: 20, values: closes, stdDev: 2 });
+                            const currentBB = bbValues[bbValues.length - 1] || null;
+                            const lastPrice = closes[closes.length - 1];
+                            const swingMode = wallet.swingMode || 'CONSERVATIVE';
+                            const emaFilter = swingMode === 'CONSERVATIVE' ? (lastPrice > ema200Val) : true;
+                            let sniperBuy = currentBB && (rsi < 30 && lastPrice <= currentBB.lower && emaFilter);
+                            candidateBuy = sniperBuy || (rsi < 30);
+                            if (candidateBuy) console.log(`🐂 ${symbol} | SWING SIGNAL (RSI ${rsi.toFixed(2)})`);
+                        }
+
+                        if (candidateBuy) {
+                            winningStrategy = candidateStrategy;
                             isStrongBuy = true;
-                        } else {
-                            isStrongBuy = (rsi < 30);
+                            break; // First (highest priority) wins
                         }
                     }
 
-                    // DEBUG: Log Decision Reason
-                    let reason = '';
-                    if (strategy === 'FLOW') reason = `Pressure: ${typeof buyPressure !== 'undefined' ? buyPressure.toFixed(2) : 'N/A'}`;
-                    else reason = `RSI: ${rsi.toFixed(2)}`;
-
-                    if (strategy !== 'FLOW') console.log(`📊 ${symbol} | ${reason} | Buy: ${isStrongBuy}`);
+                    // Log final decision
+                    if (winningStrategy) {
+                        console.log(`✅ ${symbol} | WINNER: ${winningStrategy}`);
+                    }
 
                     // LOGIC: EXECUTE TRADE
                     if (isStrongBuy) {
@@ -548,7 +533,7 @@ export default async function handler(req, res) {
                                 investedAmount: spentUsd,
                                 quantity: executedQty, // Save COIN Qty for Selling
                                 entryFee: spentUsd * 0.001, // Store for Forensic Audit
-                                strategy: strategy,
+                                strategy: winningStrategy,
                                 mode: isLive ? 'LIVE' : 'SIMULATION',
                                 orderId: order.orderId
                             };
@@ -557,7 +542,7 @@ export default async function handler(req, res) {
                             console.log(`✅ ${isLive ? 'LIVE' : 'SIM'} ENTRADA: ${symbol} @ $${fillPrice.toFixed(4)} | Qty: ${executedQty.toFixed(4)}`);
 
                             // Telegram Alert
-                            await sendRawTelegram(`${isLive ? '💸 **LIVE TRADE**' : '🔵 **SIM TRADE**'} (${strategy}) 🐂\n\n💎 **${symbol}**\n💰 Entrada: $${fillPrice.toFixed(4)}\n💸 Inv: $${spentUsd.toFixed(2)}\n⏱️ 1H Candles\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`);
+                            await sendRawTelegram(`${isLive ? '💸 **LIVE TRADE**' : '🔵 **SIM TRADE**'} (${winningStrategy}) 🐂\n\n💎 **${symbol}**\n💰 Entrada: $${fillPrice.toFixed(4)}\n💸 Inv: $${spentUsd.toFixed(2)}\n⏱️ 1H Candles\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`);
 
                             alertsSent.push(`${symbol} (LONG)`);
 
