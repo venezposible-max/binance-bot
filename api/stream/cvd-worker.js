@@ -1,4 +1,6 @@
 import WebSocket from 'ws';
+import redis from '../../src/utils/redisClient.js';
+import binanceClient from '../utils/binance-client.js';
 
 class CVDSniper {
     constructor() {
@@ -8,6 +10,7 @@ class CVDSniper {
         this.history = []; // Array of { time, price, cvd, delta }
         this.maxHistory = 1000; // Keep last 1000 ticks for graph
         this.lastPrice = 0;
+        this.activeTrades = []; // Track active Sniper positions
 
         // Strategy Parameters
         this.THRESHOLD = 150000; // 150k USDT Delta
@@ -66,6 +69,11 @@ class CVDSniper {
         this.lastPrice = price;
         this.stats.messages++;
 
+        // Check exits for active trades
+        if (this.activeTrades.length > 0) {
+            this.checkExits(price);
+        }
+
         // Calculate Delta
         // If isBuyerMaker = true -> Sell Order (Maker was Buyer) -> Negative Delta
         // If isBuyerMaker = false -> Buy Order (Maker was Seller) -> Positive Delta
@@ -87,11 +95,129 @@ class CVDSniper {
             this.history.shift();
         }
 
-        // 🎯 SNIPER LOGIC
-        if (Math.abs(delta) > this.THRESHOLD) {
-            console.log(` WHALE ALERT: ${delta > 0 ? '🟢 BUY' : '🔴 SELL'} POWER: $${Math.abs(delta).toFixed(0)} @ ${price}`);
+        // 🎯 SNIPER LOGIC: Execute Trade on Whale Detection
+        if (delta > this.THRESHOLD) { // Only BUY on positive delta (whale buying)
+            console.log(`🐳 WHALE ALERT: BUY POWER: $${Math.abs(delta).toFixed(0)} @ ${price}`);
             this.stats.triggers++;
-            // Here we would trigger the Paper Trade
+            this.executeSniperTrade(price);
+        }
+    }
+
+    async executeSniperTrade(entryPrice) {
+        try {
+            // Read wallet config
+            const configStr = await redis.get('sentinel_wallet_config');
+            if (!configStr) {
+                console.warn('⚠️ Sniper: No wallet config found');
+                return;
+            }
+
+            const config = JSON.parse(configStr);
+
+            // Check if bot is active
+            if (!config.isBotActive) {
+                console.log('🔕 Sniper: Bot is paused');
+                return;
+            }
+
+            // Check available capital
+            const availableBalance = config.currentBalance || 1000;
+            if (availableBalance < 10) {
+                console.warn('⚠️ Sniper: Insufficient balance');
+                return;
+            }
+
+            // Calculate position size (use 100% of available balance for Sniper - all-in strategy)
+            const positionSize = availableBalance / entryPrice;
+            const fee = availableBalance * 0.001; // 0.1% fee
+
+            // Determine if Paper or Live
+            const isLive = config.tradingMode === 'LIVE';
+            let orderId = `SNIPER_${Date.now()}`;
+
+            if (isLive) {
+                // Execute real order
+                try {
+                    const order = await binanceClient.createOrder({
+                        symbol: 'BTCUSDT',
+                        side: 'BUY',
+                        type: 'MARKET',
+                        quantity: positionSize.toFixed(6)
+                    });
+                    orderId = order.orderId;
+                    console.log('✅ LIVE ORDER EXECUTED:', orderId);
+                } catch (e) {
+                    console.error('❌ Live order failed:', e.message);
+                    return;
+                }
+            }
+
+            // Create trade record
+            const trade = {
+                id: orderId,
+                symbol: 'BTCUSDT',
+                strategy: 'SNIPER',
+                side: 'BUY',
+                entryPrice: entryPrice,
+                size: positionSize,
+                targetProfit: entryPrice * 1.01, // TP: 1%
+                stopLoss: entryPrice * 0.995, // SL: 0.5%
+                timestamp: Date.now(),
+                mode: isLive ? 'LIVE' : 'PAPER'
+            };
+
+            // Store in active trades
+            this.activeTrades.push(trade);
+
+            // Persist to Redis
+            await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
+
+            // Update balance (deduct capital + fee)
+            config.currentBalance = availableBalance - availableBalance - fee;
+            await redis.set('sentinel_wallet_config', JSON.stringify(config));
+
+            console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
+
+        } catch (e) {
+            console.error('❌ Sniper Trade Execution Error:', e.message);
+        }
+    }
+
+    async checkExits(currentPrice) {
+        // Monitor active trades for TP/SL
+        for (let i = this.activeTrades.length - 1; i >= 0; i--) {
+            const trade = this.activeTrades[i];
+
+            let exitReason = null;
+            let exitPrice = currentPrice;
+
+            // Check TP
+            if (currentPrice >= trade.targetProfit) {
+                exitReason = 'TP (+1.0%)';
+            }
+            // Check SL
+            else if (currentPrice <= trade.stopLoss) {
+                exitReason = 'SL (-0.5%)';
+            }
+
+            if (exitReason) {
+                // Execute exit
+                const profit = (exitPrice - trade.entryPrice) * trade.size;
+                const fee = exitPrice * trade.size * 0.001;
+                const netProfit = profit - fee;
+
+                // Update balance
+                const configStr = await redis.get('sentinel_wallet_config');
+                const config = JSON.parse(configStr);
+                config.currentBalance += (exitPrice * trade.size) + netProfit;
+                await redis.set('sentinel_wallet_config', JSON.stringify(config));
+
+                console.log(`🎯 SNIPER EXIT: ${trade.id} | ${exitReason} | PnL: $${netProfit.toFixed(2)}`);
+
+                // Remove from active
+                this.activeTrades.splice(i, 1);
+                await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
+            }
         }
     }
 
