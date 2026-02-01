@@ -12,10 +12,10 @@ class CVDSniper {
         this.lastPrice = 0;
         this.activeTrades = []; // Track active Sniper positions
         this.lastTradeTime = 0; // Cooldown tracker
-        this.COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes between trades
+        this.COOLDOWN_MS = 30 * 1000; // TEMPORARY: 30s for testing (was 5min)
 
         // Strategy Parameters
-        this.THRESHOLD = 150000; // 150k USDT Delta
+        this.THRESHOLD = 5000; // TEMPORARY: Lowered for testing (was 150k)
         this.isReconnecting = false;
 
         this.stats = {
@@ -223,6 +223,7 @@ class CVDSniper {
                 const profit = (exitPrice - trade.entryPrice) * trade.size;
                 const fee = exitPrice * trade.size * 0.001;
                 const netProfit = profit - fee;
+                const pnlPercent = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
 
                 // Update balance (return invested amount + net profit/loss)
                 const configStr = await redis.get('sentinel_wallet_config');
@@ -230,7 +231,30 @@ class CVDSniper {
                 config.currentBalance += (trade.investedAmount + netProfit);
                 await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
-                console.log(`🎯 SNIPER EXIT: ${trade.id} | ${exitReason} | PnL: $${netProfit.toFixed(2)}`);
+                // Move to history
+                const historyStr = await redis.get('sentinel_win_history');
+                const history = historyStr ? JSON.parse(historyStr) : [];
+
+                history.unshift({
+                    id: trade.id,
+                    symbol: trade.symbol,
+                    type: 'LONG',
+                    strategy: 'SNIPER',
+                    entryPrice: trade.entryPrice,
+                    exitPrice: exitPrice,
+                    investedAmount: trade.investedAmount || 0,
+                    pnl: pnlPercent,
+                    netProfit: netProfit,
+                    timestamp: trade.timestamp,
+                    closeTime: Date.now(),
+                    reason: exitReason
+                });
+
+                // Keep last 50 trades
+                if (history.length > 50) history.pop();
+                await redis.set('sentinel_win_history', JSON.stringify(history));
+
+                console.log(`🎯 SNIPER EXIT: ${trade.id} | ${exitReason} | PnL: ${pnlPercent.toFixed(2)}% ($${netProfit.toFixed(2)})`);
 
                 // Remove from active
                 this.activeTrades.splice(i, 1);
