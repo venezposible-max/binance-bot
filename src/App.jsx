@@ -288,6 +288,7 @@ function App() {
       let newTf = '4h';
       if (newConfig.strategy === 'SCALP') newTf = '5m';
       if (newConfig.strategy === 'TRIPLE') newTf = '15m';
+      if (newConfig.strategy === 'BLITZ') newTf = '5m';
       // FLOW uses 4h for chart visualization (even though it reads Order Book)
 
       setTimeframe(newTf);
