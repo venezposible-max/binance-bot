@@ -2,9 +2,36 @@ import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 const CVDChart = () => {
-    const [data, setData] = useState({ cvd: 0, history: [] });
+    const [data, setData] = useState({ cvd: 0, history: [], price: 0 });
+    const [threshold, setThreshold] = useState(150000);
+
+    const fetchConfig = async () => {
+        try {
+            const res = await fetch('/api/wallet/config');
+            if (res.ok) {
+                const config = await res.json();
+                if (config.whaleThreshold) setThreshold(config.whaleThreshold);
+            }
+        } catch (e) {
+            console.error("Config Fetch Error", e);
+        }
+    };
+
+    const saveThreshold = async (newVal) => {
+        try {
+            await fetch('/api/wallet/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ whaleThreshold: parseFloat(newVal) })
+            });
+            setThreshold(newVal);
+        } catch (e) {
+            console.error("Save Threshold Error", e);
+        }
+    };
 
     useEffect(() => {
+        fetchConfig();
         // Polling loop for CVD data
         const interval = setInterval(async () => {
             try {
@@ -114,6 +141,57 @@ const CVDChart = () => {
                         ⌛ Waiting for market data...
                     </div>
                 )}
+            </div>
+
+            {/* 🐋 WHALE CAPITAL CONTROL */}
+            <div style={{
+                marginTop: '15px',
+                padding: '12px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                borderRadius: '6px',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '15px',
+                flexWrap: 'wrap'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>🐋</span>
+                    <span style={{ color: '#94A3B8', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>CAPITAL BALLENAS (USDT)</span>
+                </div>
+
+                <div style={{ flex: 1, minWidth: '150px' }}>
+                    <input
+                        type="range"
+                        min="5000"
+                        max="500000"
+                        step="5000"
+                        value={threshold}
+                        onChange={(e) => saveThreshold(e.target.value)}
+                        style={{
+                            width: '100%',
+                            accentColor: '#10B981',
+                            cursor: 'pointer'
+                        }}
+                    />
+                </div>
+
+                <div style={{
+                    background: '#000',
+                    padding: '4px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #10B981',
+                    color: '#10B981',
+                    fontFamily: 'monospace',
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                }}>
+                    ${parseFloat(threshold).toLocaleString()}
+                </div>
+
+                <div style={{ color: '#4B5563', fontSize: '0.65rem', maxWidth: '180px' }}>
+                    * El Sniper solo entrará si detecta una compra mayor a este monto.
+                </div>
             </div>
         </div>
     );

@@ -126,6 +126,11 @@ class CVDSniper {
 
             const config = JSON.parse(configStr);
 
+            // Update Dynamic Parameters from Config
+            if (config.whaleThreshold) {
+                this.THRESHOLD = config.whaleThreshold;
+            }
+
             // Check if bot is active
             if (!config.isBotActive) {
                 console.log('🔕 Sniper: Bot is paused');

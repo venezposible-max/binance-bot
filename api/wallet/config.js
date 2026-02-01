@@ -11,6 +11,7 @@ export default async function handler(req, res) {
                 initialBalance: 1000,
                 currentBalance: 1000,
                 riskPercentage: 10,
+                whaleThreshold: 150000,
                 isBotActive: true, // Default State: ACTIVATED
                 ...existingConfig // Override with existing values if present
             };
@@ -39,7 +40,8 @@ export default async function handler(req, res) {
                     isBotActive: current.isBotActive !== undefined ? current.isBotActive : true,
                     multiFrameMode: false,
                     strategy: req.body.strategy || current.strategy || 'SWING',
-                    timeframe: req.body.timeframe || current.timeframe || '4h'
+                    timeframe: req.body.timeframe || current.timeframe || '4h',
+                    whaleThreshold: req.body.whaleThreshold ? parseFloat(req.body.whaleThreshold) : (current.whaleThreshold || 150000)
                 };
             } else {
                 // Update specific fields
@@ -50,6 +52,7 @@ export default async function handler(req, res) {
                 // Ensure numeric types
                 if (newConfig.riskPercentage) newConfig.riskPercentage = parseFloat(newConfig.riskPercentage);
                 if (newConfig.allocatedCapital) newConfig.allocatedCapital = parseFloat(newConfig.allocatedCapital);
+                if (newConfig.whaleThreshold) newConfig.whaleThreshold = parseFloat(newConfig.whaleThreshold);
             }
 
 
