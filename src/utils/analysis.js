@@ -274,6 +274,12 @@ export const analyzeOB = (candles) => {
     const lastCandle = candles[candles.length - 1];
     const lastPrice = lastCandle.close || parseFloat(lastCandle[4]);
 
+    // 🚀 INITIALIZE INDICATORS FIRST (Fix ReferenceError)
+    const closes = candles.map(c => c.close || parseFloat(c[4]));
+    const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
+    const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
+    const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
+
     let obZone = null;
     let signal = 'NEUTRAL';
     let label = 'BUSCANDO ZONA';
@@ -314,7 +320,7 @@ export const analyzeOB = (candles) => {
             };
 
             // 2. Expert Logic: Check Trend + Precision Entry
-            const isTrendBulish = lastPrice > currentEMA;
+            const isTrendBulish = lastPrice > (currentEMA || 0);
             const isAtMidpoint = lastPrice >= obZone.low && lastPrice <= obMid;
 
             if (isTrendBulish && isAtMidpoint) {
@@ -336,11 +342,6 @@ export const analyzeOB = (candles) => {
             break; // Stop at first (most recent) OB found
         }
     }
-
-    const closes = candles.map(c => c.close || parseFloat(c[4]));
-    const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
-    const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
-    const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
     return {
         price: lastPrice,
