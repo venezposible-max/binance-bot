@@ -362,8 +362,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         </div>
                     </div>
                     <div className={styles.riskItem}>
-                        <div className={styles.label}>AUTO EXIT</div>
-                        <div style={{ color: '#F59E0B', fontSize: '0.7rem', fontWeight: 'bold' }}>ATR PRECISION ✅</div>
+                        <div className={styles.label}>EXIT MODE</div>
+                        <div style={{ color: wallet.useStopLoss ? '#F59E0B' : '#EF4444', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                            {wallet.useStopLoss ? 'ATR PROTECTED ✅' : '⚠️ NO STOP LOSS'}
+                        </div>
                     </div>
                 </div>
             )}
