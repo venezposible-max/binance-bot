@@ -95,7 +95,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
             initial="hidden"
             animate="visible"
             whileHover="hover"
-            layoutId={symbol} // Shared Layout Animation
+
         >
             <div className={styles.header}>
                 <div className={styles.symbolWrapper}>

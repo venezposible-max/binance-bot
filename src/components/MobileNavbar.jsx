@@ -24,7 +24,6 @@ const MobileNavbar = ({ activeTab, onTabChange }) => {
                             {tab.icon}
                             {isActive && (
                                 <motion.div
-                                    layoutId="navIndicator"
                                     className={styles.indicator}
                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 />
