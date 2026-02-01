@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceArea, ReferenceLine } from 'recharts';
 
-const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice }) => {
+import React, { useMemo } from 'react';
+import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceArea, ReferenceLine } from 'recharts';
+
+const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice, forecast }) => {
     if (!candles || candles.length === 0) return null;
 
     // MEMOIZED: Transform candle data for recharts
@@ -34,11 +37,19 @@ const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice }) => {
         if (obZone) {
             prices.push(obZone.sl, obZone.tp);
         }
+        // [NEW] Include Forecast Ranges in Y-Axis Domain
+        if (forecast && forecast.points) {
+            forecast.points.forEach(p => {
+                if (p.upper2) prices.push(p.upper2);
+                if (p.lower2) prices.push(p.lower2);
+            });
+        }
+
         const min = Math.min(...prices);
         const max = Math.max(...prices);
         const pad = (max - min) * 0.1;
         return { minPrice: min, maxPrice: max, padding: pad };
-    }, [chartData, obZone]);
+    }, [chartData, obZone, forecast]);
 
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
@@ -124,6 +135,31 @@ const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice }) => {
                     <Bar dataKey="body" shape={<CustomCandleBody />} barSize={12} isAnimationActive={false} />
                     {emaData && emaData.length > 0 && (
                         <Line type="monotone" dataKey="ema" stroke="#F59E0B" strokeWidth={2} dot={false} strokeDasharray="4 4" isAnimationActive={false} />
+                    )}
+
+                    {/* ORACLE PREDICTION CHANNELS */}
+                    {forecast && forecast.points && (
+                        <>
+                            {/* 2 SD (Outer) - Dotted */}
+                            <Line data={forecast.points} dataKey="upper2" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="1 4" dot={false} isAnimationActive={false} strokeOpacity={0.4} />
+                            <Line data={forecast.points} dataKey="lower2" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="1 4" dot={false} isAnimationActive={false} strokeOpacity={0.4} />
+
+                            {/* 1 SD (Inner) - Dashed */}
+                            <Line data={forecast.points} dataKey="upper1" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} strokeOpacity={0.7} />
+                            <Line data={forecast.points} dataKey="lower1" stroke="#8B5CF6" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} strokeOpacity={0.7} />
+
+                            {/* Main Projection */}
+                            <Line
+                                data={forecast.points}
+                                dataKey="price"
+                                stroke="#8B5CF6"
+                                strokeWidth={2}
+                                strokeDasharray="3 3"
+                                dot={{ r: 3, fill: '#8B5CF6' }}
+                                isAnimationActive={false}
+                                name="Oracle Projection"
+                            />
+                        </>
                     )}
                 </ComposedChart>
             </ResponsiveContainer>

@@ -217,6 +217,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                     color={color}
                     obZone={data.obZone}
                     wallPrice={data.wallPrice}
+                    forecast={data.forecast}
                 />
             )}
 

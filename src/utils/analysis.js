@@ -569,3 +569,90 @@ export const getStrategyRecommendation = (candles) => {
         reason: `Volatilidad Baja (${atrPercent.toFixed(2)}%). Mejor buscar entradas precisas y pacientes con Swing.`
     };
 };
+
+/**
+ * PHASE 7: PREDICTIVE ENGINE (The Oracle)
+ * Uses Linear Regression to project the next N candles.
+ * @param {Array} candles - Price history
+ * @param {number} period - Number of past candles to analyze (default 50)
+ * @param {number} projection - Number of future candles to project (default 5)
+ */
+export const calculateForecast = (candles, period = 50, projection = 5) => {
+    if (!candles || candles.length < period) return null;
+
+    const slice = candles.slice(-period);
+    const n = slice.length;
+
+    // Prepare X (time index) and Y (close price)
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+    // Normalize prices to avoid huge numbers (relative to first candle of slice)
+    const baseTime = 0;
+
+    for (let i = 0; i < n; i++) {
+        const x = i;
+        const y = slice[i].close || parseFloat(slice[i][4]);
+
+        sumX += x;
+        sumY += y;
+        sumXY += (x * y);
+        sumXX += (x * x);
+    }
+
+    // Linear Regression Formulas
+    // Slope (m) = (n*sumXY - sumX*sumY) / (n*sumXX - sumX*sumX)
+    // Intercept (b) = (sumY - m*sumX) / n
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    // Calculate R-Squared (Confidence)
+    // SST = sum((y - avgY)^2), SSR = sum((predY - avgY)^2)
+    const avgY = sumY / n;
+    let ssTot = 0;
+    let ssRes = 0;
+
+    for (let i = 0; i < n; i++) {
+        const x = i;
+        const y = slice[i].close || parseFloat(slice[i][4]);
+        const predY = slope * x + intercept;
+        ssTot += Math.pow(y - avgY, 2);
+        ssRes += Math.pow(y - predY, 2);
+    }
+
+    const rSquared = 1 - (ssRes / ssTot);
+
+    // Calculate Standard Deviation (Volatility of Price around Regression Line)
+    const stdDev = Math.sqrt(ssRes / (n - 2)); // Unbiased estimator
+
+    // Generate Projection Points with Probability Channels
+    const forecastPoints = [];
+
+    // We want to draw the channels starting from the last known data point to visual continuity
+    const lastKnownX = n - 1;
+
+    for (let i = 0; i <= projection; i++) {
+        const x = lastKnownX + i;
+        const projectedPrice = slope * x + intercept;
+
+        forecastPoints.push({
+            index: x, // Relative index for chart extending
+            price: projectedPrice,
+            upper1: projectedPrice + (1 * stdDev),
+            lower1: projectedPrice - (1 * stdDev),
+            upper2: projectedPrice + (2 * stdDev),
+            lower2: projectedPrice - (2 * stdDev)
+        });
+    }
+
+    return {
+        slope,
+        intercept,
+        stdDev,
+        rSquared: rSquared.toFixed(2),
+        points: forecastPoints,
+        startPrice: slope * (n - 1) + intercept,
+        endPrice: slope * (n - 1 + projection) + intercept,
+        direction: slope > 0 ? 'UP' : 'DOWN'
+    };
+};
