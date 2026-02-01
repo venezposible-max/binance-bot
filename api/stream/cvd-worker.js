@@ -13,6 +13,7 @@ class CVDSniper {
         this.lastPrice = 0;
         this.activeTrades = []; // Track active Sniper positions
         this.lastTradeTime = 0; // Cooldown tracker
+        this.lastExitCheck = 0; // Throttling for exit checks
         this.COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
         // Strategy Parameters
@@ -28,7 +29,30 @@ class CVDSniper {
         this.isOpeningTrade = false; // Lock to prevent race conditions
 
         console.log('🔫 CVD SNIPER: Class Initialized');
-        this.connect();
+        this.loadState().then(() => {
+            this.connect();
+        });
+    }
+
+    async loadState() {
+        try {
+            const sniperTradesStr = await redis.get('sentinel_sniper_trades');
+            if (sniperTradesStr) {
+                this.activeTrades = JSON.parse(sniperTradesStr);
+                console.log(`🔫 SNIPER: Restored ${this.activeTrades.length} active trades from memory.`);
+            }
+            const cooldownStr = await redis.get('sentinel_sniper_cooldown');
+            if (cooldownStr) this.lastTradeTime = parseInt(cooldownStr);
+
+            // Also load Wallet Config for initial threshold
+            const configStr = await redis.get('sentinel_wallet_config');
+            if (configStr) {
+                const config = JSON.parse(configStr);
+                if (config.whaleThreshold) this.THRESHOLD = config.whaleThreshold;
+            }
+        } catch (e) {
+            console.error('Failed to load Sniper state:', e);
+        }
     }
 
     connect() {
@@ -74,8 +98,10 @@ class CVDSniper {
         this.lastPrice = price;
         this.stats.messages++;
 
-        // Check exits for active trades
-        if (this.activeTrades.length > 0) {
+        // Check exits for active trades (Throttled to 1s)
+        const now = Date.now();
+        if (this.activeTrades.length > 0 && now - this.lastExitCheck > 1000) {
+            this.lastExitCheck = now;
             this.checkExits(price);
         }
 
@@ -245,9 +271,9 @@ class CVDSniper {
     }
 
     async checkExits(currentPrice) {
-        // SYNC: Read current active sniper trades from Redis before checking
-        const sniperTradesStr = await redis.get('sentinel_sniper_trades');
-        this.activeTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+        // Optimized: NO Redis read here (we trust in-memory state which is sync'd on load/save)
+
+        // Monitor active trades for TP/SL
 
         // Monitor active trades for TP/SL
         for (let i = this.activeTrades.length - 1; i >= 0; i--) {
