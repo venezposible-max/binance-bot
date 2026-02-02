@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import crypto from 'crypto';
 import axios from 'axios';
 import querystring from 'querystring';

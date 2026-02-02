@@ -200,6 +200,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 if (!klines) continue;
                 const rsi = RSI.calculate({ values: klines.map(c => parseFloat(c[4])), period: 14 }).slice(-1)[0] || 50;
 
+                console.log(`.. [${mode}] 🔎 ANALYZING: ${symbol} | RSI: ${rsi.toFixed(2)}`);
+
                 // Extremely simple RSI Entry for this demo/re-engineering
                 if (rsi < 30) {
                     const capital = mode === 'LIVE' ? (wallet.allocatedCapital || 500) : wallet.currentBalance;
@@ -254,13 +256,25 @@ export default async function handler(req, res) {
         const activeModeUI = await redis.get('sentinel_active_mode') || 'SIMULATION';
         const manualOpps = req.method === 'POST' ? req.body?.opportunities : null;
 
-        // Run both in parallel
-        const [simResult, liveResult] = await Promise.all([
-            processMode('SIMULATION', marketPairs, marketCache, marketRegime, activeModeUI === 'SIMULATION' ? manualOpps : null),
-            processMode('LIVE', marketPairs, marketCache, marketRegime, activeModeUI === 'LIVE' ? manualOpps : null)
-        ]);
+        // Check for Credentials to decide if LIVE engine should run
+        const hasCredentials = !!process.env.BINANCE_API_KEY && !!process.env.BINANCE_API_SECRET;
 
-        console.log(`✅ DUAL ENGINE COMPLETE | SIM: ${simResult.activeCount} | LIVE: ${liveResult.activeCount}`);
+        // Run both in parallel (Skip LIVE if no keys)
+        const tasks = [
+            processMode('SIMULATION', marketPairs, marketCache, marketRegime, activeModeUI === 'SIMULATION' ? manualOpps : null)
+        ];
+
+        if (hasCredentials) {
+            tasks.push(processMode('LIVE', marketPairs, marketCache, marketRegime, activeModeUI === 'LIVE' ? manualOpps : null));
+        } else {
+            console.log('⚠️ [LIVE ENGINE] Skipped: Missing BINANCE_API_KEY/SECRET in environment.');
+        }
+
+        const results = await Promise.all(tasks);
+        const simResult = results[0];
+        const liveResult = hasCredentials ? results[1] : { mode: 'LIVE', activeCount: 0, alerts: [] };
+
+        console.log(`✅ DUAL ENGINE COMPLETE | SIM: ${simResult.activeCount} | LIVE: ${hasCredentials ? liveResult.activeCount : 'OFF'}`);
 
         // Return current UI mode results to frontend
         const uiResult = activeModeUI === 'LIVE' ? liveResult : simResult;
