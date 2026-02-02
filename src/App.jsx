@@ -580,24 +580,21 @@ function App() {
             </button>
 
             {/* TEST BUY BUTTON (User Request) */}
+            {/* TEST BUY BUTTON (Adaptive: Sim or Live) */}
             <button
               onClick={async () => {
-                if (confirm('⚠️ ¿EJECUTAR PRUEBA REAL?\n\n- Compra: $20 ETH\n- TP: +1%\n- SL: NO\n- Modo: REAL (LIVE)')) {
+                const isLive = tradingMode === 'LIVE';
+                const confirmationMsg = isLive
+                  ? '⚠️ ¿EJECUTAR PRUEBA REAL?\n\n- Compra: $20 ETH\n- TP: +1%\n- SL: NO\n- Modo: REAL (LIVE)'
+                  : '🧪 ¿EJECUTAR PRUEBA SIMULADA?\n\n- Compra: $20 ETH (Virtual)\n- TP: +1%\n- SL: NO\n- Modo: SIMULACIÓN';
+
+                if (confirm(confirmationMsg)) {
                   const symbol = 'ETHUSDT';
                   const data = marketData[symbol];
                   if (!data || !data.price) return alert('Datos de ETH no disponibles. Espera un momento.');
 
                   const price = data.price;
                   const takeProfit = price * 1.01; // +1%
-
-                  // Force LIVE mode for this test regardless of UI toggle? 
-                  // User asked for "prueba en real". The backend uses 'mode' from body or state.
-                  // The handleManualAction uses data to create the trade.
-                  // But `manual-trade.js` reads active mode from Redis! 
-                  // To ensure it executes in LIVE, the system MUST be in LIVE mode.
-                  if (tradingMode !== 'LIVE') {
-                    return alert('❌ EL BOT DEBE ESTAR EN MODO "REAL" PARA ESTA PRUEBA.');
-                  }
 
                   await handleManualAction('OPEN', {
                     symbol,
@@ -607,13 +604,18 @@ function App() {
                     takeProfit,
                     stopLoss: null, // Sin SL
                     strategy: 'TEST_USER',
-                    mode: 'LIVE'
+                    mode: tradingMode // Respect Current Mode
                   });
-                  alert(`✅ ORDEN ENVIADA\nComprando $20 de ETH a $${price.toFixed(2)}`);
+
+                  const successMsg = isLive
+                    ? `✅ ORDEN REAL ENVIADA\nComprando $20 de ETH a $${price.toFixed(2)}`
+                    : `✅ ORDEN SIMULADA ENVIADA\nComprando $20 (Virtual) de ETH a $${price.toFixed(2)}`;
+
+                  alert(successMsg);
                 }
               }}
               style={{
-                background: '#EF4444', // Red for caution
+                background: tradingMode === 'LIVE' ? '#EF4444' : '#3B82F6', // Red for Live, Blue for Sim
                 color: '#FFF',
                 border: 'none',
                 borderRadius: '4px',
@@ -624,7 +626,7 @@ function App() {
                 marginLeft: '10px'
               }}
             >
-              🧪 TEST BUY ETH ($20)
+              {tradingMode === 'LIVE' ? '🧪 TEST BUY ETH (REAL)' : '🧪 TEST BUY ETH (SIM)'}
             </button>
           </div>
 
