@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import redis from './src/utils/redisClient.js';
 
 async function clearLive() {
