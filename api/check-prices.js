@@ -253,13 +253,21 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             console.log(`.. [${mode}] 👁️ MON: ${symbol} | PnL: ${pnl.toFixed(2)}% | SL: -${(wallet.stopLoss || 3.0)}%`);
 
             let isExit = false;
-            const effectiveSL = wallet.stopLoss || 3.0;
+            // PRIORITY: Specific Trade Settings > Global Wallet Settings > Default
+            const effectiveSL = trade.stopLoss || wallet.stopLoss || 3.0;
+            const effectiveTP = trade.takeProfit || wallet.takeProfit || 1.5;
+
+            // Log dynamic targets for debugging
+            // console.log(`   Targets for ${symbol}: TP +${effectiveTP}% | SL -${effectiveSL}%`);
 
             if (pnl <= -effectiveSL) {
-                console.log(`[${mode}] 🛑 STOP LOSS TRIGGERED for ${symbol} @ ${pnl.toFixed(2)}%`);
+                console.log(`[${mode}] 🛑 STOP LOSS TRIGGERED for ${symbol} @ ${pnl.toFixed(2)}% (Target: -${effectiveSL}%)`);
                 isExit = true;
             }
-            if (pnl >= (wallet.takeProfit || 1.5)) isExit = true;
+            if (pnl >= effectiveTP) {
+                console.log(`[${mode}] 🎯 TAKE PROFIT TRIGGERED for ${symbol} @ ${pnl.toFixed(2)}% (Target: +${effectiveTP}%)`);
+                isExit = true;
+            }
 
             if (isExit) {
                 const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
