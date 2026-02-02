@@ -112,7 +112,7 @@ class CVDSniper {
                 const stratConfig = configLive.strategyConfig || {};
                 const isSniperActive = stratConfig.SNIPER?.active;
 
-                if (isSniperActive && delta > (configLive.whaleThreshold || 150000)) {
+                if (isSniperActive && delta > (configLive.whaleThreshold || 5000)) {
                     await this.executeModeTrade(price, delta, configLive, 'LIVE');
                 }
             }
@@ -122,7 +122,7 @@ class CVDSniper {
                 const stratConfig = configSim.strategyConfig || {};
                 const isSniperActive = stratConfig.SNIPER?.active;
 
-                if (isSniperActive && delta > (configSim.whaleThreshold || 150000)) {
+                if (isSniperActive && delta > (configSim.whaleThreshold || 5000)) {
                     await this.executeModeTrade(price, delta, configSim, 'SIMULATION');
                 }
             }
