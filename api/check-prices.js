@@ -172,11 +172,9 @@ export default async function handler(req, res) {
         let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
 
-        // Ensure strategyConfig has a safe fallback even if wallet exists but is old
-        const hasActiveStrategy = wallet.strategyConfig && Object.values(wallet.strategyConfig).some(s => s.active);
-
-        if (!wallet.strategyConfig || !hasActiveStrategy) {
-            console.log("⚠️ No active strategies found in config. Applying emergency defaults.");
+        // Ensure strategyConfig has a safe fallback ONLY if completely missing
+        if (!wallet.strategyConfig) {
+            console.log("⚠️ No strategyConfig found. Applying initial defaults.");
             wallet.strategyConfig = {
                 SNIPER: { active: true },
                 HYBRID_SWING: { active: true },
