@@ -667,14 +667,29 @@ function App() {
                           {/* TARGETS (TP/SL) VISUALIZATION */}
                           {(() => {
                             // 1. STOP LOSS LOGIC
-                            let slPrice = t.stopLoss || t.dynamicSL || null;
+                            // FIX: Respect Global "No Stop Loss" Setting
+                            // Only show SL if Global Switch is ON or if it's a Manual Trade with explicit SL
+                            const canShowSL = walletConfig.useStopLoss || (t.isManual && t.stopLoss);
+
+                            let slPrice = null;
                             let slDist = 0;
+
+                            if (canShowSL) {
+                              if (t.stopLoss || t.dynamicSL) {
+                                slPrice = t.stopLoss || t.dynamicSL;
+                              } else {
+                                // Default Global SL
+                                const dist = walletConfig.stopLoss || 3.0;
+                                slDist = -dist;
+                                slPrice = t.entryPrice * (1 + (slDist / 100));
+                              }
+                            } else {
+                              // Force Null if disabled globally and not manual
+                              slPrice = null;
+                            }
 
                             if (slPrice) {
                               slDist = ((slPrice - t.entryPrice) / t.entryPrice) * 100;
-                            } else if (walletConfig.useStopLoss) {
-                              slDist = -(walletConfig.stopLoss || 3.0);
-                              slPrice = t.entryPrice * (1 + (slDist / 100));
                             }
 
                             // 2. TAKE PROFIT LOGIC
