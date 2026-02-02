@@ -120,12 +120,16 @@ class CVDSniper {
 
             // CHECK LIVE TRIGGER
             if (configLive && configLive.isBotActive) {
-                // Check strategy is specifically SNIPER enabled
                 const stratConfig = configLive.strategyConfig || {};
                 const isSniperActive = stratConfig.SNIPER?.active;
+                const threshold = configLive.whaleThreshold || 5000;
 
-                if (isSniperActive && delta > (configLive.whaleThreshold || 5000)) {
-                    await this.executeModeTrade(price, delta, configLive, 'LIVE');
+                if (isSniperActive) {
+                    if (delta > threshold) {
+                        await this.executeModeTrade(price, delta, configLive, 'LIVE');
+                    } else if (delta > 2000) { // Log significant movements that were ignored
+                        console.log(`👀 [LIVE] WHALE IGNORED: $${Math.round(delta)} < Threshold ($${threshold})`);
+                    }
                 }
             }
 
@@ -133,9 +137,12 @@ class CVDSniper {
             if (configSim && configSim.isBotActive) {
                 const stratConfig = configSim.strategyConfig || {};
                 const isSniperActive = stratConfig.SNIPER?.active;
+                const threshold = configSim.whaleThreshold || 5000;
 
-                if (isSniperActive && delta > (configSim.whaleThreshold || 5000)) {
-                    await this.executeModeTrade(price, delta, configSim, 'SIMULATION');
+                if (isSniperActive) {
+                    if (delta > threshold) {
+                        await this.executeModeTrade(price, delta, configSim, 'SIMULATION');
+                    }
                 }
             }
 
