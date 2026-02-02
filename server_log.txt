@@ -19,64 +19,26 @@ CWD: /Users/franklincolina/.gemini/antigravity/scratch/binance
 ============================================================
 📡 MARKET WORKER: Connected to BTCUSDT WebSocket
 🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...
-📡 MARKET WORKER: Connected to ETHUSDT WebSocket
 📡 MARKET WORKER: Connected to SOLUSDT WebSocket
-📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
+📡 MARKET WORKER: Connected to ETHUSDT WebSocket
 📡 MARKET WORKER: Connected to XRPUSDT WebSocket
+📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
 📡 MARKET WORKER: Connected to ADAUSDT WebSocket
-📡 MARKET WORKER: Connected to TRXUSDT WebSocket
 📡 MARKET WORKER: Connected to AVAXUSDT WebSocket
-📡 MARKET WORKER: Connected to LINKUSDT WebSocket
+📡 MARKET WORKER: Connected to TRXUSDT WebSocket
 📡 MARKET WORKER: Connected to BNBUSDT WebSocket
+📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 
-⏳ [2026-02-02T03:23:20.293Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
+⏳ [2026-02-02T03:29:43.273Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
 🚀 [DUAL ENGINE] check-prices START
-🐳 WHALE ALERT: BUY POWER: $166822 @ 75099.95
-⚠️ Sniper: No wallet config found
 ⚠️ [LIVE ENGINE] Skipped: Missing BINANCE_API_KEY/SECRET in environment.
 [SIMULATION] 💼 Config: SNIPER, HYBRID_SWING | Active: 0
-.. [SIMULATION] 🔎 ANALYZING: ETHUSDT | RSI: 14.85
-🧪 SIMULATED ORDER: BUY 0.0458 ETHUSDT @ $2179.895
-.. [SIMULATION] 🔎 ANALYZING: BTCUSDT | RSI: 19.65
-🧪 SIMULATED ORDER: BUY 0.00119 BTCUSDT @ $75121.375
-🐳 WHALE ALERT: BUY POWER: $248868 @ 75165
-⚠️ Sniper: No wallet config found
-.. [SIMULATION] 🔎 ANALYZING: XRPUSDT | RSI: 25.43
-🧪 SIMULATED ORDER: BUY 52.7 XRPUSDT @ $1.5366499999999998
-✅ DUAL ENGINE COMPLETE | SIM: 3 | LIVE: OFF
-✅ SCAN COMPLETE: 3 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-✨ [TRADER ORACLE] New Alpha Found: Zen_Trader (Score: 20.3)
-
-⏳ [2026-02-02T03:23:47.259Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-⚠️ [LIVE ENGINE] Skipped: Missing BINANCE_API_KEY/SECRET in environment.
-[SIMULATION] 💼 Config: SNIPER, HYBRID_SWING | Active: 3
-[SIMULATION] 🛡️ Max trades reached (3).
-✅ DUAL ENGINE COMPLETE | SIM: 3 | LIVE: OFF
-✅ SCAN COMPLETE: 3 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-✨ [TRADER ORACLE] New Alpha Found: Zen_Trader (Score: 20.3)
-🐳 WHALE ALERT: BUY POWER: $325728 @ 75264
-⚠️ Sniper: No wallet config found
-🐳 WHALE ALERT: BUY POWER: $407216 @ 75315.6
-⚠️ Sniper: No wallet config found
-
-⏳ [2026-02-02T03:24:17.267Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-⚠️ [LIVE ENGINE] Skipped: Missing BINANCE_API_KEY/SECRET in environment.
-[SIMULATION] 💼 Config: SNIPER, HYBRID_SWING | Active: 3
-[SIMULATION] 🛡️ Max trades reached (3).
-✅ DUAL ENGINE COMPLETE | SIM: 3 | LIVE: OFF
-✅ SCAN COMPLETE: 3 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-✨ [TRADER ORACLE] New Alpha Found: Zen_Trader (Score: 20.3)
-
-⏳ [2026-02-02T03:24:47.265Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-⚠️ [LIVE ENGINE] Skipped: Missing BINANCE_API_KEY/SECRET in environment.
-[SIMULATION] 💼 Config: SNIPER, HYBRID_SWING | Active: 3
-[SIMULATION] 🛡️ Max trades reached (3).
+.. [SIMULATION] 🔎 ANALYZING: ETHUSDT | RSI: 14.72
+🧪 SIMULATED ORDER: BUY 0.0459 ETHUSDT @ $2175.005
+.. [SIMULATION] 🔎 ANALYZING: BTCUSDT | RSI: 19.66
+🧪 SIMULATED ORDER: BUY 0.00119 BTCUSDT @ $75168.095
+.. [SIMULATION] 🔎 ANALYZING: XRPUSDT | RSI: 25.31
+🧪 SIMULATED ORDER: BUY 52.6 XRPUSDT @ $1.53675
 ✅ DUAL ENGINE COMPLETE | SIM: 3 | LIVE: OFF
 ✅ SCAN COMPLETE: 3 Active Trades | 0 New Alerts
 🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...

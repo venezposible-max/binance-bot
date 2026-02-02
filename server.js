@@ -31,6 +31,7 @@ import candles from './api/candles.js'; // Chart Data Proxy
 import ticker from './api/ticker.js'; // Real-time Price Proxy
 import walletBalance from './api/wallet/balance.js';
 import activeMode from './api/wallet/active-mode.js'; // New
+import traderOracle from './api/wallet/trader-oracle.js'; // New
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -67,6 +68,7 @@ app.post('/api/wallet/config', vercelAdapter(walletConfig));
 app.get('/api/wallet/balance', vercelAdapter(walletBalance));
 app.get('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 app.post('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
+app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle)); // New
 
 // CVD SNIPER SERVICE (Singleton)
 import cvdSniper from './api/stream/cvd-worker.js';
