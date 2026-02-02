@@ -84,7 +84,7 @@ async function fetchGlobalKlines(symbol, interval, limit = 250) {
 
 // --- ⚡ CORE ENGINE (Process a Single Mode: LIVE or SIMULATION) ---
 async function processMode(mode, marketPairs, marketCache, marketRegime, manualOpportunities = null) {
-    console.warn(`🐛 DEBUG: STARTING processMode(${mode})`); // DEBUG
+    // console.warn(`🐛 DEBUG: STARTING processMode(${mode})`); // REMOVED DEBUG
     const suffix = mode === 'LIVE' ? '_real' : '_sim';
     const configKey = mode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
     const activeKey = `sentinel_active_trades${suffix}`;
@@ -94,7 +94,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     let winHistoryStr = await redis.get(historyKey);
     let walletConfigStr = await redis.get(configKey);
 
-    console.warn(`🐛 DEBUG: REDIS FETCHED for ${mode}`); // DEBUG
+    // console.warn(`🐛 DEBUG: REDIS FETCHED for ${mode}`); // REMOVED DEBUG
 
     let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
     let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
@@ -104,7 +104,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         strategyConfig: { SNIPER: { active: true }, HYBRID_SWING: { active: true } }
     };
 
-    console.log(`[${mode}] 💼 Config Loaded. Active Trades: ${activeTrades.length}`);
+    const currentStrategy = wallet.strategy || 'SWING';
+    const activeColor = mode === 'LIVE' ? '🔴' : '🔵';
+    console.log(`${activeColor} [${mode}] STRATEGY: ${currentStrategy} | Active: ${activeTrades.length} | Balance: $${wallet.currentBalance.toFixed(0)}`);
 
     // --- CRITICAL: Live Position Sync (Auto Discovery) ---
     if (mode === 'LIVE' && activeTrades.length === 0) {
@@ -291,8 +293,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                             const signal = result.prediction?.signal;
                             const intensity = result.prediction?.intensity || 0;
 
-                            // LOG SCAN RESULT (Proof of life)
-                            console.log(`🔍 [${mode}] SCAN: ${symbol} (${interval}) ➡ ${signal} (${intensity}%)`);
+                            // LOG SCAN RESULT (Clean Format)
+                            const emoji = signal.includes('BUY') ? '🟢' : (signal.includes('SELL') ? '🔴' : '⚪');
+                            console.log(`   > ${symbol} (${interval}): ${emoji} ${signal} (${intensity}%)`);
 
                             // LOGIC: ONLY ENTER ON "STRONG_BUY" OR HIGH INTENSITY
                             if (signal === 'STRONG_BUY' || (signal === 'BUY' && intensity >= 80)) {

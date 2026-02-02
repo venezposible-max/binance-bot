@@ -32,6 +32,13 @@ class CVDSniper {
         this.loadState().then(() => {
             this.connect();
         });
+
+        // HEARTBEAT LOG (User Request)
+        setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                console.log(`🔫 [SNIPER] Scanning BTCUSDT (CVD) | Active Trades: ${this.activeTrades.length} | Waiting for Whales...`);
+            }
+        }, 60000); // Every 1 minute
     }
 
     async loadState() {
