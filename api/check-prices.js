@@ -357,38 +357,16 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                             const buyPrice = pd?.price;
                             if (!buyPrice) continue;
 
-                            let executionPrice = buyPrice;
-                            let executedQty = amountToInvest / buyPrice;
-                            let actualSpent = amountToInvest;
-                            let success = true;
-
-                            if (mode === 'LIVE') {
-                                const order = await binanceClient.executeOrder(symbol, 'BUY', amountToInvest, buyPrice, 'MARKET', true);
-                                executedQty = parseFloat(order.executedQty);
-                                actualSpent = parseFloat(order.cummulativeQuoteQty);
-                                executionPrice = actualSpent / executedQty;
-                            } else {
-                                wallet.currentBalance -= (amountToInvest * 1.001);
-                            }
-
-                            if (success) {
-                                const newTrade = {
-                                    id: uuidv4(),
-                                    symbol: symbol,
-                                    entryPrice: executionPrice,
-                                    investedAmount: actualSpent,
-                                    quantity: executedQty,
-                                    type: 'LONG',
-                                    timestamp: new Date().toISOString(),
-                                    strategy: strat,
-                                    mode: mode,
-                                    isManual: false,
-                                    takeProfit: result.obZone?.tp || null,
-                                    stopLoss: result.obZone?.sl || null
-                                };
-                                await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 **${symbol}**\n🔧 Strat: ${strat}\n💰 Entry: $${executionPrice.toFixed(4)}`);
-                                return newTrade;
-                            }
+                            // 🛡️ RACE CONDITION FIX: DO NOT EXECUTE HERE
+                            // Just return the candidate signal. Execution happens sequentially below.
+                            return {
+                                symbol: symbol,
+                                signal: signal,
+                                intensity: intensity,
+                                price: buyPrice,
+                                strategy: strat,
+                                obZone: result.obZone
+                            };
                         }
                     }
                 }
@@ -403,10 +381,64 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     // CONSTRUCT FINAL STATE (Preserving Const Reference)
     const finalList = [...keptTrades, ...manualAddedTrades];
 
-    // Add new found trades safely (checking maxTrades again just in case)
-    for (const t of newFoundTrades) {
+    // 3. SEQUENTIAL EXECUTION OF CANDIDATES (Prevents Race Condition)
+    // Filter out nulls
+    const validCandidates = found.filter(c => c !== null);
+
+    // Sort by intensity (Prioritize best signals)
+    validCandidates.sort((a, b) => b.intensity - a.intensity);
+
+    for (const cand of validCandidates) {
+        // DOUBLE CHECK LIMIT (The critical fix)
+        // We re-calculate current count including the ones we JUST added in this loop.
         if (finalList.length < maxTrades) {
-            finalList.push(t);
+            const risk = wallet.riskPercentage || 10;
+            const balance = wallet.currentBalance || 0;
+            const amountToInvest = (balance * (risk / 100));
+
+            // Re-verify Price (Micro-slippage check)
+            // Not strictly necessary for market orders but good practice.
+            // We use the price from scan timestamp.
+            const buyPrice = cand.price;
+
+            let executionPrice = buyPrice;
+            let executedQty = amountToInvest / buyPrice;
+            let actualSpent = amountToInvest;
+
+            try {
+                if (mode === 'LIVE') {
+                    const order = await binanceClient.executeOrder(cand.symbol, 'BUY', amountToInvest, buyPrice, 'MARKET', true);
+                    executedQty = parseFloat(order.executedQty);
+                    actualSpent = parseFloat(order.cummulativeQuoteQty);
+                    executionPrice = actualSpent / executedQty;
+                } else {
+                    wallet.currentBalance -= (amountToInvest * 1.001);
+                }
+
+                const newTrade = {
+                    id: uuidv4(),
+                    symbol: cand.symbol,
+                    entryPrice: executionPrice,
+                    investedAmount: actualSpent,
+                    quantity: executedQty,
+                    type: 'LONG',
+                    timestamp: new Date().toISOString(),
+                    strategy: cand.strategy,
+                    mode: mode,
+                    isManual: false,
+                    takeProfit: cand.obZone?.tp || null,
+                    stopLoss: cand.obZone?.sl || null
+                };
+
+                finalList.push(newTrade);
+                await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 **${cand.symbol}**\n🔧 Strat: ${cand.strategy}\n💰 Entry: $${executionPrice.toFixed(4)}`);
+                console.log(`[${mode}] ✅ Executed ${cand.symbol} (${cand.intensity}%)`);
+
+            } catch (execErr) {
+                console.error(`[${mode}] ❌ Execution Failed for ${cand.symbol}:`, execErr.message);
+            }
+        } else {
+            console.log(`[${mode}] ⏸️ Quota Full (${maxTrades}). Skipped ${cand.symbol}.`);
         }
     }
 
