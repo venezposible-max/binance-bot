@@ -168,14 +168,16 @@ export default async function handler(req, res) {
         // 🛡️ PHASE 3: PORTFOLIO GUARDRAILS
         // activeTrades and winHistory are already loaded at top
 
-        // Ensure strategyConfig has a safe fallback ONLY if completely missing
-        if (!wallet.strategyConfig) {
-            console.log("⚠️ No strategyConfig found. Applying initial defaults.");
+        // Ensure strategyConfig has a safe fallback if missing OR all disabled
+        const hasActive = Object.values(wallet.strategyConfig || {}).some(s => s.active);
+        if (!wallet.strategyConfig || !hasActive) {
+            console.log("⚠️ No active strategies found. Enforcing defaults.");
             wallet.strategyConfig = {
                 SNIPER: { active: true },
                 HYBRID_SWING: { active: true },
                 HYBRID_BLITZ: { active: false }
             };
+            wallet.isBotActive = true;
         }
 
         console.log(`💼 Current Wallet Config [${activeMode}]:`, JSON.stringify({
