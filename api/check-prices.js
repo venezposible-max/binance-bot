@@ -109,13 +109,25 @@ export default async function handler(req, res) {
 
         // 🚀 PHASE 0: Fetch Active Mode and Mode-Specific Config
         const activeMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        const suffix = activeMode === 'LIVE' ? '_real' : '_sim';
         const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+        const activeKey = `sentinel_active_trades${suffix}`;
+        const historyKey = `sentinel_win_history${suffix}`;
+        const sniperKey = `sentinel_sniper_trades${suffix}`;
 
         console.log(`🤖 Sentinel Bot Waking Up... [MODE: ${activeMode}] [REGION: ${REGION}]`);
 
-        let activeTradesStr = await redis.get('sentinel_active_trades');
-        let winHistoryStr = await redis.get('sentinel_win_history');
+        let activeTradesStr = await redis.get(activeKey);
+        let winHistoryStr = await redis.get(historyKey);
         let walletConfigStr = await redis.get(configKey);
+
+        // FALLBACK: Migration
+        if (activeMode === 'SIMULATION' && !activeTradesStr) {
+            const oldActive = await redis.get('sentinel_active_trades');
+            if (oldActive) activeTradesStr = oldActive;
+            const oldHistory = await redis.get('sentinel_win_history');
+            if (oldHistory) winHistoryStr = oldHistory;
+        }
 
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
@@ -671,8 +683,16 @@ export default async function handler(req, res) {
 
         // --- SAFE SYNC LOGIC (Prevents Zombie Trades) ---
         // 1. Re-fetch current state from Redis to see if user closed trades manually
-        const finalActiveStr = await redis.get('sentinel_active_trades');
+        const finalActiveStr = await redis.get(activeKey);
         let freshActiveTrades = finalActiveStr ? JSON.parse(finalActiveStr) : [];
+
+        // 5. SNIPER ENGINE SYNC
+        let sniperTradesStr = await redis.get(sniperKey);
+        if (activeMode === 'SIMULATION' && !sniperTradesStr) {
+            const oldSniper = await redis.get('sentinel_sniper_trades');
+            if (oldSniper) sniperTradesStr = oldSniper;
+        }
+        let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
 
         // 2. Identify trades we closed in THIS process
         const initialIds = activeTrades.map(t => t.id);
@@ -691,14 +711,16 @@ export default async function handler(req, res) {
         }
 
         // 4. Final Save
-        await redis.set('sentinel_active_trades', JSON.stringify(finalSaveList));
+        await redis.set(activeKey, JSON.stringify(finalSaveList));
         await redis.set(configKey, JSON.stringify(wallet));
+        await redis.set(historyKey, JSON.stringify(winHistory)); // PERSIST HISTORY TO MODE-SPECIFIC KEY
+        await redis.set(sniperKey, JSON.stringify(sniperTrades)); // PERSIST SNIPER TO MODE-SPECIFIC KEY
 
         if (newWins.length > 0) {
-            const currentHistoryStr = await redis.get('sentinel_win_history');
+            const currentHistoryStr = await redis.get(historyKey);
             const currentHistory = currentHistoryStr ? JSON.parse(currentHistoryStr) : [];
             const updatedHistory = [...newWins, ...currentHistory].slice(0, 50);
-            await redis.set('sentinel_win_history', JSON.stringify(updatedHistory));
+            await redis.set(historyKey, JSON.stringify(updatedHistory));
         }
 
         res.status(200).json({

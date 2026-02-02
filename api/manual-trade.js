@@ -13,15 +13,31 @@ export default async function handler(req, res) {
     try {
         // 1. Load Data
         const activeMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        const suffix = activeMode === 'LIVE' ? '_real' : '_sim';
         const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+        const activeKey = `sentinel_active_trades${suffix}`;
+        const historyKey = `sentinel_win_history${suffix}`;
+        const sniperKey = `sentinel_sniper_trades${suffix}`;
 
-        let activeTradesStr = await redis.get('sentinel_active_trades');
-        let sniperTradesStr = await redis.get('sentinel_sniper_trades');
+        let activeTradesStr = await redis.get(activeKey);
+        let winHistoryStr = await redis.get(historyKey);
         let walletConfigStr = await redis.get(configKey);
+        let sniperTradesStr = await redis.get(sniperKey);
 
-        let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-        let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
-        let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
+        // Migration Fallback
+        if (activeMode === 'SIMULATION' && !activeTradesStr) {
+            const oldActive = await redis.get('sentinel_active_trades');
+            if (oldActive) activeTradesStr = oldActive;
+            const oldHistory = await redis.get('sentinel_win_history');
+            if (oldHistory) winHistoryStr = oldHistory;
+            const oldSniper = await redis.get('sentinel_sniper_trades');
+            if (oldSniper) sniperTradesStr = oldSniper;
+        }
+
+        const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+        const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+        const sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+        const wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
             currentBalance: 1000,
             riskPercentage: 10,
@@ -62,6 +78,9 @@ export default async function handler(req, res) {
                 const pnl = ((takeProfit - price) / price) * 100;
                 targetMsg = `\n🎯 **Objetivo (ATR):** $${takeProfit.toFixed(4)} (+${pnl.toFixed(2)}%)`;
             }
+
+            await redis.set(activeKey, JSON.stringify(activeTrades));
+            await redis.set(configKey, JSON.stringify(wallet));
 
             await sendRawTelegram(`👆 **MANUAL ENTRY** ✍️\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 **Inversión:** $${investedAmount.toFixed(2)}\n📉 Fee: -$${openFee.toFixed(3)}${targetMsg}`);
 
@@ -143,25 +162,25 @@ export default async function handler(req, res) {
 
                     // Keep last 50
                     winHistory = winHistory.slice(0, 50);
-                    await redis.set('sentinel_win_history', JSON.stringify(winHistory));
+                    await redis.set(historyKey, JSON.stringify(winHistory));
                 }
 
                 // Remove from correct array
                 if (isSniper) {
                     sniperTrades.splice(tradeIndex, 1);
-                    await redis.set('sentinel_sniper_trades', JSON.stringify(sniperTrades));
+                    await redis.set(sniperKey, JSON.stringify(sniperTrades));
 
                     // Activate cooldown to prevent immediate reopening
                     await redis.set('sentinel_sniper_cooldown', Date.now().toString());
                     console.log('🔫 Sniper cooldown activated (manual close)');
                 } else {
                     activeTrades.splice(tradeIndex, 1);
-                    await redis.set('sentinel_active_trades', JSON.stringify(activeTrades));
+                    await redis.set(activeKey, JSON.stringify(activeTrades));
                 }
             }
 
         } else if (action === 'CLEAR_HISTORY') {
-            await redis.set('sentinel_win_history', JSON.stringify([]));
+            await redis.set(historyKey, JSON.stringify([]));
             return res.status(200).json({ success: true, history: [] });
         }
 
