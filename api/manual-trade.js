@@ -45,18 +45,16 @@ export default async function handler(req, res) {
         };
 
         if (action === 'OPEN') {
-            // Calculate Position Size (Priority to Fixed Amount)
+            const { takeProfit, stopLoss } = req.body;
             const risk = wallet.riskPercentage || 10;
             const investedAmount = req.body.amount || (wallet.currentBalance * (risk / 100));
-
-            // Fee Logic (Maker/Taker 0.1%)
             const openFee = investedAmount * 0.001;
-
-            // --- LIVE EXECUTION 💸 ---
             const isLive = activeMode === 'LIVE';
+
             let executionPrice = price;
             let orderId = `SIM_${Date.now()}`;
             let executedQty = investedAmount / price;
+            let actualSpentUsd = investedAmount;
 
             if (isLive) {
                 console.log(`💸 EXECUTING LIVE MANUAL BUY: ${symbol} for $${investedAmount.toFixed(2)}`);
@@ -64,26 +62,25 @@ export default async function handler(req, res) {
                     const order = await binanceClient.executeOrder(symbol, 'BUY', investedAmount, price, 'MARKET', true);
                     orderId = order.orderId;
                     executedQty = parseFloat(order.executedQty);
-                    executionPrice = parseFloat(order.cummulativeQuoteQty) / executedQty || price;
+                    actualSpentUsd = parseFloat(order.cummulativeQuoteQty) || investedAmount;
+                    executionPrice = actualSpentUsd / executedQty || price;
                 } catch (err) {
                     console.error('🚨 LIVE MANUAL BUY FAILED:', err.message);
                     throw new Error(`Binance Error: ${err.message}`);
                 }
+            } else {
+                // Simulation: Deduct from virtual balance
+                wallet.currentBalance -= (investedAmount + openFee);
             }
-
-            // Deduct from Balance (Investment + Fee)
-            wallet.currentBalance -= (investedAmount + openFee);
-
-            const { takeProfit, stopLoss } = req.body;
 
             const newTrade = {
                 id: uuidv4(),
                 symbol,
                 entryPrice: executionPrice,
-                type, // 'LONG' or 'SHORT'
+                type: type || 'LONG',
                 timestamp: new Date().toISOString(),
                 isManual: true,
-                investedAmount: investedAmount, // Track investment
+                investedAmount: actualSpentUsd,
                 quantity: executedQty,
                 strategy: strategy || 'SWING',
                 takeProfit,
@@ -103,119 +100,122 @@ export default async function handler(req, res) {
             await redis.set(activeKey, JSON.stringify(activeTrades));
             await redis.set(configKey, JSON.stringify(wallet));
 
-            await sendRawTelegram(`👆 **MANUAL ENTRY** ✍️\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 **Inversión:** $${investedAmount.toFixed(2)}\n📉 Fee: -$${openFee.toFixed(3)}${targetMsg}`);
+            const telegramHeader = isLive ? `👆 **LIVE MANUAL ENTRY** ✅` : `👆 **MANUAL ENTRY** ✍️`;
+            const feesMsg = isLive ? "" : `\n📉 Fee: -$${openFee.toFixed(3)}`;
 
-        } else if (action === 'CLOSE') {
-            // Check both regular and Sniper trades
-            let tradeIndex = activeTrades.findIndex(t => t.id === id);
-            let isSniper = false;
-            let trade = null;
+            await sendRawTelegram(`${telegramHeader}\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type || 'LONG'}\n💰 Precio: $${executionPrice.toFixed(4)}\n💸 **Inversión:** $${actualSpentUsd.toFixed(2)}${feesMsg}${targetMsg}`);
 
-            if (tradeIndex !== -1) {
-                trade = activeTrades[tradeIndex];
-            } else {
-                tradeIndex = sniperTrades.findIndex(t => t.id === id);
-                if (tradeIndex !== -1) {
-                    trade = sniperTrades[tradeIndex];
-                    isSniper = true;
-                }
-            }
-
-            if (trade) {
-                // --- CRITICAL: Execute Real Sell if LIVE ---
-                const isLive = trade.mode === 'LIVE';
-                if (isLive) {
-                    console.log(`💸 Manual Close for LIVE trade: Selling ${trade.symbol} on Binance...`);
-                    try {
-                        // Use quantity if available, else calculate from invested
-                        const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
-                        await binanceClient.executeOrder(trade.symbol, 'SELL', qty, exitPrice || trade.entryPrice, 'MARKET', true);
-                        console.log('✅ Real SELL executed for manual closure');
-                    } catch (err) {
-                        console.error('❌ FAILED to sell live trade on Binance:', err.message);
-                        // We still continue to remove from UI to avoid stuck state, but user is alerted via console
-                    }
-                }
-
-                // Calculate PnL if exitPrice is provided
-                if (exitPrice && trade.investedAmount) {
-                    let pnlPercent = 0;
-                    if (trade.type === 'SHORT') {
-                        pnlPercent = ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100;
-                    } else {
-                        pnlPercent = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
-                    }
-
-                    const profitValue = trade.investedAmount * (pnlPercent / 100);
-                    const grossReturn = trade.investedAmount + profitValue;
-
-                    // Fee Logic (Exit 0.1%)
-                    const closeFee = grossReturn * 0.001;
-                    const netReturn = grossReturn - closeFee;
-
-                    // Credit to Wallet
-                    wallet.currentBalance += netReturn;
-
-                    console.log(`💰 Wallet Credit: Returned $${netReturn.toFixed(2)} (Fees: $${closeFee.toFixed(3)})`);
-
-                    // Calculate NET PnL % (Real ROI)
-                    // We assume 0.1% entry fee was paid.
-                    const estimatedOpenFee = trade.investedAmount * 0.001;
-                    const netProfit = netReturn - trade.investedAmount - estimatedOpenFee;
-                    const netPnlPercent = (netProfit / trade.investedAmount) * 100;
-
-                    // Add to History (So user can see it)
-                    let winHistoryStr = await redis.get('sentinel_win_history');
-                    let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
-
-                    winHistory.unshift({
-                        symbol: trade.symbol,
-                        pnl: netPnlPercent, // Storing NET PnL now
-                        profitUsd: netProfit, // Storing NET Profit ($)
-                        type: trade.type,
-                        strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
-                        timestamp: new Date().toISOString(),
-                        entryPrice: trade.entryPrice,
-                        exitPrice: exitPrice || trade.entryPrice,
-                        investedAmount: trade.investedAmount, // Critical for Value Amount display
-                        isManual: true
-                    });
-
-                    // Keep last 50
-                    winHistory = winHistory.slice(0, 50);
-                    await redis.set(historyKey, JSON.stringify(winHistory));
-                }
-
-                // Remove from correct array
-                if (isSniper) {
-                    sniperTrades.splice(tradeIndex, 1);
-                    await redis.set(sniperKey, JSON.stringify(sniperTrades));
-
-                    // Activate cooldown to prevent immediate reopening
-                    await redis.set('sentinel_sniper_cooldown', Date.now().toString());
-                    console.log('🔫 Sniper cooldown activated (manual close)');
-                } else {
-                    activeTrades.splice(tradeIndex, 1);
-                    await redis.set(activeKey, JSON.stringify(activeTrades));
-                }
-            }
-
-        } else if (action === 'CLEAR_HISTORY') {
-            await redis.set(historyKey, JSON.stringify([]));
-            return res.status(200).json({ success: true, history: [] });
+            return res.status(200).json({ success: true, active: activeTrades, wallet });
         }
 
-        // Save State
-        const finalActiveMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
-        const finalConfigKey = finalActiveMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+    } else if (action === 'CLOSE') {
+        // Check both regular and Sniper trades
+        let tradeIndex = activeTrades.findIndex(t => t.id === id);
+        let isSniper = false;
+        let trade = null;
 
-        await redis.set('sentinel_active_trades', JSON.stringify(activeTrades));
-        await redis.set(finalConfigKey, JSON.stringify(wallet));
+        if (tradeIndex !== -1) {
+            trade = activeTrades[tradeIndex];
+        } else {
+            tradeIndex = sniperTrades.findIndex(t => t.id === id);
+            if (tradeIndex !== -1) {
+                trade = sniperTrades[tradeIndex];
+                isSniper = true;
+            }
+        }
 
-        res.status(200).json({ success: true, active: activeTrades, wallet });
+        if (trade) {
+            // --- CRITICAL: Execute Real Sell if LIVE ---
+            const isLive = trade.mode === 'LIVE';
+            if (isLive) {
+                console.log(`💸 Manual Close for LIVE trade: Selling ${trade.symbol} on Binance...`);
+                try {
+                    // Use quantity if available, else calculate from invested
+                    const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                    await binanceClient.executeOrder(trade.symbol, 'SELL', qty, exitPrice || trade.entryPrice, 'MARKET', true);
+                    console.log('✅ Real SELL executed for manual closure');
+                } catch (err) {
+                    console.error('❌ FAILED to sell live trade on Binance:', err.message);
+                    // We still continue to remove from UI to avoid stuck state, but user is alerted via console
+                }
+            }
 
-    } catch (error) {
-        console.error('Manual Trade Error:', error);
-        res.status(500).json({ error: error.message });
+            // Calculate PnL if exitPrice is provided
+            if (exitPrice && trade.investedAmount) {
+                let pnlPercent = 0;
+                if (trade.type === 'SHORT') {
+                    pnlPercent = ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100;
+                } else {
+                    pnlPercent = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                }
+
+                const profitValue = trade.investedAmount * (pnlPercent / 100);
+                const grossReturn = trade.investedAmount + profitValue;
+
+                // Fee Logic (Exit 0.1%)
+                const closeFee = grossReturn * 0.001;
+                const netReturn = grossReturn - closeFee;
+
+                // Credit to Wallet
+                wallet.currentBalance += netReturn;
+
+                console.log(`💰 Wallet Credit: Returned $${netReturn.toFixed(2)} (Fees: $${closeFee.toFixed(3)})`);
+
+                // Calculate NET PnL % (Real ROI)
+                // We assume 0.1% entry fee was paid.
+                const estimatedOpenFee = trade.investedAmount * 0.001;
+                const netProfit = netReturn - trade.investedAmount - estimatedOpenFee;
+                const netPnlPercent = (netProfit / trade.investedAmount) * 100;
+
+                // Add to History (So user can see it)
+                let winHistoryStr = await redis.get('sentinel_win_history');
+                let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+
+                winHistory.unshift({
+                    symbol: trade.symbol,
+                    pnl: netPnlPercent, // Storing NET PnL now
+                    profitUsd: netProfit, // Storing NET Profit ($)
+                    type: trade.type,
+                    strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
+                    timestamp: new Date().toISOString(),
+                    entryPrice: trade.entryPrice,
+                    exitPrice: exitPrice || trade.entryPrice,
+                    investedAmount: trade.investedAmount, // Critical for Value Amount display
+                    isManual: true
+                });
+
+                // Keep last 50
+                winHistory = winHistory.slice(0, 50);
+                await redis.set(historyKey, JSON.stringify(winHistory));
+            }
+
+            // Remove from correct array
+            if (isSniper) {
+                sniperTrades.splice(tradeIndex, 1);
+                await redis.set(sniperKey, JSON.stringify(sniperTrades));
+
+                // Activate cooldown to prevent immediate reopening
+                await redis.set('sentinel_sniper_cooldown', Date.now().toString());
+                console.log('🔫 Sniper cooldown activated (manual close)');
+            } else {
+                activeTrades.splice(tradeIndex, 1);
+                await redis.set(activeKey, JSON.stringify(activeTrades));
+            }
+        }
+
+    } else if (action === 'CLEAR_HISTORY') {
+        await redis.set(historyKey, JSON.stringify([]));
+        return res.status(200).json({ success: true, history: [] });
     }
+
+    // Save State (Final Sync)
+    await redis.set(activeKey, JSON.stringify(activeTrades));
+    await redis.set(configKey, JSON.stringify(wallet));
+
+    res.status(200).json({ success: true, active: activeTrades, wallet });
+
+} catch (error) {
+    console.error('Manual Trade Error:', error);
+    res.status(500).json({ error: error.message });
+}
 }
