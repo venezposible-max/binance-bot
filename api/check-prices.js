@@ -296,7 +296,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 };
                 await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${(finalPnl || 0).toFixed(2)}%\n💰 Profit: $${(netProfit || 0).toFixed(2)}`);
 
-                return { status: 'CLOSED', win };
+                return { status: 'CLOSED', win, id: trade.id };
             }
 
             return { status: 'KEEP', trade };
@@ -311,6 +311,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     // Extract Results
     const keptTrades = monitorResults.filter(r => r.status === 'KEEP').map(r => r.trade);
     const roundWins = monitorResults.filter(r => r.status === 'CLOSED').map(r => r.win);
+    const closedIds = monitorResults.filter(r => r.status === 'CLOSED').map(r => r.id);
     newWins.push(...roundWins);
 
     // Capture Manual Trades added in this cycle (preserving them)
@@ -501,8 +502,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         // We assume 'manual-trade.js' is the only deleter.
         // If 'manual-trade.js' runs, it updates History.
 
-        // FIX: Verify if Symbol is in the recent history entries (top 5).
-        const wasRecentlyClosed = finalHistory.slice(0, 10).find(h => h.symbol === proposedT.symbol && new Date(h.timestamp) > new Date(Date.now() - 60000));
+        // FIX: Verify if Symbol is in the recent history entries (top 5) OR if we just closed it in this cycle.
+        const justClosedLocally = closedIds.includes(proposedT.id);
+        const wasRecentlyClosed = justClosedLocally || finalHistory.slice(0, 10).find(h => h.symbol === proposedT.symbol && new Date(h.timestamp) > new Date(Date.now() - 60000));
 
         if (wasRecentlyClosed) {
             // It was truly closed. Honor the delete.
