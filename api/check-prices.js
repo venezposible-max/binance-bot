@@ -9,78 +9,100 @@ import { sendRawTelegram } from '../src/utils/telegram.js';
 // --- Shared Logic ---
 // Removed STATIC TOP_PAIRS list in favor of Dynamic Volume Fetching
 
+// --- Smart API Oracle (403 Protection) ---
+let lastWorkingSource = null;
+
 async function getDynamicTopPairs() {
-    try {
-        const REGION = process.env.REGION || 'US';
-        const baseUrl = REGION === 'EU' ? 'https://api.binance.com' : 'https://api.binance.us';
-        const res = await axios.get(`${baseUrl}/api/v3/ticker/24hr`, { timeout: 5000 });
-        const allPairs = res.data;
+    const sources = [
+        { url: 'https://api.binance.com/api/v3/ticker/24hr', label: 'EU' },
+        { url: 'https://api.binance.us/api/v3/ticker/24hr', label: 'USA' }
+    ];
 
-        // Explicit Blacklist (Matches Frontend)
-        const BLACKLIST = [
-            'USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP',
-            'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD'
-        ];
+    // Priority to last known working
+    if (lastWorkingSource === 'USA') sources.reverse();
 
-        const relevant = allPairs.filter(p => {
-            if (!p.symbol.endsWith('USDT')) return false;
-            const isBlacklisted = BLACKLIST.some(blocked => p.symbol.includes(blocked));
-            if (isBlacklisted) return false;
-            if (p.symbol.includes('USDC')) return false; // Extra safety
+    for (const src of sources) {
+        try {
+            const res = await axios.get(src.url, { timeout: 5000 });
+            if (res.data && Array.isArray(res.data)) {
+                lastWorkingSource = src.label;
+                const allPairs = res.data;
 
-            // Volume Filter (Min 5M)
-            return parseFloat(p.quoteVolume) > 5000000;
-        });
-
-        // Sort by Volume (Desc)
-        relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-
-        // Return Top 10 Symbols
-        return relevant.slice(0, 10).map(p => p.symbol);
-    } catch (e) {
-        if (e.response && e.response.status === 403) {
-            console.warn('⚠️ Dynamic Pairs: API Access 403 (Region Blocked/WAF) - Using Fallback');
-        } else {
-            console.warn('⚠️ Dynamic Pair Fetch Failed:', e.message);
+                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD'];
+                const relevant = allPairs.filter(p => {
+                    if (!p.symbol.endsWith('USDT')) return false;
+                    if (BLACKLIST.some(blocked => p.symbol.includes(blocked))) return false;
+                    return parseFloat(p.quoteVolume) > 5000000;
+                });
+                relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
+                return relevant.slice(0, 10).map(p => p.symbol);
+            }
+        } catch (e) {
+            console.warn(`⚠️ Dynamic Pairs [${src.label}] Fail: ${e.response?.status === 403 ? '403 Blocked' : e.message}`);
         }
-        // Fallback List if API fails
-        return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT'];
+    }
+    return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT'];
+}
+
+async function fetchGlobalPrice(symbol, cache = null) {
+    if (cache && cache[symbol]) return { ...cache[symbol], source: 'WS_CACHE' };
+
+    const sources = [
+        { url: `https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU' },
+        { url: `https://api.binance.us/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_US' }
+    ];
+
+    // Priority based on previous success
+    const workingLabel = lastWorkingSource || (process.env.REGION === 'EU' ? 'EU' : 'USA');
+    if (workingLabel === 'USA') sources.reverse();
+
+    for (const src of sources) {
+        try {
+            const res = await axios.get(src.url, { timeout: 3000 });
+            lastWorkingSource = src.label.includes('US') ? 'USA' : 'EU';
+            return {
+                price: parseFloat(res.data.bidPrice),
+                bid: parseFloat(res.data.bidPrice),
+                ask: parseFloat(res.data.askPrice),
+                source: src.label
+            };
+        } catch (e) {
+            if (!e.response || e.response.status !== 403) break;
+        }
+    }
+
+    // Oracle Fallback (Coinbase)
+    const base = symbol.replace('USDT', '');
+    try {
+        const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`, { timeout: 3000 });
+        const val = parseFloat(res.data.data.amount);
+        return { price: val, bid: val, ask: val, source: 'REST_ORACLE' };
+    } catch (e) {
+        return null;
     }
 }
 
-// Telegram hardcoded config removed - using src/utils/telegram.js
+async function fetchGlobalKlines(symbol, interval, limit = 250) {
+    const sources = [
+        { url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'EU' },
+        { url: `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'USA' }
+    ];
 
-// Helper: Fetch Accurate Global Price (Real-time Cache or REST Fallback)
-async function fetchGlobalPrice(symbol, cache = null) {
-    const REGION = process.env.REGION || 'US';
+    const workingLabel = lastWorkingSource || (process.env.REGION === 'EU' ? 'EU' : 'USA');
+    if (workingLabel === 'USA') sources.reverse();
 
-    // 🚀 OPTION 1: Real-time WebSocket Cache (Zero Latency)
-    if (cache && cache[symbol]) {
-        const item = cache[symbol];
-        return { price: item.price, bid: item.bid, ask: item.ask, source: 'WS_CACHE' };
-    }
-
-    // 🐌 OPTION 2: REST Fallback (Latency 200ms+)
-    if (REGION === 'EU') {
+    for (const src of sources) {
         try {
-            const res = await axios.get(`https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 3000 });
-            return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: 'REST_EU' };
-        } catch (e) { /* fallback */ }
-    }
-
-    const base = symbol.replace('USDT', '');
-    try {
-        const res = await axios.get(`https://api.binance.us/api/v3/ticker/bookTicker?symbol=${symbol}`, { timeout: 3000 });
-        return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: 'REST_US' };
-    } catch (e) {
-        try {
-            const res = await axios.get(`https://api.coinbase.com/v2/prices/${base}-USD/spot`, { timeout: 3000 });
-            const val = parseFloat(res.data.data.amount);
-            return { price: val, bid: val, ask: val, source: 'REST_ORACLE' };
-        } catch (err) {
-            return null;
+            const res = await axios.get(src.url, { timeout: 5000 });
+            if (res.data && Array.isArray(res.data)) {
+                lastWorkingSource = src.label;
+                return res.data;
+            }
+        } catch (e) {
+            if (!e.response || e.response.status !== 403) break;
         }
     }
+    return null;
 }
 
 export default async function handler(req, res) {
@@ -220,19 +242,22 @@ export default async function handler(req, res) {
         // Using BTCUSDT as a global proxy for market regime
         let marketRegime = { regime: 'RANGING', label: 'LATERAL ⚖️', multiplier: 1.0 };
         try {
-            const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
-            const { data: btcKlines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=50`, { timeout: 3000 });
-            const processedKlines = btcKlines.map(c => ({
-                open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5])
-            }));
-            const regimeData = analysis.detectRegime(processedKlines);
-            const riskMultiplier = analysis.calculateKelly(winHistory);
+            const btcKlines = await fetchGlobalKlines('BTCUSDT', '1h', 50);
+            if (btcKlines) {
+                const processedKlines = btcKlines.map(c => ({
+                    open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5])
+                }));
+                const regimeData = analysis.detectRegime(processedKlines);
+                const riskMultiplier = analysis.calculateKelly(winHistory);
 
-            marketRegime = { ...regimeData, riskMultiplier };
-            console.log(`🧠 AI CLIMATE: ${marketRegime.label} | ADX: ${marketRegime.adx?.toFixed(1)} | Risk Mult: ${riskMultiplier}x`);
+                marketRegime = { ...regimeData, riskMultiplier };
+                console.log(`🧠 AI CLIMATE: ${marketRegime.label} | ADX: ${marketRegime.adx?.toFixed(1)} | Risk Mult: ${riskMultiplier}x`);
 
-            // Sync regime to wallet for UI visibility
-            wallet.aiRegime = marketRegime;
+                // Sync regime to wallet for UI visibility
+                wallet.aiRegime = marketRegime;
+            } else {
+                console.warn('AI Regime detection failed: No klines returned');
+            }
         } catch (e) {
             console.warn('AI Regime detection failed, using defaults:', e.message);
         }
@@ -514,18 +539,12 @@ export default async function handler(req, res) {
                     // ensure valid interval
                     if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = '4h';
 
-                    // Log moved to post-calculation for visibility
-
-                    // SMART REGION SWITCHING FOR KLINES
-                    let klinesUrl = '';
-                    if (REGION === 'EU') {
-                        klinesUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=250`;
-                    } else {
-                        // Default to US for Vercel Free
-                        klinesUrl = `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${primaryInterval}&limit=250`;
+                    const klines = await fetchGlobalKlines(symbol, primaryInterval, 250);
+                    if (!klines) {
+                        console.warn(`.. ⚠️ NO KLINES: ${symbol} (Skipping)`);
+                        continue;
                     }
 
-                    const { data: klines } = await axios.get(klinesUrl, { timeout: 5000 });
                     const closes = klines.map(candle => parseFloat(candle[4]));
                     const rsi = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
@@ -562,11 +581,11 @@ export default async function handler(req, res) {
                         // 🧬 HYBRID CONFLUENCE LOGIC (SWING)
                         if (candidateStrategy === 'HYBRID_SWING') {
                             try {
-                                const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
-                                const { data: klines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1h&limit=250`, { timeout: 5000 });
+                                const klinesData = await fetchGlobalKlines(symbol, '1h', 250);
+                                if (!klinesData) throw new Error('No klines');
                                 const depth = marketCache[symbol]?.depth || { bids: [], asks: [] };
 
-                                const analysis = await import('../src/utils/analysis.js').then(m => m.analyzeHybrid(depth, klines.map(c => ({
+                                const analysis = await import('../src/utils/analysis.js').then(m => m.analyzeHybrid(depth, klinesData.map(c => ({
                                     open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5])
                                 })), { mode: 'SWING' }));
 
@@ -586,11 +605,11 @@ export default async function handler(req, res) {
                         // 🧬 HYBRID CONFLUENCE LOGIC (BLITZ)
                         if (candidateStrategy === 'HYBRID_BLITZ') {
                             try {
-                                const baseUrl = (REGION === 'EU') ? 'https://api.binance.com' : 'https://api.binance.us';
-                                const { data: klines } = await axios.get(`${baseUrl}/api/v3/klines?symbol=${symbol}&interval=1m&limit=250`, { timeout: 5000 });
+                                const klinesData = await fetchGlobalKlines(symbol, '1m', 250);
+                                if (!klinesData) throw new Error('No klines');
                                 const depth = marketCache[symbol]?.depth || { bids: [], asks: [] };
 
-                                const analysis = await import('../src/utils/analysis.js').then(m => m.analyzeHybrid(depth, klines.map(c => ({
+                                const analysis = await import('../src/utils/analysis.js').then(m => m.analyzeHybrid(depth, klinesData.map(c => ({
                                     open: parseFloat(c[1]), high: parseFloat(c[2]), low: parseFloat(c[3]), close: parseFloat(c[4]), volume: parseFloat(c[5])
                                 })), { mode: 'BLITZ' }));
 
