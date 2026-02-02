@@ -178,35 +178,35 @@ export default async function handler(req, res) {
                 // Keep last 50
                 winHistory = winHistory.slice(0, 50);
                 await redis.set(historyKey, JSON.stringify(winHistory));
+
+
+                // Remove from correct array
+                if (isSniper) {
+                    sniperTrades.splice(tradeIndex, 1);
+                    await redis.set(sniperKey, JSON.stringify(sniperTrades));
+
+                    // Activate cooldown to prevent immediate reopening
+                    await redis.set('sentinel_sniper_cooldown', Date.now().toString());
+                    console.log('🔫 Sniper cooldown activated (manual close)');
+                } else {
+                    activeTrades.splice(tradeIndex, 1);
+                    await redis.set(activeKey, JSON.stringify(activeTrades));
+                }
             }
 
-            // Remove from correct array
-            if (isSniper) {
-                sniperTrades.splice(tradeIndex, 1);
-                await redis.set(sniperKey, JSON.stringify(sniperTrades));
-
-                // Activate cooldown to prevent immediate reopening
-                await redis.set('sentinel_sniper_cooldown', Date.now().toString());
-                console.log('🔫 Sniper cooldown activated (manual close)');
-            } else {
-                activeTrades.splice(tradeIndex, 1);
-                await redis.set(activeKey, JSON.stringify(activeTrades));
-            }
+        } else if (action === 'CLEAR_HISTORY') {
+            await redis.set(historyKey, JSON.stringify([]));
+            return res.status(200).json({ success: true, history: [] });
         }
 
-    } else if (action === 'CLEAR_HISTORY') {
-        await redis.set(historyKey, JSON.stringify([]));
-        return res.status(200).json({ success: true, history: [] });
+        // Save State (Final Sync)
+        await redis.set(activeKey, JSON.stringify(activeTrades));
+        await redis.set(configKey, JSON.stringify(wallet));
+
+        res.status(200).json({ success: true, active: activeTrades, wallet });
+
+    } catch (error) {
+        console.error('Manual Trade Error:', error);
+        res.status(500).json({ error: error.message });
     }
-
-    // Save State (Final Sync)
-    await redis.set(activeKey, JSON.stringify(activeTrades));
-    await redis.set(configKey, JSON.stringify(wallet));
-
-    res.status(200).json({ success: true, active: activeTrades, wallet });
-
-} catch (error) {
-    console.error('Manual Trade Error:', error);
-    res.status(500).json({ error: error.message });
-}
 }
