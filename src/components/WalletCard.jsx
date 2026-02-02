@@ -106,11 +106,12 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     if (!wallet) return null;
 
     // Defensive defaults for fresh/empty database
-    const currentBalance = wallet.currentBalance ?? 1000;
-    const initialBalance = wallet.initialBalance ?? 1000;
+    const isLive = tradingMode === 'LIVE';
+    const currentBalance = isLive ? (binanceBalance?.total || 0) : (wallet.currentBalance ?? 1000);
+    const initialBalance = isLive ? (wallet.allocatedCapital || currentBalance) : (wallet.initialBalance ?? 1000);
 
     const pnl = currentBalance - initialBalance;
-    const pnlPercent = ((pnl / initialBalance) * 100).toFixed(2);
+    const pnlPercent = initialBalance > 0 ? ((pnl / initialBalance) * 100).toFixed(2) : "0.00";
 
     // Calculate Equity (Balance + Unrealized PnL)
     let equity = currentBalance;
