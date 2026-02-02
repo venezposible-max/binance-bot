@@ -132,6 +132,13 @@ function App() {
         const configRes = await fetch(`/api/wallet/config?mode=${newMode}`);
         const data = await configRes.json();
         setWalletConfig(data);
+
+        // Reload Cloud Status (Trades/History) for the new mode
+        const statusRes = await fetch('/api/get-status');
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          setCloudStatus(statusData);
+        }
       }
     } catch (e) {
       console.error("Toggle Mode Error:", e);
