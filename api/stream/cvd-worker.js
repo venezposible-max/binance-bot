@@ -29,12 +29,27 @@ class CVDSniper {
             this.connect();
         });
 
-        // HEARTBEAT
-        setInterval(() => {
+        // HEARTBEAT & TELEMETRY
+        setInterval(async () => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 const liveCount = this.activeTrades.filter(t => t.mode === 'LIVE').length;
                 const simCount = this.activeTrades.filter(t => t.mode !== 'LIVE').length;
-                console.log(`🔫 [SNIPER] Scanning BTCUSDT (CVD) | Active: ${liveCount} (Live) / ${simCount} (Sim) | Waiting for Whales...`);
+
+                // Telemetry Check
+                const confReal = await redis.get('sentinel_wallet_config_real');
+                const confSim = await redis.get('sentinel_wallet_config_sim');
+                const statusReal = confReal ? '✅' : '❌';
+                const statusSim = confSim ? '✅' : '❌';
+
+                console.log(`🔫 [SNIPER] BTCUSDT Heartbeat:
+                | Ticks/min: ${this.stats.messages} 
+                | CVD: $${Math.round(this.cvd)} 
+                | Price: $${this.lastPrice}
+                | Configs: Real[${statusReal}] Sim[${statusSim}]
+                | Active Trades: ${liveCount} (Live) / ${simCount} (Sim)`);
+
+                // Reset tick counter for next minute
+                this.stats.messages = 0;
             }
         }, 60000);
     }
