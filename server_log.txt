@@ -17,23 +17,17 @@ CWD: /Users/franklincolina/.gemini/antigravity/scratch/binance
 🔐 VIP DATA MODE: DISABLED
 💓 Heartbeat: ENABLED (Direct Internal Execution)
 ============================================================
-📡 MARKET WORKER: Connected to BTCUSDT WebSocket
-📡 MARKET WORKER: Connected to SOLUSDT WebSocket
-📡 MARKET WORKER: Connected to ETHUSDT WebSocket
-📡 MARKET WORKER: Connected to XRPUSDT WebSocket
 🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...
-📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
+📡 MARKET WORKER: Connected to BTCUSDT WebSocket
+📡 MARKET WORKER: Connected to ETHUSDT WebSocket
+📡 MARKET WORKER: Connected to SOLUSDT WebSocket
+📡 MARKET WORKER: Connected to XRPUSDT WebSocket
 📡 MARKET WORKER: Connected to ADAUSDT WebSocket
-📡 MARKET WORKER: Connected to TRXUSDT WebSocket
 📡 MARKET WORKER: Connected to BNBUSDT WebSocket
+📡 MARKET WORKER: Connected to TRXUSDT WebSocket
+📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
 📡 MARKET WORKER: Connected to AVAXUSDT WebSocket
 📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 
-⏳ [2026-02-02T03:35:56.611Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
+⏳ [2026-02-02T03:43:15.529Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
 🚀 [DUAL ENGINE] check-prices START
-⚠️ [LIVE ENGINE] Skipped: Missing BINANCE_API_KEY/SECRET in environment.
-[SIMULATION] 💼 Config: SNIPER, HYBRID_SWING | Active: 0
-.. [SIMULATION] 🔎 ANALYZING: ETHUSDT | RSI: 14.74
-🧪 SIMULATED ORDER: BUY 0.0459 ETHUSDT @ $2176.365
-.. [SIMULATION] 🔎 ANALYZING: BTCUSDT | RSI: 19.15
-🧪 SIMULATED ORDER: BUY 0.0012 BTCUSDT @ $74872.495

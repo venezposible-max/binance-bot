@@ -107,6 +107,13 @@ const TraderOracle = () => {
                                     </div>
                                     <div className={styles.statBox}>
                                         <div className={styles.statHeader}>
+                                            <TrendingUp size={12} style={{ color: '#4ade80' }} />
+                                            <span className={styles.statLabel}>ROI MENSUAL</span>
+                                        </div>
+                                        <span className={`${styles.statValue} ${styles.roi}`}>+{trader?.roiMonthly?.toFixed(1)}%</span>
+                                    </div>
+                                    <div className={styles.statBox}>
+                                        <div className={styles.statHeader}>
                                             <ShieldAlert size={12} style={{ color: '#f87171' }} />
                                             <span className={styles.statLabel}>Drawdown</span>
                                         </div>
