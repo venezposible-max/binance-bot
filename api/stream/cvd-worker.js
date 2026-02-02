@@ -8,11 +8,9 @@ class CVDSniper {
         this.symbol = 'btcusdt';
         this.ws = null;
         this.cvd = 0;
-        this.history = []; // Array of { time, price, cvd, delta }
-        this.maxHistory = 1000; // Keep last 1000 ticks for graph
+        this.history = [];
+        this.maxHistory = 1000;
         this.lastPrice = 0;
-        this.activeTrades = []; // Track active Sniper positions
-        this.lastTradeTime = 0; // Cooldown tracker
         this.lastExitCheck = 0; // Throttling for exit checks
         this.COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 

@@ -301,6 +301,11 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                                 interval = '5m';
                                 analysisMode = 'BLITZ';
                                 useHybrid = true;
+                            } else if (strat.includes('HYBRID') || strat.includes('SWING')) {
+                                // Forces HYBRID_SWING to use the Order Block Engine (Advanced)
+                                interval = '4h';
+                                analysisMode = 'SWING';
+                                useHybrid = true;
                             }
 
                             // FETCH CANDLES
