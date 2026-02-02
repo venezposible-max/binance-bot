@@ -560,11 +560,10 @@ function App() {
                           {/* TARGETS (TP/SL) VISUALIZATION */}
                           {(() => {
                             // 1. STOP LOSS LOGIC
-                            let slPrice = null;
+                            let slPrice = t.stopLoss || t.dynamicSL || null;
                             let slDist = 0;
 
-                            if (t.stopLoss) {
-                              slPrice = t.stopLoss;
+                            if (slPrice) {
                               slDist = ((slPrice - t.entryPrice) / t.entryPrice) * 100;
                             } else if (walletConfig.useStopLoss) {
                               slDist = -(walletConfig.stopLoss || 3.0);
@@ -572,11 +571,10 @@ function App() {
                             }
 
                             // 2. TAKE PROFIT LOGIC
-                            let tpPrice = null;
+                            let tpPrice = t.takeProfit || t.dynamicTP || null;
                             let tpDist = 0;
 
-                            if (t.takeProfit) {
-                              tpPrice = t.takeProfit;
+                            if (tpPrice) {
                               tpDist = ((tpPrice - t.entryPrice) / t.entryPrice) * 100;
                             } else {
                               tpDist = walletConfig.takeProfit || 1.25;

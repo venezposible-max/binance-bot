@@ -348,8 +348,8 @@ export default async function handler(req, res) {
                     // NEW: Isolate User TP/SL to SWING ONLY
                     let dynamicTarget = (tradeStrategy === 'SCALP') ? 0.80 : (tradeStrategy === 'TRIPLE' ? 3.0 : 1.25); // Tuned for higher Blitz profitability (from 0.50)
                     let slEnforced = false;
-                    let customStopLossPrice = trade.dynamicSL || null;
-                    let customTakeProfitPrice = trade.dynamicTP || null;
+                    let customStopLossPrice = trade.stopLoss || trade.dynamicSL || null;
+                    let customTakeProfitPrice = trade.takeProfit || trade.dynamicTP || null;
 
                     if (tradeStrategy === 'SWING') {
                         dynamicTarget = PROFIT_TARGET; // Use the one from wallet (custom)
@@ -378,7 +378,7 @@ export default async function handler(req, res) {
                     // --- EXPERT MODE: BREAKEVEN PROTECTION ---
                     // If trade is in profit > 1.5%, move SL to entry price
                     if (pnl >= 1.5 && !trade.isBreakeven) {
-                        trade.dynamicSL = trade.entryPrice * 1.001; // Entry + tiny buffer
+                        trade.stopLoss = trade.entryPrice * 1.001; // Entry + tiny buffer
                         trade.isBreakeven = true;
                         console.log(`🛡️  ${symbol} | BREAKEVEN ACTIVATED (+1.5% hit) | SL moved to entry.`);
                     }
@@ -390,8 +390,8 @@ export default async function handler(req, res) {
                         const newTrailingSL = exitPrice * (1 - (trailingDistance / 100));
 
                         // Only update if the new trailing SL is higher than the current SL
-                        if (!trade.dynamicSL || newTrailingSL > trade.dynamicSL) {
-                            trade.dynamicSL = newTrailingSL;
+                        if (!trade.stopLoss || newTrailingSL > trade.stopLoss) {
+                            trade.stopLoss = newTrailingSL;
                             trade.isTrailing = true;
                             // console.log(`🚀 ${symbol} | TRAILING SL UPDATED: $${newTrailingSL.toFixed(2)}`);
                         }
@@ -640,8 +640,8 @@ export default async function handler(req, res) {
                                 quantity: executedQty, // Save COIN Qty for Selling
                                 entryFee: spentUsd * 0.001, // Store for Forensic Audit
                                 strategy: winningStrategy,
-                                dynamicSL: wallet.useStopLoss ? (winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingSL : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzSL : (winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null)))) : null,
-                                dynamicTP: winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingTP : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzTP : (winningStrategy === 'OB' ? wallet._obDynamicTP : null)),
+                                stopLoss: wallet.useStopLoss ? (winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingSL : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzSL : (winningStrategy === 'OB' ? wallet._obDynamicSL : (winningStrategy === 'FLOW' ? wallet._flowDynamicSL : null)))) : null,
+                                takeProfit: winningStrategy === 'HYBRID_SWING' ? wallet._hybridSwingTP : (winningStrategy === 'HYBRID_BLITZ' ? wallet._hybridBlitzTP : (winningStrategy === 'OB' ? wallet._obDynamicTP : null)),
                                 impulse: winningStrategy === 'OB' ? wallet._obImpulse : null,
                                 wallPrice: winningStrategy === 'HYBRID' ? wallet._hybridWallPrice : (winningStrategy === 'FLOW' ? wallet._flowWallPrice : null),
                                 mode: isLive ? 'LIVE' : 'SIMULATION',
