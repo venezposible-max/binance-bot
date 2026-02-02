@@ -310,6 +310,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     const currentTotal = keptTrades.length + manualAddedTrades.length;
     let newFoundTrades = [];
 
+    // CONSTRUCT FINAL STATE (Moved up for scope access)
+    const finalList = [...keptTrades, ...manualAddedTrades];
+
     if (currentTotal < maxTrades) {
         // Identify Candidates (Symbols in marketPairs NOT in keptTrades OR manualAdded)
         const occupiedSymbols = [...keptTrades, ...manualAddedTrades].map(t => t.symbol);
