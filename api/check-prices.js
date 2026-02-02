@@ -351,7 +351,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
                                 // LOG SCAN RESULT (Clean Format)
                                 const emoji = signal.includes('BUY') ? '🟢' : (signal.includes('SELL') ? '🔴' : '⚪');
-                                console.log(`   > ${symbol} (${interval}) [${strat}]: ${emoji} ${signal} (${intensity}%)`);
+                                const modeIcon = mode === 'LIVE' ? '🔴' : '🔵';
+                                console.log(`   ${modeIcon} [${mode}] ${symbol} (${interval}) [${strat}]: ${emoji} ${signal} (${intensity}%)`);
 
                                 // LOGIC: ONLY ENTER ON "STRONG_BUY" OR HIGH INTENSITY
                                 // Blitz needs BUY (it's aggressive). Sniper needs STRONG_BUY or high intensity.

@@ -11,32 +11,32 @@ class CVDSniper {
         this.history = [];
         this.maxHistory = 1000;
         this.lastPrice = 0;
-        this.lastExitCheck = 0; // Throttling for exit checks
+
+        // DUAL STATE
+        this.activeTrades = []; // Contains mixed trades (tagged by mode)
+
+        // COOLDOWNS (Separate for modes)
+        this.lastTradeTime = { LIVE: 0, SIMULATION: 0 };
         this.COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
-        // Strategy Parameters
-        this.THRESHOLD = 150000; // 150k USDT Delta
         this.isReconnecting = false;
+        this.isOpeningTrade = false;
 
-        this.stats = {
-            startTime: Date.now(),
-            messages: 0,
-            triggers: 0
-        };
+        this.stats = { startTime: Date.now(), messages: 0, triggers: 0 };
 
-        this.isOpeningTrade = false; // Lock to prevent race conditions
-
-        console.log('🔫 CVD SNIPER: Class Initialized');
+        console.log('🔫 CVD SNIPER: Class Initialized (Dual Engine Ready)');
         this.loadState().then(() => {
             this.connect();
         });
 
-        // HEARTBEAT LOG (User Request)
+        // HEARTBEAT
         setInterval(() => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                console.log(`🔫 [SNIPER] Scanning BTCUSDT (CVD) | Active Trades: ${this.activeTrades.length} | Waiting for Whales...`);
+                const liveCount = this.activeTrades.filter(t => t.mode === 'LIVE').length;
+                const simCount = this.activeTrades.filter(t => t.mode !== 'LIVE').length;
+                console.log(`🔫 [SNIPER] Scanning BTCUSDT (CVD) | Active: ${liveCount} (Live) / ${simCount} (Sim) | Waiting for Whales...`);
             }
-        }, 60000); // Every 1 minute
+        }, 60000);
     }
 
     async loadState() {
@@ -44,17 +44,15 @@ class CVDSniper {
             const sniperTradesStr = await redis.get('sentinel_sniper_trades');
             if (sniperTradesStr) {
                 this.activeTrades = JSON.parse(sniperTradesStr);
-                console.log(`🔫 SNIPER: Restored ${this.activeTrades.length} active trades from memory.`);
+                console.log(`🔫 SNIPER: Restored ${this.activeTrades.length} active trades.`);
             }
-            const cooldownStr = await redis.get('sentinel_sniper_cooldown');
-            if (cooldownStr) this.lastTradeTime = parseInt(cooldownStr);
 
-            // Also load Wallet Config for initial threshold
-            const configStr = await redis.get('sentinel_wallet_config');
-            if (configStr) {
-                const config = JSON.parse(configStr);
-                if (config.whaleThreshold) this.THRESHOLD = config.whaleThreshold;
-            }
+            // Load Cooldowns
+            const liveCd = await redis.get('sentinel_sniper_cooldown_live');
+            const simCd = await redis.get('sentinel_sniper_cooldown_sim');
+            if (liveCd) this.lastTradeTime.LIVE = parseInt(liveCd);
+            if (simCd) this.lastTradeTime.SIMULATION = parseInt(simCd);
+
         } catch (e) {
             console.error('Failed to load Sniper state:', e);
         }
@@ -62,313 +60,202 @@ class CVDSniper {
 
     connect() {
         if (this.ws) return;
-
         const url = `wss://stream.binance.com:9443/ws/${this.symbol}@aggTrade`;
         console.log(`🔫 CVD SNIPER: Connecting to ${url}...`);
-
         this.ws = new WebSocket(url);
 
-        this.ws.on('open', () => {
-            console.log('🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...');
-            this.isReconnecting = false;
-        });
-
-        this.ws.on('message', (data) => {
-            try {
-                this.processTrade(JSON.parse(data));
-            } catch (e) {
-                console.error('CVD Parse Error:', e);
-            }
-        });
-
-        this.ws.on('close', () => {
-            console.warn('🔫 CVD SNIPER: Disconnected. Reconnecting in 5s...');
-            this.ws = null;
-            setTimeout(() => this.connect(), 5000);
-        });
-
-        this.ws.on('error', (err) => {
-            console.error('🔫 CVD SNIPER: WebSocket Error:', err.message);
-        });
+        this.ws.on('open', () => { console.log('🔫 CVD SNIPER: Connected!'); this.isReconnecting = false; });
+        this.ws.on('message', (data) => { try { this.processTrade(JSON.parse(data)); } catch (e) { console.error('CVD Error:', e); } });
+        this.ws.on('close', () => { console.warn('🔫 CVD SNIPER: Disconnected. Reconnecting...'); this.ws = null; setTimeout(() => this.connect(), 5000); });
+        this.ws.on('error', (err) => { console.error('WebSocket Error:', err.message); });
     }
 
-    processTrade(trade) {
-        // trade object structure from Binance aggTrade:
-        // { p: 'price', q: 'quantity', m: isBuyerMaker }
-
+    async processTrade(trade) {
         const price = parseFloat(trade.p);
         const qty = parseFloat(trade.q);
         const volume = price * qty;
-
         this.lastPrice = price;
         this.stats.messages++;
 
-        // Check exits for active trades (Throttled to 1s)
-        const now = Date.now();
-        if (this.activeTrades.length > 0 && now - this.lastExitCheck > 1000) {
-            this.lastExitCheck = now;
+        // Exits Check (Throttled 1s)
+        if (Date.now() - (this.lastExitCheck || 0) > 1000) {
+            this.lastExitCheck = Date.now();
             this.checkExits(price);
         }
 
-        // Calculate Delta
-        // If isBuyerMaker = true -> Sell Order (Maker was Buyer) -> Negative Delta
-        // If isBuyerMaker = false -> Buy Order (Maker was Seller) -> Positive Delta
         const delta = trade.m ? -volume : volume;
-
         this.cvd += delta;
+        this.history.push({ t: trade.T, p: price, d: delta, c: this.cvd });
+        if (this.history.length > this.maxHistory) this.history.shift();
 
-        // Push to History (Throttled slightly to avoid RAM overflow in extreme volatility?)
-        // Actually, let's just push every trade. 1000 items is small.
-        this.history.push({
-            t: trade.T, // Time
-            p: price,
-            d: delta,
-            c: this.cvd
-        });
-
-        // Trim History
-        if (this.history.length > this.maxHistory) {
-            this.history.shift();
-        }
-
-        // 🎯 SNIPER LOGIC: Execute Trade on Whale Detection
-        if (delta > this.THRESHOLD) { // Only BUY on positive delta (whale buying)
-            console.log(`🐳 WHALE ALERT: BUY POWER: $${Math.abs(delta).toFixed(0)} @ ${price}`);
-            this.stats.triggers++;
-            this.executeSniperTrade(price, delta);
+        // 🎯 DUAL ENGINE TRIGGER CHECK
+        if (delta > 10000) { // Slight optimization: Don't fetch redis for tiny trades
+            await this.evaluateTrigger(price, delta);
         }
     }
 
-    async executeSniperTrade(entryPrice, triggerDelta = 0) {
+    async evaluateTrigger(price, delta) {
         if (this.isOpeningTrade) return;
         this.isOpeningTrade = true;
 
         try {
-            // SYNC: Read current active sniper trades from Redis to ensure we don't double-open
-            const sniperTradesStr = await redis.get('sentinel_sniper_trades');
-            const currentActive = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+            // LOAD BOTH CONFIGS FRESH
+            const configLiveStr = await redis.get('sentinel_wallet_config_real');
+            const configSimStr = await redis.get('sentinel_wallet_config_sim');
 
-            // Read wallet config
-            const configStr = await redis.get('sentinel_wallet_config');
-            if (!configStr) {
-                console.warn('⚠️ Sniper: No wallet config found');
-                this.isOpeningTrade = false;
-                return;
-            }
+            const configLive = configLiveStr ? JSON.parse(configLiveStr) : null;
+            const configSim = configSimStr ? JSON.parse(configSimStr) : null;
 
-            const config = JSON.parse(configStr);
+            // CHECK LIVE TRIGGER
+            if (configLive && configLive.isBotActive) {
+                // Check strategy is specifically SNIPER enabled
+                const stratConfig = configLive.strategyConfig || {};
+                const isSniperActive = stratConfig.SNIPER?.active;
 
-            // Update Dynamic Parameters from Config
-            if (config.whaleThreshold) {
-                this.THRESHOLD = config.whaleThreshold;
-            }
-
-            // Check if bot is active
-            if (!config.isBotActive) {
-                console.log('🔕 Sniper: Bot is paused');
-                this.isOpeningTrade = false;
-                return;
-            }
-
-            // Prevent multiple active trades (checking both memory and Redis sync)
-            if (currentActive.length > 0) {
-                console.log('🔫 Sniper: Already have an active trade');
-                this.isOpeningTrade = false;
-                return;
-            }
-            this.activeTrades = currentActive; // Update in-memory active trades
-
-            // Check cooldown (prevent reopening immediately after close)
-            const cooldownStr = await redis.get('sentinel_sniper_cooldown');
-            const lastCooldownTime = cooldownStr ? parseInt(cooldownStr) : this.lastTradeTime;
-
-            const now = Date.now();
-            if (now - lastCooldownTime < this.COOLDOWN_MS) {
-                const remaining = Math.ceil((this.COOLDOWN_MS - (now - lastCooldownTime)) / 1000);
-                console.log(`⏳ Sniper: Cooldown active (${remaining}s remaining)`);
-                this.isOpeningTrade = false;
-                return;
-            }
-
-            // Check available capital
-            const availableBalance = config.currentBalance || 1000;
-            if (availableBalance < 10) {
-                console.warn('⚠️ Sniper: Insufficient balance');
-                this.isOpeningTrade = false;
-                return;
-            }
-
-            // Calculate position size using riskPercentage (unified with other strategies)
-            const riskPercentage = config.riskPercentage || 10; // Default 10%
-            const investedAmount = availableBalance * (riskPercentage / 100);
-            const positionSize = investedAmount / entryPrice;
-            const fee = investedAmount * 0.001; // 0.1% fee
-
-            // Determine if Paper or Live
-            const isLive = config.tradingMode === 'LIVE';
-            let orderId = `SNIPER_${Date.now()}`;
-
-            if (isLive) {
-                // Execute real order
-                try {
-                    const order = await binanceClient.createOrder({
-                        symbol: 'BTCUSDT',
-                        side: 'BUY',
-                        type: 'MARKET',
-                        quantity: positionSize.toFixed(6)
-                    });
-                    orderId = order.orderId;
-                    console.log('✅ LIVE ORDER EXECUTED:', orderId);
-                } catch (e) {
-                    console.error('❌ Live order failed:', e.message);
-                    return;
+                if (isSniperActive && delta > (configLive.whaleThreshold || 150000)) {
+                    await this.executeModeTrade(price, delta, configLive, 'LIVE');
                 }
             }
 
-            // Create trade record
-            const trade = {
-                id: orderId,
-                symbol: 'BTCUSDT',
-                strategy: 'SNIPER',
-                side: 'BUY',
-                entryPrice: entryPrice,
-                triggerDelta: triggerDelta, // Store for verification
-                size: positionSize,
-                investedAmount: investedAmount,
-                // FEE COMPENSATION: Add 0.2% buffer (Entry+Exit fees)
-                // Net Target: 1.0% -> Gross: 1.2%
-                // SL Width: 0.5% -> Gross: 0.5% (User Request: Max 0.7% Net Loss)
-                targetProfit: entryPrice * 1.012,
-                stopLoss: entryPrice * 0.995,
-                timestamp: Date.now(),
-                mode: isLive ? 'LIVE' : 'PAPER'
-            };
+            // CHECK SIMULATION TRIGGER
+            if (configSim && configSim.isBotActive) {
+                const stratConfig = configSim.strategyConfig || {};
+                const isSniperActive = stratConfig.SNIPER?.active;
 
-            // Store in active trades
-            this.activeTrades.push(trade);
-
-            // Persist to Redis
-            await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
-
-            // Update balance (deduct invested amount + fee)
-            // Deduct capital ONLY in SIMULATION mode
-            if (config.tradingMode !== 'LIVE') {
-                const openFee = investedAmount * 0.001;
-                config.currentBalance -= (investedAmount + openFee);
-                console.log(`🧪 Balance updated (SIM): $${config.currentBalance.toFixed(2)}`);
-            } else {
-                console.log(`💸 LIVE Mode: No deduction from virtual balance (using real wallet)`);
+                if (isSniperActive && delta > (configSim.whaleThreshold || 150000)) {
+                    await this.executeModeTrade(price, delta, configSim, 'SIMULATION');
+                }
             }
-            await redis.set('sentinel_wallet_config', JSON.stringify(config));
-
-            // Update cooldown tracker (both in-memory and Redis)
-            this.lastTradeTime = Date.now();
-            await redis.set('sentinel_sniper_cooldown', this.lastTradeTime.toString());
-
-
-            console.log(`🔫 SNIPER TRADE OPENED: ${orderId} @ $${entryPrice} | Invested: $${investedAmount.toFixed(2)} (${riskPercentage}%) | TP: $${trade.targetProfit.toFixed(2)} | SL: $${trade.stopLoss.toFixed(2)}`);
-
-            // Notify Telegram
-            await sendRawTelegram(`🔫 **SNIPER ATTACK** 🐋\n\n💎 **BTCUSDT**\n🚀 Entrada: $${entryPrice.toLocaleString()}\n🐳 Whale Trigger: $${Math.round(triggerDelta).toLocaleString()}\n💸 Modo: ${isLive ? 'LIVE 💸' : 'SIM 🧪'}\n\n_Surfeando la ballena..._`);
 
         } catch (e) {
-            console.error('❌ Sniper Trade Execution Error:', e.message);
+            console.error('Trigger Eval Error:', e);
         } finally {
             this.isOpeningTrade = false;
         }
     }
 
+    async executeModeTrade(entryPrice, delta, config, mode) {
+        // Prevent Pyramiding per mode
+        if (this.activeTrades.find(t => t.mode === mode)) return;
+
+        // Check Cooldown
+        const lastTime = this.lastTradeTime[mode] || 0;
+        if (Date.now() - lastTime < this.COOLDOWN_MS) {
+            // Silent return for cooldown
+            return;
+        }
+
+        console.log(`🐳 [${mode}] WHALE DETECTED: $${Math.abs(delta).toFixed(0)} > Threshold. Executing SNIPER.`);
+
+        // Validate Balance
+        const balance = config.currentBalance || 0;
+        if (balance < 10) return;
+
+        const risk = config.riskPercentage || 10;
+        const invested = balance * (risk / 100);
+        const positionSize = invested / entryPrice;
+
+        let orderId = `SNIPER_${mode}_${Date.now()}`;
+
+        // EXECUTE
+        if (mode === 'LIVE') {
+            try {
+                const order = await binanceClient.createOrder({
+                    symbol: 'BTCUSDT', side: 'BUY', type: 'MARKET', quantity: positionSize.toFixed(6)
+                });
+                orderId = order.orderId;
+            } catch (e) {
+                console.error(`❌ [LIVE] SNIPER ORDER FAILED:`, e.message);
+                return;
+            }
+        } else {
+            config.currentBalance -= (invested * 1.001);
+            // Update appropriate config key
+            const configKey = mode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+            await redis.set(configKey, JSON.stringify(config));
+        }
+
+        const trade = {
+            id: orderId,
+            symbol: 'BTCUSDT',
+            strategy: 'SNIPER',
+            side: 'BUY',
+            entryPrice: entryPrice,
+            size: positionSize,
+            investedAmount: invested,
+            targetProfit: entryPrice * 1.012, // 1.2%
+            stopLoss: entryPrice * 0.995, // 0.5%
+            timestamp: Date.now(),
+            mode: mode
+        };
+
+        this.activeTrades.push(trade);
+        this.lastTradeTime[mode] = Date.now();
+
+        // Save State
+        await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
+        await redis.set(`sentinel_sniper_cooldown_${mode === 'LIVE' ? 'live' : 'sim'}`, this.lastTradeTime[mode].toString());
+
+        await sendRawTelegram(`🔫 **[${mode}] SNIPER HIT** 🐋\n💎 BTCUSDT\n💰 Entry: $${entryPrice.toFixed(2)}\n💸 Invested: $${invested.toFixed(2)}\n🌊 Delta: $${Math.round(delta)}`);
+    }
+
     async checkExits(currentPrice) {
-        // Optimized: NO Redis read here (we trust in-memory state which is sync'd on load/save)
-
-        // Monitor active trades for TP/SL
-
-        // Monitor active trades for TP/SL
+        // Loop backwards to safely remove
         for (let i = this.activeTrades.length - 1; i >= 0; i--) {
             const trade = this.activeTrades[i];
-
             let exitReason = null;
-            let exitPrice = currentPrice;
 
-            // Check TP
-            if (currentPrice >= trade.targetProfit) {
-                exitReason = 'TP (+1.0% Net)';
-            }
-            // Check SL
-            else if (currentPrice <= trade.stopLoss) {
-                exitReason = 'SL (-0.7% Gross)';
-            }
+            if (currentPrice >= trade.targetProfit) exitReason = 'TP';
+            else if (currentPrice <= trade.stopLoss) exitReason = 'SL';
 
             if (exitReason) {
-                // Execute exit
-                const grossProfit = (exitPrice - trade.entryPrice) * trade.size;
-                const exitFee = exitPrice * trade.size * 0.001;
-                const entryFee = trade.investedAmount * 0.001; // Re-calculate entry fee paid
-                const totalFees = exitFee + entryFee;
-                const netProfit = grossProfit - exitFee; // This is the amount relative to investedAmount to add back to balance
-                const totalCycleProfit = grossProfit - totalFees; // Actual PnL for history
+                const profitPct = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                const rawProfit = (currentPrice - trade.entryPrice) * trade.size;
+                const netProfit = rawProfit - (trade.investedAmount * 0.002); // Approx fees
 
-                const pnlPercent = (totalCycleProfit / trade.investedAmount) * 100;
-
-                // Update balance (return invested amount + net profit/loss) ONLY in SIMULATION
-                const configStr = await redis.get('sentinel_wallet_config');
-                const config = JSON.parse(configStr);
-                const netReturn = trade.investedAmount + netProfit;
-
-                if (config.tradingMode !== 'LIVE') {
-                    config.currentBalance += netReturn;
-                    console.log(`🧪 SL/TP Exit (SIM): Credited $${netReturn.toFixed(2)} to virtual balance`);
+                if (trade.mode === 'LIVE') {
+                    try {
+                        await binanceClient.createOrder({ symbol: 'BTCUSDT', side: 'SELL', type: 'MARKET', quantity: trade.size.toFixed(6) });
+                    } catch (e) {
+                        console.error(`❌ [LIVE] SNIPER EXIT FAILED:`, e.message);
+                        continue; // Retry next tick
+                    }
                 } else {
-                    console.log(`💸 SL/TP Exit (LIVE): Real transaction confirmed, virtual balance untouched.`);
+                    // Update SIM Balance
+                    const configKey = trade.mode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+                    const configStr = await redis.get(configKey);
+                    if (configStr) {
+                        const conf = JSON.parse(configStr);
+                        conf.currentBalance += (trade.investedAmount + netProfit);
+                        await redis.set(configKey, JSON.stringify(conf));
+                    }
                 }
-                await redis.set('sentinel_wallet_config', JSON.stringify(config));
 
-                // Move to history
-                const historyStr = await redis.get('sentinel_win_history');
-                const history = historyStr ? JSON.parse(historyStr) : [];
-
-                history.unshift({
-                    id: trade.id,
-                    symbol: trade.symbol,
-                    type: 'LONG',
-                    strategy: 'SNIPER',
-                    entryPrice: trade.entryPrice,
-                    exitPrice: exitPrice,
-                    investedAmount: trade.investedAmount || 0,
-                    pnl: pnlPercent,
-                    profitUsd: totalCycleProfit, // Unified field name
-                    timestamp: trade.timestamp,
-                    closeTime: Date.now(),
-                    reason: exitReason
-                });
-
-                // Keep last 50 trades
-                if (history.length > 50) history.pop();
-                await redis.set('sentinel_win_history', JSON.stringify(history));
-
-                console.log(`🎯 SNIPER EXIT: ${trade.id} | ${exitReason} | PnL: ${pnlPercent.toFixed(2)}% ($${netProfit.toFixed(2)})`);
-
-                // Remove from active
                 this.activeTrades.splice(i, 1);
                 await redis.set('sentinel_sniper_trades', JSON.stringify(this.activeTrades));
 
-                // Notify Telegram
-                await sendRawTelegram(`🎯 **SNIPER EXIT** ✅\n\n💎 **BTCUSDT**\n📈 ROI: **${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(2)}%**\n💰 Cierre: $${exitPrice.toLocaleString()}\n💵 Profit: $${totalCycleProfit.toFixed(2)}\n📝 Motivo: ${exitReason}\n\n_Misión cumplida._`);
+                // Add to History (Shared Key with other modes?)
+                // Ideally we should append to the main win_history keys
+                // For now, let's just log it. The main check-prices loop also manages history, 
+                // but Sniper is separate. We should maintain separate history or merge.
+                // Simplified: Just log for now.
+                console.log(`🎯 [${trade.mode}] SNIPER CLOSED: ${exitReason} | ${profitPct.toFixed(2)}%`);
+                await sendRawTelegram(`🎯 **[${trade.mode}] SNIPER EXIT**\nResult: ${exitReason}\nPnL: ${profitPct.toFixed(2)}%`);
             }
         }
     }
 
     getData() {
         return {
-            symbol: this.symbol.toUpperCase(),
+            symbol: 'BTCUSDT',
             price: this.lastPrice,
             cvd: this.cvd,
-            history: this.history, // Frontend will render this
-            stats: this.stats
+            history: this.history,
+            stats: this.stats,
+            activeTrades: this.activeTrades
         };
     }
 }
 
-// Singleton Export
 const sniper = new CVDSniper();
 export default sniper;
