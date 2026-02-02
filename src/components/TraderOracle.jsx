@@ -92,8 +92,15 @@ const TraderOracle = () => {
                                                 {trader?.type}
                                             </span>
                                         </div>
-                                        <p className={styles.traderId}>ID: X16A7XYFZ</p>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <p className={styles.traderId}>CRITERIA MATCH</p>
+                                            <span style={{ fontSize: '0.6rem', background: '#334155', padding: '0 4px', borderRadius: '4px', color: '#94A3B8' }}>REF</span>
+                                        </div>
                                     </div>
+                                </div>
+
+                                <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginBottom: '10px', fontStyle: 'italic', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '4px' }}>
+                                    ℹ️ <b>Modo Referencia:</b> Busca en Binance un trader con estas métricas exactas.
                                 </div>
 
                                 {/* Stats Grid */}

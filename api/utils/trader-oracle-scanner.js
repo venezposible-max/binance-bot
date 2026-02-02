@@ -15,14 +15,13 @@ export async function scanTopTraders() {
         // or a simulated intelligence layer if API access is restricted.
 
         // For development, we'll implement the "Ranking Engine" logic.
-        // We'll simulate fetching 5 top candidates and ranking them.
-
+        // ADAPTATION: Using "Archetype Profiles" (Reference Criteria) so the user knows what to look for
         const candidates = [
-            { name: "Alpha_Surge", roi90d: 45.2, roiMonthly: 15.1, mdd: 3.1, winRate: 78, aum: 150000, equity: 12000, type: "FUTURES" },
-            { name: "Stable_Wave", roi90d: 22.5, roiMonthly: 7.5, mdd: 1.2, winRate: 85, aum: 80000, equity: 25000, type: "SPOT" },
-            { name: "Risk_Gainer", roi90d: 88.1, roiMonthly: 29.4, mdd: 15.4, winRate: 62, aum: 300000, equity: 5000, type: "FUTURES" },
-            { name: "Crypto_Sage", roi90d: 35.8, roiMonthly: 11.9, mdd: 4.5, winRate: 72, aum: 120000, equity: 18000, type: "SPOT" },
-            { name: "Zen_Trader", roi90d: 18.2, roiMonthly: 6.1, mdd: 0.8, winRate: 92, aum: 45000, equity: 30000, type: "FUTURES" }
+            { name: "Target: HIGH FREQUENCY", roi90d: 45.0, roiMonthly: 15.0, mdd: 3.5, winRate: 75, aum: 150000, equity: 10000, type: "FUTURES" },
+            { name: "Target: STEADY SWING", roi90d: 20.0, roiMonthly: 7.0, mdd: 1.5, winRate: 85, aum: 80000, equity: 25000, type: "SPOT" },
+            { name: "Target: AGGRESSIVE", roi90d: 80.0, roiMonthly: 25.0, mdd: 12.0, winRate: 60, aum: 200000, equity: 5000, type: "FUTURES" },
+            { name: "Target: MARKET NEUTRAL", roi90d: 15.0, roiMonthly: 5.0, mdd: 0.8, winRate: 90, aum: 50000, equity: 30000, type: "FUTURES" },
+            { name: "Target: SPOT ACCUMULATOR", roi90d: 35.0, roiMonthly: 10.0, mdd: 5.0, winRate: 70, aum: 120000, equity: 15000, type: "SPOT" }
         ];
 
         // --- 🧠 INTELLIGENT RANKING ENGINE ---
