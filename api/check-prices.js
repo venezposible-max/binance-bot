@@ -279,6 +279,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                             const signal = result.prediction?.signal;
                             const intensity = result.prediction?.intensity || 0;
 
+                            // LOG SCAN RESULT (Proof of life)
+                            console.log(`🔍 [${mode}] SCAN: ${symbol} (${interval}) ➡ ${signal} (${intensity}%)`);
+
                             // LOGIC: ONLY ENTER ON "STRONG_BUY" OR HIGH INTENSITY
                             if (signal === 'STRONG_BUY' || (signal === 'BUY' && intensity >= 80)) {
                                 console.log(`🚀 [${mode}] AUTO-SIGNAL DETECTED: ${symbol} (${signal} - ${intensity}%)`);
