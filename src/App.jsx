@@ -778,8 +778,8 @@ function App() {
           </section>
         )}
 
-        {/* --- SNIPER CVD CHART (Only when SNIPER active) --- */}
-        {activeStrategy === 'SNIPER' && (
+        {/* --- SNIPER CVD CHART (When SNIPER is Active) --- */}
+        {(activeStrategy === 'SNIPER' || walletConfig?.strategyConfig?.SNIPER?.active) && (
           <section className={styles.analysisSection}>
             <h2 className={styles.sectionTitle}>🔫 CVD SNIPER - BTCUSDT WHALE TRACKER</h2>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>

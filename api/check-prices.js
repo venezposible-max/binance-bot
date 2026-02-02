@@ -380,9 +380,12 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     let newFoundTrades = [];
 
     // CONSTRUCT FINAL STATE (Moved up for scope access)
-    const finalList = [...keptTrades, ...manualAddedTrades];
+    // FIX: Ensure finalList is available regardless of the branch
+    let finalList = [...keptTrades, ...manualAddedTrades];
 
-    if (currentTotal < maxTrades) {
+    if (!wallet.isBotActive) {
+        console.log(`[${mode}] ⏸️ BOT PAUSED: Skipping new trade scan (Active: ${activeTrades.length} trades managed)`);
+    } else if (currentTotal < maxTrades) {
         // Identify Candidates (Symbols in marketPairs NOT in keptTrades OR manualAdded)
         const occupiedSymbols = [...keptTrades, ...manualAddedTrades].map(t => t.symbol);
         const candidates = marketPairs.filter(s => !occupiedSymbols.includes(s));
