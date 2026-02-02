@@ -578,6 +578,54 @@ function App() {
             >
               ⚡ FORCE SCAN
             </button>
+
+            {/* TEST BUY BUTTON (User Request) */}
+            <button
+              onClick={async () => {
+                if (confirm('⚠️ ¿EJECUTAR PRUEBA REAL?\n\n- Compra: $20 ETH\n- TP: +1%\n- SL: NO\n- Modo: REAL (LIVE)')) {
+                  const symbol = 'ETHUSDT';
+                  const data = marketData[symbol];
+                  if (!data || !data.price) return alert('Datos de ETH no disponibles. Espera un momento.');
+
+                  const price = data.price;
+                  const takeProfit = price * 1.01; // +1%
+
+                  // Force LIVE mode for this test regardless of UI toggle? 
+                  // User asked for "prueba en real". The backend uses 'mode' from body or state.
+                  // The handleManualAction uses data to create the trade.
+                  // But `manual-trade.js` reads active mode from Redis! 
+                  // To ensure it executes in LIVE, the system MUST be in LIVE mode.
+                  if (tradingMode !== 'LIVE') {
+                    return alert('❌ EL BOT DEBE ESTAR EN MODO "REAL" PARA ESTA PRUEBA.');
+                  }
+
+                  await handleManualAction('OPEN', {
+                    symbol,
+                    price,
+                    type: 'LONG',
+                    amount: 20,
+                    takeProfit,
+                    stopLoss: null, // Sin SL
+                    strategy: 'TEST_USER',
+                    mode: 'LIVE'
+                  });
+                  alert(`✅ ORDEN ENVIADA\nComprando $20 de ETH a $${price.toFixed(2)}`);
+                }
+              }}
+              style={{
+                background: '#EF4444', // Red for caution
+                color: '#FFF',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '5px 10px',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginLeft: '10px'
+              }}
+            >
+              🧪 TEST BUY ETH ($20)
+            </button>
           </div>
 
           {cloudStatus.active.length > 0 ? (
