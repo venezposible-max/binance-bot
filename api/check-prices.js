@@ -257,21 +257,27 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
             // --- STOP LOSS LOGIC ---
             // 1. Determine effective SL Percentage
-            let effectiveSL = wallet.stopLoss || 3.0; // Default Global
+
+            // UX SYNC: Respect Global "Enable Stop Loss" Toggle
+            // If Global SL is OFF, we only respect Manual/Explicit SLs. Auto SLs are disabled.
+            const globalSL_Enabled = wallet.useStopLoss !== false; // Default True
+
+            let effectiveSL = null; // Default to No SL
 
             if (trade.stopLoss !== undefined && trade.stopLoss !== null) {
+                // EXPLICIT SL (Manual or Strategy Specific)
                 // If trade has specific SL, it is likely a PRICE. Convert to Percentage.
                 if (trade.type === 'SHORT') {
-                    // Short: SL is ABOVE Entry. Loss = (SL - Entry) / Entry
                     effectiveSL = ((trade.stopLoss - trade.entryPrice) / trade.entryPrice) * 100;
                 } else {
-                    // Long: SL is BELOW Entry. Loss = (Entry - SL) / Entry
                     effectiveSL = ((trade.entryPrice - trade.stopLoss) / trade.entryPrice) * 100;
                 }
-
-                // Safety: If result is negative (SL placed wrong side), assume it's invalid or take abs?
-                // Just take abs to be sure we get the magnitude of the drop allowed.
                 effectiveSL = Math.abs(effectiveSL);
+
+            } else if (globalSL_Enabled && trade.stopLoss === undefined) {
+                // FALLBACK TO GLOBAL DEFAULT (Only if Global SL is Enabled AND trade didn't mistakenly set SL to null)
+                // (Null explicit check handled above by not entering first block)
+                effectiveSL = wallet.stopLoss || 3.0;
             } else if (trade.stopLoss === null) {
                 effectiveSL = null; // Explicit "NO SL"
             }

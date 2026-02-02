@@ -138,7 +138,12 @@ export default async function handler(req, res) {
                     } catch (err) {
                         // FIX: If balance is missing, it means it's already sold or ghost.
                         // We must allow the DB cleanup to proceed.
-                        if (err.message.includes('No se encontró saldo') || err.message.includes('Account has insufficient balance')) {
+                        const errorMsg = err.response?.data?.msg || err.message;
+                        const errorCode = err.response?.data?.code;
+
+                        if (errorMsg.includes('No se encontró saldo') ||
+                            errorMsg.includes('Account has insufficient balance') ||
+                            errorCode === -2010) {
                             console.warn(`⚠️ [FORCE CLOSE] Balance missing on Binance. Assumed already sold. Removing ghost trade...`);
                             // Do not throw, let it proceed to remove from activeTrades
                         } else {
