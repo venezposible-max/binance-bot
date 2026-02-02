@@ -17,36 +17,3 @@ CWD: /Users/franklincolina/.gemini/antigravity/scratch/binance
 🔐 VIP DATA MODE: DISABLED
 💓 Heartbeat: ENABLED (Direct Internal Execution)
 ============================================================
-🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...
-📡 MARKET WORKER: Connected to BTCUSDT WebSocket
-📡 MARKET WORKER: Connected to ETHUSDT WebSocket
-📡 MARKET WORKER: Connected to XRPUSDT WebSocket
-📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
-📡 MARKET WORKER: Connected to AVAXUSDT WebSocket
-📡 MARKET WORKER: Connected to SOLUSDT WebSocket
-📡 MARKET WORKER: Connected to TRXUSDT WebSocket
-📡 MARKET WORKER: Connected to BNBUSDT WebSocket
-📡 MARKET WORKER: Connected to LINKUSDT WebSocket
-📡 MARKET WORKER: Connected to ADAUSDT WebSocket
-
-⏳ [2026-02-02T02:10:34.285Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
-🚀 [API] check-prices handler STARTED
-🤖 Sentinel Bot Waking Up... [MODE: SIMULATION] [REGION: AUTO]
-💼 Current Wallet Config [SIMULATION]: {"isBotActive":true,"strategyCount":3,"activeStrats":["SNIPER","HYBRID_SWING"]}
-🛡️ EXECUTION MODE: SIMULATION (Paper Trading Only)
-🧠 AI CLIMATE: TENDENCIAL 📈 | ADX: 55.4 | Risk Mult: 1x
-🧠 ACTIVE STRATEGIES: SNIPER, HYBRID_SWING
-🎯 TARGETS: TP 1.25% | SL (Safety): OFF | AI SL: ON 🧠
-🔍 SCANNED PAIRS (10): ETHUSDT, BTCUSDT, XRPUSDT, DOGEUSDT, SUIUSDT, ZECUSDT, ZKUSDT, TRXUSDT, LINKUSDT, ADAUSDT
-🔍 SCANNED PAIRS (10): ETHUSDT, BTCUSDT, XRPUSDT, DOGEUSDT, SUIUSDT, ZECUSDT, ZKUSDT, TRXUSDT, LINKUSDT, ADAUSDT
-.. 🔎 ANALYZING: ETHUSDT | RSI: 18.85
-.. 🔎 ANALYZING: BTCUSDT | RSI: 24.31
-.. 🔎 ANALYZING: XRPUSDT | RSI: 30.55
-.. 🔎 ANALYZING: DOGEUSDT | RSI: 30.37
-.. 🔎 ANALYZING: SUIUSDT | RSI: 27.72
-.. 🔎 ANALYZING: ZECUSDT | RSI: 40.48
-.. 🔎 ANALYZING: ZKUSDT | RSI: 70.72
-.. 🔎 ANALYZING: TRXUSDT | RSI: 34.25
-.. 🔎 ANALYZING: LINKUSDT | RSI: 25.21
-.. 🔎 ANALYZING: ADAUSDT | RSI: 28.21
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts

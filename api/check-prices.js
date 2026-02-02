@@ -144,9 +144,9 @@ export default async function handler(req, res) {
         const walletConfigStr = await redis.get(configKey);
         const sniperTradesStr = await redis.get(sniperKey);
 
-        const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-        const sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
-        const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+        let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+        let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+        let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
 
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
