@@ -140,7 +140,18 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
                     activeTrades = syncedTrades;
                     await redis.set(activeKey, JSON.stringify(activeTrades));
+                    await redis.set(activeKey, JSON.stringify(activeTrades));
                     console.log(`[LIVE] ✅ Application State Synced: ${activeTrades.length} trades adopted.`);
+                }
+
+                // SYNC CASH BALANCE (USDT)
+                const usdtAsset = balanceData.balances.find(b => b.asset === 'USDT');
+                if (usdtAsset) {
+                    const realUsdt = parseFloat(usdtAsset.free);
+                    if (Math.abs(wallet.currentBalance - realUsdt) > 1) { // Only sync if meaningful diff
+                        console.log(`[LIVE] 💰 Syncing Balance: Redis ($${wallet.currentBalance}) -> Binance ($${realUsdt})`);
+                        wallet.currentBalance = realUsdt;
+                    }
                 }
             }
         } catch (e) {
