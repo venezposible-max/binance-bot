@@ -139,10 +139,14 @@ export default async function handler(req, res) {
 
         console.log(`🤖 Sentinel Bot Waking Up... [MODE: ${activeMode}] [REGION: ${currentRegion}]`);
 
-        let activeTradesStr = await redis.get(activeKey);
-        let winHistoryStr = await redis.get(historyKey);
-        let walletConfigStr = await redis.get(configKey);
-        let sniperTradesStr = await redis.get(sniperKey);
+        const activeTradesStr = await redis.get(activeKey);
+        const winHistoryStr = await redis.get(historyKey);
+        const walletConfigStr = await redis.get(configKey);
+        const sniperTradesStr = await redis.get(sniperKey);
+
+        const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+        const sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+        const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
 
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
@@ -162,8 +166,7 @@ export default async function handler(req, res) {
         };
 
         // 🛡️ PHASE 3: PORTFOLIO GUARDRAILS
-        let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-        let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+        // activeTrades and winHistory are already loaded at top
 
         // Ensure strategyConfig has a safe fallback ONLY if completely missing
         if (!wallet.strategyConfig) {
@@ -721,9 +724,7 @@ export default async function handler(req, res) {
         let freshActiveTrades = finalActiveStr ? JSON.parse(finalActiveStr) : [];
 
         // 5. SNIPER ENGINE SYNC
-        // 5. SNIPER ENGINE SYNC
-        let currentSniperTradesStr = await redis.get(sniperKey);
-        let sniperTradesData = currentSniperTradesStr ? JSON.parse(currentSniperTradesStr) : [];
+        // 5. SNIPER ENGINE SYNC (Already loaded at top)
 
         // 2. Identify trades we closed in THIS process
         const initialIds = activeTrades.map(t => t.id);
