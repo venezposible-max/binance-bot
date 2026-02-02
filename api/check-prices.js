@@ -116,7 +116,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const REGION = process.env.REGION || 'USA';
+        const currentRegion = process.env.REGION || lastWorkingSource || 'AUTO';
         const PORT = process.env.PORT || 8080;
         let alertsSent = []; // Fixed: Array to store alert symbols
 
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
         const historyKey = `sentinel_win_history${suffix}`;
         const sniperKey = `sentinel_sniper_trades${suffix}`;
 
-        console.log(`🤖 Sentinel Bot Waking Up... [MODE: ${activeMode}] [REGION: ${REGION}]`);
+        console.log(`🤖 Sentinel Bot Waking Up... [MODE: ${activeMode}] [REGION: ${currentRegion}]`);
 
         let activeTradesStr = await redis.get(activeKey);
         let winHistoryStr = await redis.get(historyKey);
@@ -768,7 +768,7 @@ export default async function handler(req, res) {
 
         res.status(200).json({
             status: 'Process Finished',
-            region: REGION, // Return current region for debug
+            region: lastWorkingSource || 'AUTO', // Return current region for debug
             activeStrategies: activeStrategies,
             activeCount: newActiveTrades.length,
             newAlerts: alertsSent
