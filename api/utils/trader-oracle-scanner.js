@@ -7,7 +7,7 @@ import 'dotenv/config';
  * Criteria: Low Drawdown, Consistent Win Rate, Good AUM, and Activity.
  */
 export async function scanTopTraders() {
-    console.log('🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...');
+    // console.log('🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...');
 
     try {
         // Binance Copy Trading API endpoints are often SAPI or even private/partner.
@@ -20,12 +20,12 @@ export async function scanTopTraders() {
 
         let candidates = [];
         try {
-            console.log('📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...');
+            // console.log('📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...');
             // Undocumented/SAPI endpoint attempt
             const liveData = await authenticatedRequest('/sapi/v1/copyTrading/futures/allLeadTraders', 'GET');
 
             if (liveData && Array.isArray(liveData.list) && liveData.list.length > 0) {
-                console.log(`✅ [TRADER ORACLE] Live API returned ${liveData.list.length} traders!`);
+                // console.log(`✅ [TRADER ORACLE] Live API returned ${liveData.list.length} traders!`);
                 candidates = liveData.list.map(t => ({
                     name: t.nickname,
                     roi90d: parseFloat(t.roi),
@@ -39,7 +39,7 @@ export async function scanTopTraders() {
                 }));
             }
         } catch (e) {
-            console.log(`⚠️ [TRADER ORACLE] Live fetch failed (${e.message}), using verified fallback.`);
+            // console.log(`⚠️ [TRADER ORACLE] Live fetch failed (${e.message}), using verified fallback.`);
         }
 
         if (candidates.length === 0) {
@@ -78,7 +78,7 @@ export async function scanTopTraders() {
 
         const topTrader = ranked[0];
 
-        console.log(`✨ [TRADER ORACLE] New Alpha Found: ${topTrader.name} (Score: ${topTrader.alphaScore.toFixed(1)})`);
+        // console.log(`✨ [TRADER ORACLE] New Alpha Found: ${topTrader.name} (Score: ${topTrader.alphaScore.toFixed(1)})`);
 
         // Save to Redis for the UI
         await redis.set('sentinel_trader_oracle', JSON.stringify({
