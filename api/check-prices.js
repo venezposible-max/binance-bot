@@ -247,17 +247,48 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             const currentAsk = marketData.ask;
 
             let exitPrice = trade.type === 'SHORT' ? currentAsk : currentBid;
-            let pnl = trade.type === 'SHORT' ? ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100 : ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
+            // PnL Logic: Positive = Profit, Negative = Loss
+            let pnl = trade.type === 'SHORT' ? ((trade.entryPrice - currentAsk) / trade.entryPrice) * 100 : ((currentBid - trade.entryPrice) / trade.entryPrice) * 100;
 
             // LOG MONITORING
-            console.log(`.. [${mode}] 👁️ MON: ${symbol} | PnL: ${pnl.toFixed(2)}% | SL: -${(wallet.stopLoss || 3.0)}%`);
+            // console.log(`.. [${mode}] 👁️ MON: ${symbol} | PnL: ${pnl.toFixed(2)}%`);
 
             let isExit = false;
-            // PRIORITY: Specific Trade Settings > Global Wallet Settings > Default
-            // PRIORITY: Specific Trade Settings > Global Wallet Settings > Default
-            // FIX: Allow Explicit "No SL" (null) to override defaults.
-            const effectiveSL = trade.stopLoss !== undefined ? trade.stopLoss : (wallet.stopLoss || 3.0);
-            const effectiveTP = trade.takeProfit !== undefined ? trade.takeProfit : (wallet.takeProfit || 1.5);
+
+            // --- STOP LOSS LOGIC ---
+            // 1. Determine effective SL Percentage
+            let effectiveSL = wallet.stopLoss || 3.0; // Default Global
+
+            if (trade.stopLoss !== undefined && trade.stopLoss !== null) {
+                // If trade has specific SL, it is likely a PRICE. Convert to Percentage.
+                if (trade.type === 'SHORT') {
+                    // Short: SL is ABOVE Entry. Loss = (SL - Entry) / Entry
+                    effectiveSL = ((trade.stopLoss - trade.entryPrice) / trade.entryPrice) * 100;
+                } else {
+                    // Long: SL is BELOW Entry. Loss = (Entry - SL) / Entry
+                    effectiveSL = ((trade.entryPrice - trade.stopLoss) / trade.entryPrice) * 100;
+                }
+
+                // Safety: If result is negative (SL placed wrong side), assume it's invalid or take abs?
+                // Just take abs to be sure we get the magnitude of the drop allowed.
+                effectiveSL = Math.abs(effectiveSL);
+            } else if (trade.stopLoss === null) {
+                effectiveSL = null; // Explicit "NO SL"
+            }
+
+            // --- TAKE PROFIT LOGIC ---
+            // 1. Determine effective TP Percentage
+            let effectiveTP = wallet.takeProfit || 1.5; // Default Global
+
+            if (trade.takeProfit !== undefined && trade.takeProfit !== null) {
+                // Assume Price. Convert to Percentage.
+                if (trade.type === 'SHORT') {
+                    effectiveTP = ((trade.entryPrice - trade.takeProfit) / trade.entryPrice) * 100;
+                } else {
+                    effectiveTP = ((trade.takeProfit - trade.entryPrice) / trade.entryPrice) * 100;
+                }
+                effectiveTP = Math.abs(effectiveTP);
+            }
 
             // Log dynamic targets for debugging
             // console.log(`   Targets for ${symbol}: TP +${effectiveTP}% | SL -${effectiveSL}%`);
