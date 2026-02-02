@@ -131,8 +131,15 @@ export default async function handler(req, res) {
                             throw new Error(`No se encontró saldo disponible de ${coin} en Binance para cerrar la posición. ¿Quizás ya lo cerraste manualmente?`);
                         }
                     } catch (err) {
-                        console.error('❌ FAILED to sell live trade on Binance:', err.message);
-                        throw new Error(`Fallo al cerrar en Binance: ${err.message}. El trade permanece activo para evitar desincronización.`);
+                        // FIX: If balance is missing, it means it's already sold or ghost.
+                        // We must allow the DB cleanup to proceed.
+                        if (err.message.includes('No se encontró saldo') || err.message.includes('Account has insufficient balance')) {
+                            console.warn(`⚠️ [FORCE CLOSE] Balance missing on Binance. Assumed already sold. Removing ghost trade...`);
+                            // Do not throw, let it proceed to remove from activeTrades
+                        } else {
+                            console.error('❌ FAILED to sell live trade on Binance:', err.message);
+                            throw new Error(`Fallo al cerrar en Binance: ${err.message}. El trade permanece activo para evitar desincronización.`);
+                        }
                     }
                 }
 

@@ -84,6 +84,7 @@ async function fetchGlobalKlines(symbol, interval, limit = 250) {
 
 // --- ⚡ CORE ENGINE (Process a Single Mode: LIVE or SIMULATION) ---
 async function processMode(mode, marketPairs, marketCache, marketRegime, manualOpportunities = null) {
+    console.warn(`🐛 DEBUG: STARTING processMode(${mode})`); // DEBUG
     const suffix = mode === 'LIVE' ? '_real' : '_sim';
     const configKey = mode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
     const activeKey = `sentinel_active_trades${suffix}`;
@@ -92,6 +93,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     let activeTradesStr = await redis.get(activeKey);
     let winHistoryStr = await redis.get(historyKey);
     let walletConfigStr = await redis.get(configKey);
+
+    console.warn(`🐛 DEBUG: REDIS FETCHED for ${mode}`); // DEBUG
 
     let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
     let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
@@ -118,6 +121,15 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     // Convert to trade objects so the bot can Manage them (SL/TP)
                     const syncedTrades = (await Promise.all(positions.map(async (pos) => {
                         const symbol = `${pos.asset}USDT`;
+
+                        // 🛡️ ZOMBIE PROTECTION: Check if we JUST closed this trade (prevent resurrection via latency)
+                        // If we sold it < 2 mins ago, assume this balance is stale or dust we failed to kill
+                        const lastClose = winHistory.find(h => h.symbol === symbol && new Date(h.timestamp) > new Date(Date.now() - 120000));
+                        if (lastClose) {
+                            console.warn(`[LIVE] 🧟 ZOMBIE BLOCKED: Found ${symbol} balance but it was closed recently. Ignoring.`);
+                            return null;
+                        }
+
                         const priceData = await fetchGlobalPrice(symbol);
                         const currentPrice = priceData?.price || 0;
                         const qty = parseFloat(pos.free) + parseFloat(pos.locked);
