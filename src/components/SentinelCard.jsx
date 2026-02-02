@@ -226,6 +226,31 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 />
             )}
 
+            {/* --- TEMPORARY TEST BUTTON FOR ETH --- */}
+            {symbol === 'ETHUSDT' && (
+                <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onSimulate(symbol.replace('USDT', ''), price, 'LONG')}
+                    style={{
+                        background: 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+                        color: '#000',
+                        border: 'none',
+                        width: '100%',
+                        padding: '12px',
+                        marginTop: '15px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '900',
+                        fontSize: '0.9rem',
+                        boxShadow: '0 4px 15px rgba(245, 158, 11, 0.4)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '1px'
+                    }}
+                >
+                    🛒 COMPRAR ETH (TEST)
+                </motion.button>
+            )}
+
         </motion.div>
     );
 };

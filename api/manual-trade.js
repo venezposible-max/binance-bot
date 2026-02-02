@@ -52,6 +52,25 @@ export default async function handler(req, res) {
             // Fee Logic (Maker/Taker 0.1%)
             const openFee = investedAmount * 0.001;
 
+            // --- LIVE EXECUTION 💸 ---
+            const isLive = activeMode === 'LIVE';
+            let executionPrice = price;
+            let orderId = `SIM_${Date.now()}`;
+            let executedQty = investedAmount / price;
+
+            if (isLive) {
+                console.log(`💸 EXECUTING LIVE MANUAL BUY: ${symbol} for $${investedAmount.toFixed(2)}`);
+                try {
+                    const order = await binanceClient.executeOrder(symbol, 'BUY', investedAmount, price, 'MARKET', true);
+                    orderId = order.orderId;
+                    executedQty = parseFloat(order.executedQty);
+                    executionPrice = parseFloat(order.cummulativeQuoteQty) / executedQty || price;
+                } catch (err) {
+                    console.error('🚨 LIVE MANUAL BUY FAILED:', err.message);
+                    throw new Error(`Binance Error: ${err.message}`);
+                }
+            }
+
             // Deduct from Balance (Investment + Fee)
             wallet.currentBalance -= (investedAmount + openFee);
 
@@ -60,22 +79,24 @@ export default async function handler(req, res) {
             const newTrade = {
                 id: uuidv4(),
                 symbol,
-                entryPrice: price,
+                entryPrice: executionPrice,
                 type, // 'LONG' or 'SHORT'
                 timestamp: new Date().toISOString(),
                 isManual: true,
                 investedAmount: investedAmount, // Track investment
+                quantity: executedQty,
                 strategy: strategy || 'SWING',
                 takeProfit,
                 stopLoss,
-                mode: activeMode
+                mode: activeMode,
+                orderId: orderId
             };
             activeTrades.push(newTrade);
 
             // Notify Telegram
             let targetMsg = `\n_Vigilando objetivo +1% en la nube..._`;
             if (takeProfit) {
-                const pnl = ((takeProfit - price) / price) * 100;
+                const pnl = ((takeProfit - executionPrice) / executionPrice) * 100;
                 targetMsg = `\n🎯 **Objetivo (ATR):** $${takeProfit.toFixed(4)} (+${pnl.toFixed(2)}%)`;
             }
 
