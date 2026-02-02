@@ -112,7 +112,7 @@ class CVDSniper {
                 const stratConfig = configLive.strategyConfig || {};
                 const isSniperActive = stratConfig.SNIPER?.active;
 
-                if (isSniperActive && delta > (configLive.whaleThreshold || 5000)) {
+                if (isSniperActive && Math.abs(delta) > (configLive.whaleThreshold || 5000)) {
                     await this.executeModeTrade(price, delta, configLive, 'LIVE');
                 }
             }
@@ -122,7 +122,7 @@ class CVDSniper {
                 const stratConfig = configSim.strategyConfig || {};
                 const isSniperActive = stratConfig.SNIPER?.active;
 
-                if (isSniperActive && delta > (configSim.whaleThreshold || 5000)) {
+                if (isSniperActive && Math.abs(delta) > (configSim.whaleThreshold || 5000)) {
                     await this.executeModeTrade(price, delta, configSim, 'SIMULATION');
                 }
             }
@@ -156,12 +156,14 @@ class CVDSniper {
         const positionSize = invested / entryPrice;
 
         let orderId = `SNIPER_${mode}_${Date.now()}`;
+        const side = delta > 0 ? 'BUY' : 'SELL';
+        const type = delta > 0 ? 'LONG' : 'SHORT';
 
         // EXECUTE
         if (mode === 'LIVE') {
             try {
                 const order = await binanceClient.createOrder({
-                    symbol: 'BTCUSDT', side: 'BUY', type: 'MARKET', quantity: positionSize.toFixed(6)
+                    symbol: 'BTCUSDT', side: side, type: 'MARKET', quantity: positionSize.toFixed(6)
                 });
                 orderId = order.orderId;
             } catch (e) {
@@ -179,12 +181,13 @@ class CVDSniper {
             id: orderId,
             symbol: 'BTCUSDT',
             strategy: 'SNIPER',
-            side: 'BUY',
+            side: side,
+            type: type, // Store simplified type
             entryPrice: entryPrice,
             size: positionSize,
             investedAmount: invested,
-            targetProfit: entryPrice * 1.012, // 1.2%
-            stopLoss: entryPrice * 0.995, // 0.5%
+            targetProfit: type === 'LONG' ? entryPrice * 1.012 : entryPrice * 0.988, // 1.2%
+            stopLoss: type === 'LONG' ? entryPrice * 0.995 : entryPrice * 1.005, // 0.5%
             timestamp: Date.now(),
             mode: mode
         };
@@ -204,18 +207,35 @@ class CVDSniper {
         for (let i = this.activeTrades.length - 1; i >= 0; i--) {
             const trade = this.activeTrades[i];
             let exitReason = null;
+            const isLong = trade.type === 'LONG' || !trade.type; // Default to Long for old trades
 
-            if (currentPrice >= trade.targetProfit) exitReason = 'TP';
-            else if (currentPrice <= trade.stopLoss) exitReason = 'SL';
+            if (isLong) {
+                if (currentPrice >= trade.targetProfit) exitReason = 'TP';
+                else if (currentPrice <= trade.stopLoss) exitReason = 'SL';
+            } else {
+                // Short Logic
+                if (currentPrice <= trade.targetProfit) exitReason = 'TP';
+                else if (currentPrice >= trade.stopLoss) exitReason = 'SL';
+            }
 
             if (exitReason) {
-                const profitPct = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
-                const rawProfit = (currentPrice - trade.entryPrice) * trade.size;
+                let profitPct = 0;
+                let rawProfit = 0;
+
+                if (isLong) {
+                    profitPct = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                    rawProfit = (currentPrice - trade.entryPrice) * trade.size;
+                } else {
+                    profitPct = ((trade.entryPrice - currentPrice) / trade.entryPrice) * 100;
+                    rawProfit = (trade.entryPrice - currentPrice) * trade.size;
+                }
+
                 const netProfit = rawProfit - (trade.investedAmount * 0.002); // Approx fees
+                const exitSide = isLong ? 'SELL' : 'BUY';
 
                 if (trade.mode === 'LIVE') {
                     try {
-                        await binanceClient.createOrder({ symbol: 'BTCUSDT', side: 'SELL', type: 'MARKET', quantity: trade.size.toFixed(6) });
+                        await binanceClient.createOrder({ symbol: 'BTCUSDT', side: exitSide, type: 'MARKET', quantity: trade.size.toFixed(6) });
                     } catch (e) {
                         console.error(`❌ [LIVE] SNIPER EXIT FAILED:`, e.message);
                         continue; // Retry next tick
