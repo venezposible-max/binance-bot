@@ -151,4 +151,6 @@ export const executeOrder = async (symbol, side, quantity, currentPrice = 0, typ
     return await privateRequest('/api/v3/order', 'POST', params);
 };
 
-export default { getAccountBalance, executeOrder };
+export const authenticatedRequest = privateRequest;
+
+export default { getAccountBalance, executeOrder, authenticatedRequest };
