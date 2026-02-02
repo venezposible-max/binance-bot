@@ -547,41 +547,69 @@ function App() {
                       {t.investedAmount && marketData[t.symbol]?.price && (
                         <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
 
-                          {/* STOP LOSS VISUALIZATION (New) */}
+                          {/* TARGETS (TP/SL) VISUALIZATION */}
                           {(() => {
+                            // 1. STOP LOSS LOGIC
                             let slPrice = null;
                             let slDist = 0;
 
-                            // 1. Sniper / Fixed SL
                             if (t.stopLoss) {
                               slPrice = t.stopLoss;
                               slDist = ((slPrice - t.entryPrice) / t.entryPrice) * 100;
-                            }
-                            // 2. Swing Dynamic SL
-                            else if ((t.strategy === 'SWING' || !t.strategy) && walletConfig.useStopLoss) {
-                              const distVal = walletConfig.stopLoss || 3.0;
-                              slDist = -distVal;
-                              slPrice = t.entryPrice * (1 - (distVal / 100));
+                            } else if (walletConfig.useStopLoss) {
+                              slDist = -(walletConfig.stopLoss || 3.0);
+                              slPrice = t.entryPrice * (1 + (slDist / 100));
                             }
 
-                            if (slPrice) {
-                              return (
+                            // 2. TAKE PROFIT LOGIC
+                            let tpPrice = null;
+                            let tpDist = 0;
+
+                            if (t.takeProfit) {
+                              tpPrice = t.takeProfit;
+                              tpDist = ((tpPrice - t.entryPrice) / t.entryPrice) * 100;
+                            } else {
+                              tpDist = walletConfig.takeProfit || 1.25;
+                              tpPrice = t.entryPrice * (1 + (tpDist / 100));
+                            }
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                                {/* TAKE PROFIT ROW */}
                                 <div style={{
                                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                  background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
-                                  padding: '4px 8px', borderRadius: '4px', marginBottom: '8px'
+                                  background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)',
+                                  padding: '4px 8px', borderRadius: '4px'
                                 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: 'bold' }}>🛑 STOP LOSS</span>
-                                    <span style={{ fontSize: '0.65rem', color: '#FECACA' }}>({slDist.toFixed(1)}%)</span>
+                                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800' }}>🎯 TAKE PROFIT</span>
+                                    <span style={{ fontSize: '0.65rem', color: '#A7F3D0' }}>({tpDist > 0 ? '+' : ''}{tpDist.toFixed(1)}%)</span>
                                   </div>
-                                  <span style={{ fontSize: '0.85rem', color: '#fff', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                    ${slPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                                  <span style={{ fontSize: '0.8rem', color: '#fff', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                    ${tpPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                                   </span>
                                 </div>
-                              );
-                            }
-                            return null;
+
+                                {/* STOP LOSS ROW */}
+                                <div style={{
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  background: slPrice ? 'rgba(239, 68, 68, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                                  border: `1px solid ${slPrice ? 'rgba(239, 68, 68, 0.2)' : 'rgba(148, 163, 184, 0.2)'}`,
+                                  padding: '4px 8px', borderRadius: '4px'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontSize: '0.65rem', color: slPrice ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 STOP LOSS</span>
+                                    {slPrice && <span style={{ fontSize: '0.65rem', color: '#FECACA' }}>({slDist.toFixed(1)}%)</span>}
+                                  </div>
+                                  <span style={{ fontSize: '0.8rem', color: slPrice ? '#fff' : '#94A3B8', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                                    {slPrice
+                                      ? `$${slPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
+                                      : 'SIN S/L'
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                            );
                           })()}
 
                           {/* Quantity Calculation */}
