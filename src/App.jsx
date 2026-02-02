@@ -164,7 +164,7 @@ function App() {
     }
   };
 
-  const handleSimulate = useCallback((symbol, price, type) => {
+  const handleSimulate = useCallback((symbol, price, type, amount = null) => {
     // [NEW] Capture ATR-based targets from analysis if available (BLITZ mode)
     let takeProfit = null;
     let stopLoss = null;
@@ -175,7 +175,7 @@ function App() {
       console.log(`🚀 Capturing ATR Targets for ${symbol}: TP ${takeProfit}, SL ${stopLoss}`);
     }
 
-    handleManualAction('OPEN', { symbol, price, type, strategy: activeStrategy, takeProfit, stopLoss });
+    handleManualAction('OPEN', { symbol, price, type, strategy: activeStrategy, takeProfit, stopLoss, amount });
   }, [activeStrategy, marketData]);
 
   const handleCloseManual = useCallback((id) => {

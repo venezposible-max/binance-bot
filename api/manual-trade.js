@@ -45,9 +45,9 @@ export default async function handler(req, res) {
         };
 
         if (action === 'OPEN') {
-            // Calculate Position Size
+            // Calculate Position Size (Priority to Fixed Amount)
             const risk = wallet.riskPercentage || 10;
-            const investedAmount = wallet.currentBalance * (risk / 100);
+            const investedAmount = req.body.amount || (wallet.currentBalance * (risk / 100));
 
             // Fee Logic (Maker/Taker 0.1%)
             const openFee = investedAmount * 0.001;

@@ -230,7 +230,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
             {symbol === 'ETHUSDT' && (
                 <motion.button
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => onSimulate(symbol, price, 'LONG')}
+                    onClick={() => onSimulate(symbol, price, 'LONG', 20)}
                     style={{
                         background: 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
                         color: '#000',
