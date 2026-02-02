@@ -119,7 +119,7 @@ export default async function handler(req, res) {
                     const coin = trade.symbol.replace('USDT', '');
                     console.log(`💸 Manual Close for LIVE trade: Selling ${trade.symbol} on Binance...`);
                     try {
-                        const balanceData = await binanceClient.getAccountBalance();
+                        const balanceData = await binanceClient.getAccountBalance('ALL');
                         const assetBalance = balanceData.balances?.find(b => b.asset === coin);
                         const qty = assetBalance ? parseFloat(assetBalance.free) : 0;
 
@@ -127,10 +127,12 @@ export default async function handler(req, res) {
                             await binanceClient.executeOrder(trade.symbol, 'SELL', qty, exitPrice || trade.entryPrice, 'MARKET', true);
                             console.log(`✅ Real SELL executed for ${qty} ${coin}`);
                         } else {
-                            console.warn(`🛑 No actual balance found for ${coin} on Binance. Removing from UI.`);
+                            // BLOCKER: Don't remove from UI if we can't find funds to sell
+                            throw new Error(`No se encontró saldo disponible de ${coin} en Binance para cerrar la posición. ¿Quizás ya lo cerraste manualmente?`);
                         }
                     } catch (err) {
                         console.error('❌ FAILED to sell live trade on Binance:', err.message);
+                        throw new Error(`Fallo al cerrar en Binance: ${err.message}. El trade permanece activo para evitar desincronización.`);
                     }
                 }
 
