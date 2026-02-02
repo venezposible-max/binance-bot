@@ -4,6 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
+import { scanTopTraders } from './api/utils/trader-oracle-scanner.js';
 
 // --- CRASH PREVENTION & LOGGING ---
 console.log('========================================');

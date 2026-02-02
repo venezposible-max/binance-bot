@@ -12,6 +12,7 @@ import CVDChart from './components/CVDChart'; // NEW: Embedded CVD Chart
 import DocumentationModal from './components/DocumentationModal'; // NEW: Docs
 import { sendTelegramAlert } from './utils/telegram';
 import { BookOpen } from 'lucide-react';
+import TraderOracle from './components/TraderOracle';
 
 function App() {
   const [pairs, setPairs] = useState(INITIAL_PAIRS); // Dynamic Top 10 Pairs
@@ -392,6 +393,9 @@ function App() {
           <span className={styles.brandNameBinance}>BINANCE</span>
           <span className={styles.brandNameSentinel}>SENTINEL</span>
           <img src="/logo-192.png" className={styles.brandIcon} alt="Sentinel Icon" />
+          <div style={{ marginLeft: '10px' }}>
+            <TraderOracle />
+          </div>
         </div>
         <nav style={{ display: 'flex', gap: '20px', color: '#EAECEF', fontWeight: '600', fontSize: '0.9rem' }}>
           {/* TRADING MODE BADGE */}
