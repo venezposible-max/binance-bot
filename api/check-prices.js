@@ -138,12 +138,26 @@ export default async function handler(req, res) {
             isBotActive: true,
             maxTrades: 3,
             dailyLossLimit: 50,
-            cooldownMinutes: 30
+            cooldownMinutes: 30,
+            strategyConfig: {
+                SNIPER: { active: true },
+                HYBRID_SWING: { active: true },
+                HYBRID_BLITZ: { active: false }
+            }
         };
 
         // 🛡️ PHASE 3: PORTFOLIO GUARDRAILS
         let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+
+        // Ensure strategyConfig has a safe fallback even if wallet exists but is old
+        if (!wallet.strategyConfig) {
+            wallet.strategyConfig = {
+                SNIPER: { active: true },
+                HYBRID_SWING: { active: true },
+                HYBRID_BLITZ: { active: false }
+            };
+        }
 
         // 1. MAX ACTIVE TRADES GUARD
         const MAX_TRADES = wallet.maxTrades || 3;

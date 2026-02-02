@@ -32,6 +32,11 @@ export default async function handler(req, res) {
                 useStopLoss: false,
                 swingMode: 'CONSERVATIVE',
                 tradingMode: mode === 'LIVE' ? 'LIVE' : 'SIMULATION',
+                strategyConfig: {
+                    SNIPER: { active: true },
+                    HYBRID_SWING: { active: true },
+                    HYBRID_BLITZ: { active: false }
+                },
                 ...existingConfig
             };
 
@@ -61,6 +66,11 @@ export default async function handler(req, res) {
                     multiFrameMode: false,
                     strategy: req.body.strategy || current.strategy || 'SWING',
                     timeframe: req.body.timeframe || current.timeframe || '4h',
+                    strategyConfig: req.body.strategyConfig || current.strategyConfig || {
+                        SNIPER: { active: true },
+                        HYBRID_SWING: { active: true },
+                        HYBRID_BLITZ: { active: false }
+                    },
                     whaleThreshold: req.body.whaleThreshold ? parseFloat(req.body.whaleThreshold) : (current.whaleThreshold || 150000)
                 };
             } else {
