@@ -123,12 +123,29 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 if (positions.length > 0) {
                     console.log(`[LIVE] ⚠️ Discovered ${positions.length} held assets on Binance not in Redis. Syncing...`);
 
+                    // FETCH SNIPER TRADES TO AVOID DOUBLE MANAGEMENT
+                    // If the Sniper is managing a trade (e.g. BTC), the Scanner must NOT adopt it.
+                    let activeSniperTrades = [];
+                    try {
+                        const sStr = await redis.get('sentinel_sniper_trades');
+                        activeSniperTrades = sStr ? JSON.parse(sStr) : [];
+                    } catch (e) {
+                        console.warn('⚠️ Failed to fetch sniper trades during sync check');
+                    }
+
                     // Convert to trade objects so the bot can Manage them (SL/TP)
                     const syncedTrades = (await Promise.all(positions.map(async (pos) => {
                         const symbol = `${pos.asset}USDT`;
 
-                        // 🛡️ ZOMBIE PROTECTION: Check if we JUST closed this trade (prevent resurrection via latency)
-                        // If we sold it < 2 mins ago, assume this balance is stale or dust we failed to kill
+                        // 🔍 CHECK 1: IS THIS A SNIPER TRADE?
+                        // We only care about LIVE sniper trades matching this symbol
+                        const isSniperManaged = activeSniperTrades.find(t => t.symbol === symbol && t.mode === 'LIVE');
+                        if (isSniperManaged) {
+                            console.log(`[LIVE] 🔫 Ignoring ${symbol} (Managed by SNIPER Worker).`);
+                            return null;
+                        }
+
+                        // 🛡️ CHECK 2: ZOMBIE PROTECTION
                         const lastClose = winHistory.find(h => h.symbol === symbol && new Date(h.timestamp) > new Date(Date.now() - 120000));
                         if (lastClose) {
                             console.warn(`[LIVE] 🧟 ZOMBIE BLOCKED: Found ${symbol} balance but it was closed recently. Ignoring.`);
@@ -155,7 +172,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                             mode: 'LIVE',
                             isManual: true
                         };
-                    }))).filter(t => t !== null); // Remove nulls (dust)
+                    }))).filter(t => t !== null); // Remove nulls (dust or sniper)
 
                     if (syncedTrades.length > 0) {
                         activeTrades = syncedTrades;
