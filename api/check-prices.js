@@ -273,14 +273,32 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
                 console.log(`[${mode}] 📉 CLOSING POSITION: ${symbol} ...`);
 
-                // EXECUTE SELL
-                const order = await binanceClient.executeOrder(symbol, 'SELL', qty, currentPrice, 'MARKET', mode === 'LIVE');
-                const received = parseFloat(order.cummulativeQuoteQty);
-                const fee = received * 0.001;
-                const netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
-                const finalPnl = (netProfit / trade.investedAmount) * 100;
+                let netProfit = 0, finalPnl = 0, executionPrice = currentPrice;
 
-                if (mode === 'SIMULATION') wallet.currentBalance += (received - fee);
+                try {
+                    // EXECUTE SELL
+                    const order = await binanceClient.executeOrder(symbol, 'SELL', qty, currentPrice, 'MARKET', mode === 'LIVE');
+                    const received = parseFloat(order.cummulativeQuoteQty);
+                    const fee = received * 0.001;
+                    netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
+                    finalPnl = (netProfit / trade.investedAmount) * 100;
+                    executionPrice = received / parseFloat(order.executedQty) || currentPrice;
+
+                    if (mode === 'SIMULATION') wallet.currentBalance += (received - fee);
+
+                } catch (err) {
+                    if (mode === 'LIVE' && (err.message.includes('-2010') || err.message.includes('insufficient balance'))) {
+                        console.warn(`⚠️ [LIVE] Force Closing ${symbol}: Position missing on Binance (Insufficient Balance).`);
+                        // Force Close Local State: Assumed 0 PnL or small loss? 
+                        // Safer to set 0 PnL to just remove it.
+                        netProfit = 0;
+                        finalPnl = 0;
+                        executionPrice = currentPrice;
+                        // Do NOT increment wallet balance for Live (funds missing)
+                    } else {
+                        throw err; // Rethrow other errors (Connection, etc)
+                    }
+                }
 
                 const win = {
                     symbol,
@@ -291,7 +309,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     mode: mode,
                     type: trade.type || 'LONG',
                     entryPrice: trade.entryPrice,
-                    exitPrice: currentPrice,
+                    exitPrice: executionPrice,
                     investedAmount: trade.investedAmount
                 };
                 await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${(finalPnl || 0).toFixed(2)}%\n💰 Profit: $${(netProfit || 0).toFixed(2)}`);
