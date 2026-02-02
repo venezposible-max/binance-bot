@@ -352,24 +352,10 @@ function App() {
       setActiveStrategy(newConfig.strategy);
       localStorage.setItem('sentinel_strategy', newConfig.strategy);
 
-      // SYNC STRATEGY AND TIMEFRAME TO BACKEND
-      fetch('/api/wallet/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          timeframe: newTf,
-          strategy: newConfig.strategy
-        })
-      }).then(res => res.json())
-        .then(data => setWalletConfig(data)) // Sync full config back
-        .catch(err => console.error('Failed to sync strategy:', err));
-
-      setWalletConfig(newConfig); // NEW: Full state sync
-
       // Reload data with new strategy
-      setTimeout(() => fetchData(newTf), 100); // Small delay to ensure state is cleared
+      setTimeout(() => fetchData(newTf), 100);
     } else {
-      setWalletConfig(newConfig || {}); // SYNC even if same strategy
+      setWalletConfig(newConfig || {});
       fetchData();
     }
   };

@@ -152,10 +152,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
         try {
             setWallet(prev => ({ ...prev, strategy: nextStrategy }));
-            await fetch('/api/wallet/config', {
+            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategy: nextStrategy })
+                body: JSON.stringify({ strategy: nextStrategy, tradingMode })
             });
             if (onConfigChange) onConfigChange({ ...wallet, strategy: nextStrategy });
         } catch (e) {
@@ -182,10 +182,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
         try {
             setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, isBotActive: newState }));
-            await fetch('/api/wallet/config', {
+            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyConfig: newStrategyConfig, isBotActive: newState })
+                body: JSON.stringify({ strategyConfig: newStrategyConfig, isBotActive: newState, tradingMode })
             });
             if (onConfigChange) onConfigChange({ ...wallet, strategyConfig: newStrategyConfig });
         } catch (e) {
@@ -207,10 +207,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         try {
             // Update state and also select this strategy to sync the main button
             setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, strategy: strategyName }));
-            await fetch('/api/wallet/config', {
+            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyConfig: newStrategyConfig, strategy: strategyName })
+                body: JSON.stringify({ strategyConfig: newStrategyConfig, strategy: strategyName, tradingMode })
             });
 
             if (onConfigChange) {
@@ -225,10 +225,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         if (!wallet) return;
         try {
             setWallet(prev => ({ ...prev, hybridMode: mode }));
-            await fetch('/api/wallet/config', {
+            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hybridMode: mode })
+                body: JSON.stringify({ hybridMode: mode, tradingMode })
             });
             if (onConfigChange) onConfigChange({ ...wallet, hybridMode: mode });
         } catch (e) {

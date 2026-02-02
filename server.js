@@ -137,6 +137,13 @@ const runInternalScan = async (source = 'TIMER') => {
             m.default.set('sentinel_last_heartbeat', new Date().toISOString());
         }).catch(() => { });
 
+        // --- TRADER ORACLE SCAN ---
+        try {
+            await scanTopTraders();
+        } catch (err) {
+            console.error('❌ Oracle Heartbeat Fail:', err.message);
+        }
+
     } catch (e) {
         console.error(`❌ CRON FAIL [${source}]:`, e.message);
     } finally {
