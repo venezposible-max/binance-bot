@@ -88,6 +88,7 @@ const formatQuantity = (symbol, qty) => {
     if (symbol.startsWith('SOL')) decimals = 3;
     if (symbol.startsWith('XRP')) decimals = 1;
     if (symbol.startsWith('DOGE')) decimals = 0;
+    if (symbol.startsWith('ZAMA')) decimals = 0; // Fix: ZAMA requires integer lot size
 
     const factor = Math.pow(10, decimals);
     return Math.floor(qty * factor) / factor;
