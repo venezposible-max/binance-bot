@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { sendRawTelegram } from '../src/utils/telegram.js';
 
 // --- Shared Logic ---
-// --- Shared Logic ---
 // Removed STATIC TOP_PAIRS list in favor of Dynamic Volume Fetching
 
 async function getDynamicTopPairs() {
@@ -97,6 +96,7 @@ export default async function handler(req, res) {
     try {
         const REGION = process.env.REGION || 'USA';
         const PORT = process.env.PORT || 8080;
+        let alertsSent = 0; // Fixed: Declare to avoid ReferenceError
 
         // 🚀 PHASE 1: Fetch Real-time Market Cache (Internal Call)
         let marketCache = {};
