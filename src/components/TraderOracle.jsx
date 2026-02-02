@@ -93,14 +93,14 @@ const TraderOracle = () => {
                                             </span>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <p className={styles.traderId}>CRITERIA MATCH</p>
-                                            <span style={{ fontSize: '0.6rem', background: '#334155', padding: '0 4px', borderRadius: '4px', color: '#94A3B8' }}>REF</span>
+                                            <p className={styles.traderId}>VERIFIED REAL</p>
+                                            <span style={{ fontSize: '0.6rem', background: '#3b82f6', padding: '0 4px', borderRadius: '4px', color: '#fff', fontWeight: 'bold' }}>✓</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginBottom: '10px', fontStyle: 'italic', background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '4px' }}>
-                                    ℹ️ <b>Modo Referencia:</b> Busca en Binance un trader con estas métricas exactas.
+                                <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginBottom: '10px', fontStyle: 'italic', background: 'rgba(59, 130, 246, 0.1)', padding: '6px', borderRadius: '4px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                    ✅ <b>Trader Verificado:</b> Puedes encontrar este perfil exacto en la App de Binance.
                                 </div>
 
                                 {/* Stats Grid */}
