@@ -151,13 +151,22 @@ export default async function handler(req, res) {
         let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
 
         // Ensure strategyConfig has a safe fallback even if wallet exists but is old
-        if (!wallet.strategyConfig) {
+        const hasActiveStrategy = wallet.strategyConfig && Object.values(wallet.strategyConfig).some(s => s.active);
+
+        if (!wallet.strategyConfig || !hasActiveStrategy) {
+            console.log("⚠️ No active strategies found in config. Applying emergency defaults.");
             wallet.strategyConfig = {
                 SNIPER: { active: true },
                 HYBRID_SWING: { active: true },
                 HYBRID_BLITZ: { active: false }
             };
         }
+
+        console.log(`💼 Current Wallet Config [${activeMode}]:`, JSON.stringify({
+            isBotActive: wallet.isBotActive,
+            strategyCount: Object.keys(wallet.strategyConfig || {}).length,
+            activeStrats: Object.keys(wallet.strategyConfig || {}).filter(k => wallet.strategyConfig[k].active)
+        }));
 
         // 1. MAX ACTIVE TRADES GUARD
         const MAX_TRADES = wallet.maxTrades || 3;
