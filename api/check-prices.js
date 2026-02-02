@@ -90,9 +90,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     const activeKey = `sentinel_active_trades${suffix}`;
     const historyKey = `sentinel_win_history${suffix}`;
 
-    let activeTradesStr = await redis.get(activeKey);
-    let winHistoryStr = await redis.get(historyKey);
-    let walletConfigStr = await redis.get(configKey);
+    // GOD-MODE OPTIMIZATION: Parallel Redis Fetch (Reduce RTT)
+    const [activeTradesStr, winHistoryStr, walletConfigStr] = await redis.mget([activeKey, historyKey, configKey]);
 
     // console.warn(`🐛 DEBUG: REDIS FETCHED for ${mode}`); // REMOVED DEBUG
 
@@ -224,210 +223,186 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         }
     }
 
-    // --- Monitor Loop ---
-    const activeSymbols = activeTrades.map(t => t.symbol);
-    const uniquePairs = Array.from(new Set([...marketPairs, ...activeSymbols]));
+    // --- GOD-MODE: PARALLEL PROCESSING ENGINE ---
 
-    for (const symbol of uniquePairs) {
+    // 1. MONITOR ACTIVE TRADES (Parallel)
+    // We monitor the originally active trades
+    const monitorPromises = activeTrades.map(async (trade) => {
         try {
+            const symbol = trade.symbol;
             const marketData = await fetchGlobalPrice(symbol, marketCache);
-            if (!marketData || !marketData.price) continue;
+            if (!marketData || !marketData.price) return { status: 'KEEP', trade };
 
             const currentPrice = marketData.price;
             const currentBid = marketData.bid;
             const currentAsk = marketData.ask;
 
-            // 1. MONITOR EXITS (Stop Loss Enforcer)
-            const tradeIndex = newActiveTrades.findIndex(t => t.symbol === symbol);
-            if (tradeIndex !== -1) {
-                const trade = newActiveTrades[tradeIndex];
-                let exitPrice = trade.type === 'SHORT' ? currentAsk : currentBid;
-                let pnl = trade.type === 'SHORT' ? ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100 : ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
+            let exitPrice = trade.type === 'SHORT' ? currentAsk : currentBid;
+            let pnl = trade.type === 'SHORT' ? ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100 : ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
 
-                // LOG MONITORING (User Reassurance)
-                console.log(`.. [${mode}] 👁️ MON: ${symbol} | PnL: ${pnl.toFixed(2)}% | SL: -${(wallet.stopLoss || 3.0)}%`);
+            // LOG MONITORING
+            console.log(`.. [${mode}] 👁️ MON: ${symbol} | PnL: ${pnl.toFixed(2)}% | SL: -${(wallet.stopLoss || 3.0)}%`);
 
-                // Stop Loss Logic
-                let isExit = false;
+            let isExit = false;
+            const effectiveSL = wallet.stopLoss || 3.0;
 
-                // FORCE SL CHECK
-                const effectiveSL = wallet.stopLoss || 3.0;
-                if (pnl <= -effectiveSL) {
-                    console.log(`[${mode}] 🛑 STOP LOSS TRIGGERED for ${symbol} @ ${pnl.toFixed(2)}% (Limit: -${effectiveSL}%)`);
-                    isExit = true;
-                }
+            if (pnl <= -effectiveSL) {
+                console.log(`[${mode}] 🛑 STOP LOSS TRIGGERED for ${symbol} @ ${pnl.toFixed(2)}%`);
+                isExit = true;
+            }
+            if (pnl >= (wallet.takeProfit || 1.5)) isExit = true;
 
-                // Take Profit Logic
-                if (pnl >= (wallet.takeProfit || 1.5)) isExit = true;
+            if (isExit) {
+                const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                console.log(`[${mode}] 📉 CLOSING POSITION: ${symbol} ...`);
 
-                if (isExit) {
-                    const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
-                    try {
-                        console.log(`[${mode}] 📉 CLOSING POSITION: ${symbol} ...`);
-                        const order = await binanceClient.executeOrder(symbol, 'SELL', qty, currentPrice, 'MARKET', mode === 'LIVE');
+                // EXECUTE SELL
+                const order = await binanceClient.executeOrder(symbol, 'SELL', qty, currentPrice, 'MARKET', mode === 'LIVE');
+                const received = parseFloat(order.cummulativeQuoteQty);
+                const fee = received * 0.001;
+                const netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
+                const finalPnl = (netProfit / trade.investedAmount) * 100;
 
-                        const received = parseFloat(order.cummulativeQuoteQty);
-                        const fee = received * 0.001;
-                        const netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
-                        const finalPnl = (netProfit / trade.investedAmount) * 100;
+                if (mode === 'SIMULATION') wallet.currentBalance += (received - fee);
 
-                        if (mode === 'SIMULATION') wallet.currentBalance += (received - fee);
+                const win = { symbol, pnl: finalPnl, profitUsd: netProfit, timestamp: new Date().toISOString(), strategy: trade.strategy, mode: mode };
+                await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${finalPnl.toFixed(2)}%\n💰 Profit: $${netProfit.toFixed(2)}`);
 
-                        newWins.push({ symbol, pnl: finalPnl, profitUsd: netProfit, timestamp: new Date().toISOString(), strategy: trade.strategy, mode: mode });
-                        newActiveTrades.splice(tradeIndex, 1);
-                        await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${finalPnl.toFixed(2)}%\n💰 Profit: $${netProfit.toFixed(2)}`);
-                    } catch (e) {
-                        console.error(`[${mode}] SELL FAILED: ${symbol}`, e.message);
+                return { status: 'CLOSED', win };
+            }
+
+            return { status: 'KEEP', trade };
+        } catch (e) {
+            console.error(`[${mode}] Error monitoring ${trade.symbol}:`, e.message);
+            return { status: 'KEEP', trade };
+        }
+    });
+
+    const monitorResults = await Promise.all(monitorPromises);
+
+    // Extract Results
+    const keptTrades = monitorResults.filter(r => r.status === 'KEEP').map(r => r.trade);
+    const roundWins = monitorResults.filter(r => r.status === 'CLOSED').map(r => r.win);
+    newWins.push(...roundWins);
+
+    // Capture Manual Trades added in this cycle (preserving them)
+    const manualAddedTrades = newActiveTrades.filter(t => !activeTrades.find(old => old.id === t.id));
+
+    // 2. SCAN NEW OPPORTUNITIES (Parallel)
+    const maxTrades = wallet.maxTrades || 3;
+    const currentTotal = keptTrades.length + manualAddedTrades.length;
+    let newFoundTrades = [];
+
+    if (currentTotal < maxTrades) {
+        // Identify Candidates (Symbols in marketPairs NOT in keptTrades OR manualAdded)
+        const occupiedSymbols = [...keptTrades, ...manualAddedTrades].map(t => t.symbol);
+        const candidates = marketPairs.filter(s => !occupiedSymbols.includes(s));
+
+        const scanPromises = candidates.map(async (symbol) => {
+            try {
+                const strategiesRaw = wallet.strategyConfig || { SNIPER: { active: true } };
+                const activeStrategies = Object.keys(strategiesRaw).filter(k => strategiesRaw[k].active);
+                if (activeStrategies.length === 0) activeStrategies.push(wallet.strategy || 'SWING');
+
+                for (const strat of activeStrategies) {
+                    if (strat === 'SNIPER') continue;
+
+                    let interval = '4h';
+                    let analysisMode = 'SWING';
+                    let useHybrid = false;
+
+                    if (strat.includes('BLITZ')) { interval = '5m'; analysisMode = 'BLITZ'; useHybrid = true; }
+                    else if (strat.includes('HYBRID') || strat.includes('SWING')) { interval = '4h'; analysisMode = 'SWING'; useHybrid = true; }
+
+                    const candles = await fetchGlobalKlines(symbol, interval, 60);
+                    if (!candles || candles.length < 30) continue;
+
+                    let result;
+                    if (useHybrid) result = analysis.analyzeOB(candles, { mode: analysisMode });
+                    else result = analysis.analyzePair(candles, { swingMode: 'AGGRESSIVE', mode: analysisMode });
+
+                    const signal = result.prediction?.signal;
+                    const intensity = result.prediction?.intensity || 0;
+
+                    if (intensity > 60) {
+                        const emoji = signal.includes('BUY') ? '🟢' : '🔴';
+                        console.log(`   [${mode}] ${symbol} [${strat}]: ${emoji} ${signal} (${intensity}%)`);
                     }
-                }
-            } else {
-                // 2. AUTONOMOUS ENTRY SCANNER (The "Brain" on the Server)
-                // Only scan if:
-                // a) We have slots available (Max Trades)
-                // b) Symbol is in our target list (marketPairs)
-                // c) Cooldown check passed (simple check to avoid spamming same pair)
-                // d) Enough balance
 
-                const maxTrades = wallet.maxTrades || 3;
-                if (newActiveTrades.length < maxTrades && marketPairs.includes(symbol)) {
-                    try {
-                        // DETECT ACTIVE STRATEGIES
-                        // We check the strategyConfig object which might have multiple flags
-                        const strategiesRaw = wallet.strategyConfig || { SNIPER: { active: true } };
-                        const activeStrategies = Object.keys(strategiesRaw).filter(k => strategiesRaw[k].active);
+                    let enter = false;
+                    if (analysisMode === 'BLITZ') {
+                        if (signal === 'BUY' || signal === 'STRONG_BUY') enter = true;
+                    } else {
+                        if (signal === 'STRONG_BUY' || (signal === 'BUY' && intensity >= 80)) enter = true;
+                    }
 
-                        // Fallback if empty or using old schema
-                        if (activeStrategies.length === 0) activeStrategies.push(wallet.strategy || 'SWING');
+                    if (enter) {
+                        console.log(`🚀 [${mode}] AUTO-SIGNAL: ${symbol} (${signal} - ${intensity}%)`);
 
-                        for (const strat of activeStrategies) {
-                            // SKIP IF ALREADY IN A TRADE FOR THIS SYMBOL
-                            // (Unless we want to pyramid, but for now 1 trade per pair)
-                            if (newActiveTrades.find(t => t.symbol === symbol)) continue;
+                        const risk = wallet.riskPercentage || 10;
+                        const balance = wallet.currentBalance || 0;
+                        const amountToInvest = (balance * (risk / 100));
 
-                            let interval = '4h';
-                            let analysisMode = 'SWING';
-                            let useHybrid = false;
+                        if (amountToInvest > 10) {
+                            const pd = await fetchGlobalPrice(symbol, marketCache);
+                            const buyPrice = pd?.price;
+                            if (!buyPrice) continue;
 
-                            if (strat === 'SNIPER') {
-                                // SNIPER is handled exclusively by api/stream/cvd-worker.js (Whale Tracker)
-                                const modeIcon = mode === 'LIVE' ? '🔴' : '🔵';
-                                // Only log for BTCUSDT as it's the only pair Sniper watches
-                                if (symbol === 'BTCUSDT') {
-                                    console.log(`   ${modeIcon} [${mode}] ${symbol} (CVD) [SNIPER]: 🔫 MONITORING WHALES (Background Worker)`);
-                                }
-                                continue;
+                            let executionPrice = buyPrice;
+                            let executedQty = amountToInvest / buyPrice;
+                            let actualSpent = amountToInvest;
+                            let success = true;
+
+                            if (mode === 'LIVE') {
+                                const order = await binanceClient.executeOrder(symbol, 'BUY', amountToInvest, buyPrice, 'MARKET', true);
+                                executedQty = parseFloat(order.executedQty);
+                                actualSpent = parseFloat(order.cummulativeQuoteQty);
+                                executionPrice = actualSpent / executedQty;
+                            } else {
+                                wallet.currentBalance -= (amountToInvest * 1.001);
                             }
 
-                            if (strat.includes('BLITZ')) {
-                                interval = '5m';
-                                analysisMode = 'BLITZ';
-                                useHybrid = true;
-                            } else if (strat.includes('HYBRID') || strat.includes('SWING')) {
-                                // Forces HYBRID_SWING to use the Order Block Engine (Advanced)
-                                interval = '4h';
-                                analysisMode = 'SWING';
-                                useHybrid = true;
-                            }
-
-                            // FETCH CANDLES
-                            const candles = await fetchGlobalKlines(symbol, interval, 60);
-
-                            if (candles && candles.length >= 30) {
-                                let result;
-
-                                if (useHybrid) {
-                                    // ⚡ BLITZ / HYBRID LOGIC
-                                    // Need Order Book depth for full hybrid, but we can try estimating/fetching or just use analyzeOB if depth missing (simulated depth)
-                                    // ideally we'd fetch depth. For now, let's use analyzeOB which is the core of Blitz without Flow if depth is costly
-                                    // Actually, let's call analyzeOB which contains the impulse logic.
-                                    result = analysis.analyzeOB(candles, { mode: analysisMode });
-                                } else {
-                                    // 🎯 STANDARD / SNIPER LOGIC (RSI/BB)
-                                    result = analysis.analyzePair(candles, {
-                                        swingMode: 'AGGRESSIVE',
-                                        mode: analysisMode
-                                    });
-                                }
-
-                                const signal = result.prediction?.signal;
-                                const intensity = result.prediction?.intensity || 0;
-                                const label = result.prediction?.label || strategy;
-
-                                // LOG SCAN RESULT (Clean Format)
-                                const emoji = signal.includes('BUY') ? '🟢' : (signal.includes('SELL') ? '🔴' : '⚪');
-                                const modeIcon = mode === 'LIVE' ? '🔴' : '🔵';
-                                console.log(`   ${modeIcon} [${mode}] ${symbol} (${interval}) [${strat}]: ${emoji} ${signal} (${intensity}%)`);
-
-                                // LOGIC: ONLY ENTER ON "STRONG_BUY" OR HIGH INTENSITY
-                                // Blitz needs BUY (it's aggressive). Sniper needs STRONG_BUY or high intensity.
-                                let enter = false;
-
-                                if (analysisMode === 'BLITZ') {
-                                    if (signal === 'BUY' || signal === 'STRONG_BUY') enter = true;
-                                } else {
-                                    if (signal === 'STRONG_BUY' || (signal === 'BUY' && intensity >= 80)) enter = true;
-                                }
-
-                                if (enter) {
-                                    console.log(`🚀 [${mode}] AUTO-SIGNAL DETECTED: ${symbol} (${signal} - ${intensity}%) via ${strat}`);
-
-                                    // EXECUTE TRADE
-                                    const risk = wallet.riskPercentage || 10;
-                                    const balance = wallet.currentBalance || 0;
-                                    const amountToInvest = (balance * (risk / 100));
-
-                                    if (amountToInvest > 10) {
-                                        let executionPrice = currentPrice;
-                                        let executedQty = amountToInvest / currentPrice;
-                                        let actualSpent = amountToInvest;
-                                        let success = true;
-
-                                        if (mode === 'LIVE') {
-                                            try {
-                                                console.log(`💸 AUTO-BUYING ${symbol} on BINANCE...`);
-                                                const order = await binanceClient.executeOrder(symbol, 'BUY', amountToInvest, currentPrice, 'MARKET', true);
-                                                executedQty = parseFloat(order.executedQty);
-                                                actualSpent = parseFloat(order.cummulativeQuoteQty);
-                                                executionPrice = actualSpent / executedQty;
-                                            } catch (err) {
-                                                console.error(`❌ AUTO-BUY FAILED: ${err.message}`);
-                                                success = false;
-                                            }
-                                        } else {
-                                            wallet.currentBalance -= (amountToInvest * 1.001);
-                                        }
-
-                                        if (success) {
-                                            const newTrade = {
-                                                id: uuidv4(),
-                                                symbol: symbol,
-                                                entryPrice: executionPrice,
-                                                investedAmount: actualSpent,
-                                                quantity: executedQty,
-                                                type: 'LONG',
-                                                timestamp: new Date().toISOString(),
-                                                strategy: strat, // Store specific strategy
-                                                mode: mode,
-                                                isManual: false,
-                                                takeProfit: result.obZone?.tp || null, // Use OB targets if avail
-                                                stopLoss: result.obZone?.sl || null
-                                            };
-
-                                            newActiveTrades.push(newTrade);
-                                            await sendRawTelegram(`🤖 **[${mode}] AUTONOMOUS ENTRY**\n🚀 **${symbol}**\n🔧 Strat: ${strat}\n🔥 Signal: ${label}\n💰 Entry: $${executionPrice.toFixed(4)}`);
-                                            break; // Stop checking other strategies for this symbol if one triggered
-                                        }
-                                    }
-                                }
+                            if (success) {
+                                const newTrade = {
+                                    id: uuidv4(),
+                                    symbol: symbol,
+                                    entryPrice: executionPrice,
+                                    investedAmount: actualSpent,
+                                    quantity: executedQty,
+                                    type: 'LONG',
+                                    timestamp: new Date().toISOString(),
+                                    strategy: strat,
+                                    mode: mode,
+                                    isManual: false,
+                                    takeProfit: result.obZone?.tp || null,
+                                    stopLoss: result.obZone?.sl || null
+                                };
+                                await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 **${symbol}**\n🔧 Strat: ${strat}\n💰 Entry: $${executionPrice.toFixed(4)}`);
+                                return newTrade;
                             }
                         }
-                    } catch (scanErr) {
-                        console.warn(`Scanner verify failed for ${symbol}: ${scanErr.message}`);
                     }
                 }
-            }
-        } catch (e) { console.error(`[${mode}] Error processing ${symbol}:`, e.message); }
+            } catch (scanErr) { }
+            return null;
+        });
+
+        const found = await Promise.all(scanPromises);
+        newFoundTrades = found.filter(t => t !== null);
     }
+
+    // CONSTRUCT FINAL STATE (Preserving Const Reference)
+    const finalList = [...keptTrades, ...manualAddedTrades];
+
+    // Add new found trades safely (checking maxTrades again just in case)
+    for (const t of newFoundTrades) {
+        if (finalList.length < maxTrades) {
+            finalList.push(t);
+        }
+    }
+
+    // Mutate the const array in place
+    newActiveTrades.splice(0, newActiveTrades.length, ...finalList);
 
     // --- STATE INTEGRITY GUARD (Merge-Before-Commit) ---
     // Prevent overwriting manual actions that happened during the scan (Race Condition Fix)
@@ -466,12 +441,18 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         console.log(`🛡️ [INTEGRITY GUARD] Race Condition Prevented! Merged ${externallyAdded.length} new & removed ${newActiveTrades.length - mergedActiveTrades.length} stale trades.`);
     }
 
-    await redis.set(activeKey, JSON.stringify(finalState));
-    await redis.set(configKey, JSON.stringify(wallet));
+    // GOD-MODE OPTIMIZATION: Pipeline Writes (Atomic & Fast)
+    const pipeline = redis.pipeline();
+    pipeline.set(activeKey, JSON.stringify(finalState));
+    pipeline.set(configKey, JSON.stringify(wallet));
+
     if (newWins.length > 0) {
-        const h = JSON.parse(await redis.get(historyKey) || '[]');
-        await redis.set(historyKey, JSON.stringify([...newWins, ...h].slice(0, 50)));
+        // Optimization: Use 'winHistory' fetched at start (via mget) instead of fetching again
+        const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
+        pipeline.set(historyKey, JSON.stringify(updatedHistory));
     }
+
+    await pipeline.exec();
     return { mode, activeCount: finalState.length, alerts: [] };
 }
 

@@ -36,6 +36,11 @@ if (REDIS_URL) {
         get: async (key) => memoryStore.get(key) || null,
         set: async (key, val) => { memoryStore.set(key, val); return 'OK'; },
         del: async (key) => { return memoryStore.delete(key) ? 1 : 0; },
+        mget: async (keys) => keys.map(k => memoryStore.get(k) || null),
+        pipeline: () => ({
+            set: (key, val) => { memoryStore.set(key, val); return { exec: async () => [] }; },
+            exec: async () => []
+        }),
         on: (event, callback) => { /* No-op for events */ },
         quit: async () => { /* No-op */ }
     };

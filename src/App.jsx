@@ -13,6 +13,7 @@ import DocumentationModal from './components/DocumentationModal'; // NEW: Docs
 import { sendTelegramAlert } from './utils/telegram';
 import { BookOpen } from 'lucide-react';
 import TraderOracle from './components/TraderOracle';
+import ActiveTradeCard from './components/ActiveTradeCard';
 
 function App() {
   const [pairs, setPairs] = useState(INITIAL_PAIRS); // Dynamic Top 10 Pairs
@@ -202,17 +203,7 @@ function App() {
     handleManualAction('CLOSE', { id, exitPrice: currentPrice });
   }, [cloudStatus.active, marketData]);
 
-  const calculatePnL = (trade, currentPrice) => {
-    if (!currentPrice) return 0;
-    let rawPnL = 0;
-    if (trade.type === 'SHORT') {
-      rawPnL = ((trade.entryPrice - currentPrice) / trade.entryPrice) * 100;
-    } else {
-      rawPnL = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
-    }
-    // Realism: Deduct 0.1% Entry Fee (Visual Start at -0.1%)
-    return rawPnL - 0.1;
-  };
+
 
   const fetchData = async (overrideTimeframe) => {
     if (isFetchingBus.current) return; // PREVENT OVERLAP
@@ -632,165 +623,15 @@ function App() {
 
           {cloudStatus.active.length > 0 ? (
             <div className={styles.tradeGrid}>
-              {cloudStatus.active.map(t => {
-                const pnl = calculatePnL(t, marketData[t.symbol]?.price);
-                return (
-                  <div key={t.id} className={styles.tradeCard} style={{ borderLeft: `5px solid ${t.type === 'LONG' ? '#10B981' : '#EF4444'} ` }}>
-                    <div className={styles.tradeCardHeader}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className={styles.tradeTag}>{t.type}{t.isManual ? ' (M)' : ''}</span>
-                        <span style={{
-                          fontSize: '0.7rem',
-                          color: '#E2E8F0',
-                          fontWeight: 'bold',
-                          marginLeft: '5px',
-                          letterSpacing: '0.5px'
-                        }}>
-                          {t.strategy || 'AUTO'}
-                        </span>
-                      </div>
-                      <span className={styles.tradeSymbol}>{t.symbol.replace('USDT', '')}</span>
-                      <button className={styles.closeBtn} onClick={() => handleCloseManual(t.id)}>×</button>
-                    </div>
-                    <div className={styles.tradePnL} style={{ color: pnl >= 0 ? '#10B981' : '#EF4444' }}>
-                      {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}%
-                    </div>
-                    <div className={styles.tradeEntry}>
-                      <div><span>Entrada: </span><span style={{ color: '#fff' }}>${t.entryPrice.toLocaleString()}</span></div>
-                      {t.triggerDelta && (
-                        <div style={{ fontSize: '0.7rem', color: '#10B981', marginTop: '2px', fontWeight: 'bold' }}>
-                          🐋 GATILLO: ${Math.round(t.triggerDelta).toLocaleString()}
-                        </div>
-                      )}
-
-                      {t.investedAmount && marketData[t.symbol]?.price && (
-                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-
-                          {/* TARGETS (TP/SL) VISUALIZATION */}
-                          {(() => {
-                            // 1. STOP LOSS LOGIC
-                            // FIX: Respect Global "No Stop Loss" Setting
-                            // Only show SL if Global Switch is ON or if it's a Manual Trade with explicit SL
-                            const canShowSL = walletConfig.useStopLoss || (t.isManual && t.stopLoss);
-
-                            let slPrice = null;
-                            let slDist = 0;
-
-                            if (canShowSL) {
-                              if (t.stopLoss || t.dynamicSL) {
-                                slPrice = t.stopLoss || t.dynamicSL;
-                              } else {
-                                // Default Global SL
-                                const dist = walletConfig.stopLoss || 3.0;
-                                slDist = -dist;
-                                slPrice = t.entryPrice * (1 + (slDist / 100));
-                              }
-                            } else {
-                              // Force Null if disabled globally and not manual
-                              slPrice = null;
-                            }
-
-                            if (slPrice) {
-                              slDist = ((slPrice - t.entryPrice) / t.entryPrice) * 100;
-                            }
-
-                            // 2. TAKE PROFIT LOGIC
-                            let tpPrice = t.takeProfit || t.dynamicTP || null;
-                            let tpDist = 0;
-
-                            if (tpPrice) {
-                              tpDist = ((tpPrice - t.entryPrice) / t.entryPrice) * 100;
-                            } else {
-                              tpDist = walletConfig.takeProfit || 1.25;
-                              tpPrice = t.entryPrice * (1 + (tpDist / 100));
-                            }
-
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-                                {/* TAKE PROFIT ROW */}
-                                <div style={{
-                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                  background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)',
-                                  padding: '4px 8px', borderRadius: '4px'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ fontSize: '0.65rem', color: '#10B981', fontWeight: '800' }}>🎯 TAKE PROFIT</span>
-                                    <span style={{ fontSize: '0.65rem', color: '#A7F3D0' }}>({tpDist > 0 ? '+' : ''}{tpDist.toFixed(1)}%)</span>
-                                  </div>
-                                  <span style={{ fontSize: '0.8rem', color: '#fff', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                    ${tpPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                                  </span>
-                                </div>
-
-                                {/* STOP LOSS ROW */}
-                                <div style={{
-                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                  background: slPrice ? 'rgba(239, 68, 68, 0.1)' : 'rgba(148, 163, 184, 0.1)',
-                                  border: `1px solid ${slPrice ? 'rgba(239, 68, 68, 0.2)' : 'rgba(148, 163, 184, 0.2)'}`,
-                                  padding: '4px 8px', borderRadius: '4px'
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ fontSize: '0.65rem', color: slPrice ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 STOP LOSS</span>
-                                    {slPrice && <span style={{ fontSize: '0.65rem', color: '#FECACA' }}>({slDist.toFixed(1)}%)</span>}
-                                  </div>
-                                  <span style={{ fontSize: '0.8rem', color: slPrice ? '#fff' : '#94A3B8', fontFamily: 'monospace', fontWeight: 'bold' }}>
-                                    {slPrice
-                                      ? `$${slPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
-                                      : 'SIN S/L'
-                                    }
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })()}
-
-                          {/* Quantity Calculation */}
-                          {(() => {
-                            const quantity = t.investedAmount / t.entryPrice;
-                            const currentVal = quantity * marketData[t.symbol].price;
-                            const profit = currentVal - t.investedAmount;
-                            const isWin = profit >= 0;
-
-                            return (
-                              <>
-                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between' }}>
-                                  <span><span>Cantidad:</span></span>
-                                  <span style={{ color: '#E2E8F0', fontFamily: 'monospace' }}>
-                                    {quantity.toFixed(5)} {t.symbol.replace('USDT', '')}
-                                  </span>
-                                </div>
-                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
-                                  <span><span>Valor Actual:</span></span>
-                                  <span style={{ color: isWin ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                                    ${currentVal.toFixed(2)}
-                                  </span>
-                                </div>
-
-                                <div style={{
-                                  marginTop: '8px',
-                                  padding: '4px 8px',
-                                  background: 'rgba(245, 158, 11, 0.1)',
-                                  border: '1px solid rgba(245, 158, 11, 0.3)',
-                                  borderRadius: '4px',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center'
-                                }}>
-                                  <span style={{ fontSize: '0.75rem', color: '#FCD34D', fontWeight: 'bold' }}>💰 INVERSIÓN:</span>
-                                  <span style={{ fontSize: '0.9rem', color: '#FFF', fontWeight: 'bold', fontFamily: 'monospace' }}>
-                                    ${(t.investedAmount || (quantity * t.entryPrice)).toFixed(2)}
-                                  </span>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      )
-                      }
-                    </div>
-                  </div>
-                );
-              })}
+              {cloudStatus.active.map(t => (
+                <ActiveTradeCard
+                  key={t.id}
+                  trade={t}
+                  currentPrice={marketData[t.symbol]?.price}
+                  walletConfig={walletConfig}
+                  onClose={handleCloseManual}
+                />
+              ))}
             </div>
           ) : (
             <div className={styles.emptyPortfolio}>
