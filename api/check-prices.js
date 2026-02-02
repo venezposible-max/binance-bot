@@ -144,11 +144,20 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                             return null;
                         }
 
-                        // 🛡️ CHECK 2: ZOMBIE PROTECTION
-                        const lastClose = winHistory.find(h => h.symbol === symbol && new Date(h.timestamp) > new Date(Date.now() - 120000));
+                        // 🛡️ CHECK 2: ZOMBIE PROTECTION (Enhanced)
+                        // If we recently closed it, we usually ignore it to avoid "Ghost Reappearance" of dust.
+                        // BUT, if the balance is significant (>$10), it means the Sell failed or was partial.
+                        // We must Re-Adopt it so the user can see it and close it again.
+                        const lastClose = winHistory.find(h => h.symbol === symbol && new Date(h.timestamp) > new Date(Date.now() - 300000)); // 5 mins lookback
+
                         if (lastClose) {
-                            console.warn(`[LIVE] 🧟 ZOMBIE BLOCKED: Found ${symbol} balance but it was closed recently. Ignoring.`);
-                            return null;
+                            if (valueUsd > 10) {
+                                console.warn(`[LIVE] 🧟 ZOMBIE RESURRECTION: Found ${symbol} ($${valueUsd.toFixed(2)}) despite recent close history. Re-adopting for safety.`);
+                                // Allow it to proceed (don't return null)
+                            } else {
+                                console.warn(`[LIVE] 🧟 ZOMBIE BLOCKED: Found ${symbol} dust ($${valueUsd.toFixed(2)}) closed recently. Ignoring.`);
+                                return null;
+                            }
                         }
 
                         const priceData = await fetchGlobalPrice(symbol);
