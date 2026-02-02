@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     try {
         const REGION = process.env.REGION || 'USA';
         const PORT = process.env.PORT || 8080;
-        let alertsSent = 0; // Fixed: Declare to avoid ReferenceError
+        let alertsSent = []; // Fixed: Array to store alert symbols
 
         // 🚀 PHASE 1: Fetch Real-time Market Cache (Internal Call)
         let marketCache = {};
@@ -291,12 +291,12 @@ export default async function handler(req, res) {
                         source: 'FORCE_SCAN_WEB',
                         investedAmount: investedAmount,
                         entryFee: openFee, // Store for Forensic Audit
-                        strategy: strategy,
+                        strategy: wallet.strategy || 'MANUAL',
                         isManual: true
                     };
                     newActiveTrades.push(newTrade);
 
-                    await sendRawTelegram(`${type === 'LONG' ? '🔵' : '🔴'} **FORCE ENTRY (${strategy})** ⚡\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 Inv: $${investedAmount.toFixed(2)}\n\n_Manual Force Scan_`);
+                    await sendRawTelegram(`${type === 'LONG' ? '🔵' : '🔴'} **FORCE ENTRY (${wallet.strategy || 'MANUAL'})** ⚡\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 Inv: $${investedAmount.toFixed(2)}\n\n_Manual Force Scan_`);
                     alertsSent.push(`${symbol} (${type})`);
                 }
             }
@@ -485,7 +485,7 @@ export default async function handler(req, res) {
                             console.log(`🏆 WIN: ${symbol} | PnL: +${pnlPercent.toFixed(2)}% | Profit: $${netProfit.toFixed(2)}`);
 
                             // Telegram Alert
-                            await sendRawTelegram(`🏆 **CLOUD WIN (${strategy})** 🚀\n\n💎 **${symbol}**\n📈 ROI: **+${pnlPercent.toFixed(2)}%**\n💰 Cierre: $${exitPrice.toFixed(4)}\n💵 Profit: $${netProfit.toFixed(2)}\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`);
+                            await sendRawTelegram(`🏆 **CLOUD WIN (${tradeStrategy})** 🚀\n\n💎 **${symbol}**\n📈 ROI: **+${pnlPercent.toFixed(2)}%**\n💰 Cierre: $${exitPrice.toFixed(4)}\n💵 Profit: $${netProfit.toFixed(2)}\n\n_Mode: ${isLive ? 'REAL MONEY' : 'Paper Trading'}_`);
 
                         } catch (err) {
                             console.error(`🚨 SELL FAILED (${symbol}):`, err.message);
@@ -500,7 +500,8 @@ export default async function handler(req, res) {
 
                 if (tradeIndex === -1) {
                     // DYNAMIC TELESCOPE: Use User's Timeframe or Fallback
-                    let primaryInterval = wallet.timeframe || (strategy === 'SCALP' ? '5m' : '4h');
+                    const activeStrat = wallet.strategy || 'HYBRID_SWING';
+                    let primaryInterval = wallet.timeframe || (activeStrat === 'SCALP' ? '5m' : '4h');
                     // ensure valid interval
                     if (!['1m', '5m', '15m', '30m', '1h', '4h', '1d'].includes(primaryInterval)) primaryInterval = '4h';
 
