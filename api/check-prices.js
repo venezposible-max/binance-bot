@@ -282,8 +282,19 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
                 if (mode === 'SIMULATION') wallet.currentBalance += (received - fee);
 
-                const win = { symbol, pnl: finalPnl, profitUsd: netProfit, timestamp: new Date().toISOString(), strategy: trade.strategy, mode: mode };
-                await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${finalPnl.toFixed(2)}%\n💰 Profit: $${netProfit.toFixed(2)}`);
+                const win = {
+                    symbol,
+                    pnl: finalPnl || 0,
+                    profitUsd: netProfit || 0,
+                    timestamp: new Date().toISOString(),
+                    strategy: trade.strategy,
+                    mode: mode,
+                    type: trade.type || 'LONG',
+                    entryPrice: trade.entryPrice,
+                    exitPrice: currentPrice,
+                    investedAmount: trade.investedAmount
+                };
+                await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${(finalPnl || 0).toFixed(2)}%\n💰 Profit: $${(netProfit || 0).toFixed(2)}`);
 
                 return { status: 'CLOSED', win };
             }
