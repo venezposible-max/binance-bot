@@ -78,7 +78,7 @@ export async function scanTopTraders() {
 
         const topTrader = ranked[0];
 
-        console.log(`✨ [TRADER ORACLE] New Alpha Found: ${topTrader.name} (Score: ${topTrader.score.toFixed(1)})`);
+        console.log(`✨ [TRADER ORACLE] New Alpha Found: ${topTrader.name} (Score: ${topTrader.alphaScore.toFixed(1)})`);
 
         // Save to Redis for the UI
         await redis.set('sentinel_trader_oracle', JSON.stringify({

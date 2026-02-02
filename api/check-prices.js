@@ -189,6 +189,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 let exitPrice = trade.type === 'SHORT' ? currentAsk : currentBid;
                 let pnl = trade.type === 'SHORT' ? ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100 : ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
 
+                // LOG MONITORING (User Reassurance)
+                console.log(`.. [${mode}] 👁️ MON: ${symbol} | PnL: ${pnl.toFixed(2)}% | SL: -${(wallet.stopLoss || 3.0)}%`);
+
                 // Stop Loss Logic
                 let isExit = false;
 

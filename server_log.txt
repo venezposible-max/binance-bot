@@ -17,101 +17,24 @@ CWD: /Users/franklincolina/.gemini/antigravity/scratch/binance
 🔐 VIP DATA MODE: ENABLED
 💓 Heartbeat: ENABLED (Direct Internal Execution)
 ============================================================
-🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...
-📡 MARKET WORKER: Connected to ETHUSDT WebSocket
 📡 MARKET WORKER: Connected to BTCUSDT WebSocket
-📡 MARKET WORKER: Connected to XRPUSDT WebSocket
 📡 MARKET WORKER: Connected to SOLUSDT WebSocket
+🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...
+📡 MARKET WORKER: Connected to XRPUSDT WebSocket
+📡 MARKET WORKER: Connected to ETHUSDT WebSocket
 📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
-📡 MARKET WORKER: Connected to TRXUSDT WebSocket
-📡 MARKET WORKER: Connected to BNBUSDT WebSocket
-📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 📡 MARKET WORKER: Connected to ADAUSDT WebSocket
+📡 MARKET WORKER: Connected to BNBUSDT WebSocket
+📡 MARKET WORKER: Connected to TRXUSDT WebSocket
 📡 MARKET WORKER: Connected to AVAXUSDT WebSocket
+📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 
-⏳ [2026-02-02T04:16:12.963Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
+⏳ [2026-02-02T04:22:33.815Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
 🚀 [DUAL ENGINE] check-prices START
 [SIMULATION] 💼 Config Loaded. Active Trades: 0
 [LIVE] 💼 Config Loaded. Active Trades: 0
 [LIVE] ⚠️ Discovered 8 held assets on Binance not in Redis. Syncing...
 [LIVE] ✅ Application State Synced: 8 trades adopted.
-[LIVE] 📉 CLOSING POSITION: ETHUSDT ...
-💸 REAL ORDER EXECUTING: SELL 0.0378535 ETHUSDT
-[LIVE] 📉 CLOSING POSITION: DOGEUSDT ...
-💸 REAL ORDER EXECUTING: SELL 827.172 DOGEUSDT
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-
-⏳ [2026-02-02T04:16:39.929Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-[SIMULATION] 💼 Config Loaded. Active Trades: 0
-[LIVE] 💼 Config Loaded. Active Trades: 6
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-🚨 BINANCE API ERROR [/sapi/v1/copyTrading/futures/allLeadTraders]: getaddrinfo ENOTFOUND api-gcp.binance.com
-⚠️ [TRADER ORACLE] Live fetch failed (getaddrinfo ENOTFOUND api-gcp.binance.com), using verified fallback.
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-
-⏳ [2026-02-02T04:17:09.929Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-[SIMULATION] 💼 Config Loaded. Active Trades: 0
-[LIVE] 💼 Config Loaded. Active Trades: 6
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-🚨 BINANCE API ERROR [/sapi/v1/copyTrading/futures/allLeadTraders]: getaddrinfo ENOTFOUND api-gcp.binance.com
-⚠️ [TRADER ORACLE] Live fetch failed (getaddrinfo ENOTFOUND api-gcp.binance.com), using verified fallback.
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-
-⏳ [2026-02-02T04:17:39.930Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-[SIMULATION] 💼 Config Loaded. Active Trades: 0
-[LIVE] 💼 Config Loaded. Active Trades: 6
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-🟢 [2026-02-02T04:18:09.929Z] SYSTEM HEARTBEAT | RAM: 61.11 MB | Uptime: 120s
-
-⏳ [2026-02-02T04:18:09.931Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-[SIMULATION] 💼 Config Loaded. Active Trades: 0
-[LIVE] 💼 Config Loaded. Active Trades: 6
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-
-⏳ [2026-02-02T04:18:39.931Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-[SIMULATION] 💼 Config Loaded. Active Trades: 0
-[LIVE] 💼 Config Loaded. Active Trades: 6
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-
-⏳ [2026-02-02T04:19:09.931Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-[SIMULATION] 💼 Config Loaded. Active Trades: 0
-[LIVE] 💼 Config Loaded. Active Trades: 6
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-
-⏳ [2026-02-02T04:19:39.931Z] INTERNAL CRON (HEARTBEAT): Triggering Scan...
-🚀 [DUAL ENGINE] check-prices START
-[SIMULATION] 💼 Config Loaded. Active Trades: 0
-[LIVE] 💼 Config Loaded. Active Trades: 6
-🐳 WHALE ALERT: BUY POWER: $242397 @ 75900
-⚠️ Sniper: No wallet config found
-✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
-🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
-📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
-❌ [TRADER ORACLE] Scan Failed: Cannot read properties of undefined (reading 'toFixed')
-🐳 WHALE ALERT: BUY POWER: $169999 @ 75991.01
-⚠️ Sniper: No wallet config found
+.. [LIVE] 👁️ MON: ETHUSDT | PnL: 0.02% | SL: -3%
+.. [LIVE] 👁️ MON: BTCUSDT | PnL: -0.00% | SL: -3%
+.. [LIVE] 👁️ MON: DOGEUSDT | PnL: -0.02% | SL: -3%
