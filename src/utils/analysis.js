@@ -345,6 +345,12 @@ export const analyzeOB = (candles, config = {}) => {
                 label = 'FILTRO EMA (ESPERANDO)';
                 color = '#EF4444';
                 intensity = 20;
+            } else if (isBlitz && lastPrice <= obZone.high) {
+                // AGGRESSIVE: In Blitz, we trigger 'BUY' if we touch the OB High
+                signal = 'BUY';
+                label = `⚡ BLITZ ENTRY (+${impulse.toFixed(1)}%)`;
+                color = '#10B981';
+                intensity = 85;
             } else {
                 signal = 'BULLISH';
                 label = 'OB DETECTADO (BUSCANDO MID)';
