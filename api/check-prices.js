@@ -104,9 +104,12 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         strategyConfig: { SNIPER: { active: true }, HYBRID_SWING: { active: true } }
     };
 
-    const currentStrategy = wallet.strategy || 'SWING';
+    const strategiesRaw = wallet.strategyConfig || { SNIPER: { active: true } };
+    const activeStrategies = Object.keys(strategiesRaw).filter(k => strategiesRaw[k].active);
+    const strategiesStr = activeStrategies.length > 0 ? activeStrategies.join(' + ') : (wallet.strategy || 'SWING');
+
     const activeColor = mode === 'LIVE' ? '🔴' : '🔵';
-    console.log(`${activeColor} [${mode}] STRATEGY: ${currentStrategy} | Active: ${activeTrades.length} | Balance: $${wallet.currentBalance.toFixed(0)}`);
+    console.log(`${activeColor} [${mode}] STRATEGY: ${strategiesStr} | Active: ${activeTrades.length} | Balance: $${wallet.currentBalance.toFixed(0)}`);
 
     // --- CRITICAL: Live Position Sync (Auto Discovery) ---
     if (mode === 'LIVE' && activeTrades.length === 0) {
@@ -271,87 +274,120 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 const maxTrades = wallet.maxTrades || 3;
                 if (newActiveTrades.length < maxTrades && marketPairs.includes(symbol)) {
                     try {
-                        // Determine Strategy & Timeframe from Wallet Config
-                        const strategy = wallet.strategy || 'SWING'; // Default SWING
-                        // Force 5m for BLITZ/SCALP, 4h for others
-                        const interval = (strategy.includes('BLITZ') || strategy === 'SCALP' || strategy === 'SNIPER') ? '5m' : '4h';
+                        // DETECT ACTIVE STRATEGIES
+                        // We check the strategyConfig object which might have multiple flags
+                        const strategiesRaw = wallet.strategyConfig || { SNIPER: { active: true } };
+                        const activeStrategies = Object.keys(strategiesRaw).filter(k => strategiesRaw[k].active);
 
-                        // Check Cooldown (Optional: 15 mins per pair)
-                        // Implementing a simple in-memory or redis check would be better, but for now we trust the analysis.
+                        // Fallback if empty or using old schema
+                        if (activeStrategies.length === 0) activeStrategies.push(wallet.strategy || 'SWING');
 
-                        // FETCH CANDLES
-                        const candles = await fetchGlobalKlines(symbol, interval, 50); // Need ~50 for EMA/RSI
+                        for (const strat of activeStrategies) {
+                            // SKIP IF ALREADY IN A TRADE FOR THIS SYMBOL
+                            // (Unless we want to pyramid, but for now 1 trade per pair)
+                            if (newActiveTrades.find(t => t.symbol === symbol)) continue;
 
-                        if (candles && candles.length >= 30) {
-                            // RUN ANALYSIS (Shared Logic with Frontend)
-                            // We pass the raw klines (Array of arrays). analyzePair handles "c.close" OR "c[4]"
-                            const result = analysis.analyzePair(candles, {
-                                swingMode: 'AGGRESSIVE', // Server is always aggressive to find opps
-                                mode: strategy
-                            });
+                            let interval = '4h';
+                            let analysisMode = 'SWING';
+                            let useHybrid = false;
 
-                            const signal = result.prediction?.signal;
-                            const intensity = result.prediction?.intensity || 0;
+                            if (strat.includes('BLITZ')) {
+                                interval = '5m';
+                                analysisMode = 'BLITZ';
+                                useHybrid = true;
+                            } else if (strat === 'SNIPER') {
+                                interval = '5m';
+                                analysisMode = 'SNIPER';
+                                useHybrid = false; // Sniper uses basic RSI/BB in analyzePair logic
+                            }
 
-                            // LOG SCAN RESULT (Clean Format)
-                            const emoji = signal.includes('BUY') ? '🟢' : (signal.includes('SELL') ? '🔴' : '⚪');
-                            console.log(`   > ${symbol} (${interval}): ${emoji} ${signal} (${intensity}%)`);
+                            // FETCH CANDLES
+                            const candles = await fetchGlobalKlines(symbol, interval, 60);
 
-                            // LOGIC: ONLY ENTER ON "STRONG_BUY" OR HIGH INTENSITY
-                            if (signal === 'STRONG_BUY' || (signal === 'BUY' && intensity >= 80)) {
-                                console.log(`🚀 [${mode}] AUTO-SIGNAL DETECTED: ${symbol} (${signal} - ${intensity}%)`);
+                            if (candles && candles.length >= 30) {
+                                let result;
 
-                                // EXECUTE TRADE
-                                const risk = wallet.riskPercentage || 10;
-                                // Validate Balance
-                                const balance = wallet.currentBalance || 0;
-                                const amountToInvest = (balance * (risk / 100));
+                                if (useHybrid) {
+                                    // ⚡ BLITZ / HYBRID LOGIC
+                                    // Need Order Book depth for full hybrid, but we can try estimating/fetching or just use analyzeOB if depth missing (simulated depth)
+                                    // ideally we'd fetch depth. For now, let's use analyzeOB which is the core of Blitz without Flow if depth is costly
+                                    // Actually, let's call analyzeOB which contains the impulse logic.
+                                    result = analysis.analyzeOB(candles, { mode: analysisMode });
+                                } else {
+                                    // 🎯 STANDARD / SNIPER LOGIC (RSI/BB)
+                                    result = analysis.analyzePair(candles, {
+                                        swingMode: 'AGGRESSIVE',
+                                        mode: analysisMode
+                                    });
+                                }
 
-                                if (amountToInvest > 10) { // Min $10
-                                    // Prepare Trade Object
-                                    let executionPrice = currentPrice;
-                                    let orderId = `AUTO_${Date.now()}`;
-                                    let executedQty = amountToInvest / currentPrice;
-                                    let actualSpent = amountToInvest;
+                                const signal = result.prediction?.signal;
+                                const intensity = result.prediction?.intensity || 0;
+                                const label = result.prediction?.label || strategy;
 
-                                    // EXECUTE ON BINANCE (If Live)
-                                    let success = true;
-                                    if (mode === 'LIVE') {
-                                        try {
-                                            console.log(`💸 AUTO-BUYING ${symbol} on BINANCE...`);
-                                            const order = await binanceClient.executeOrder(symbol, 'BUY', amountToInvest, currentPrice, 'MARKET', true);
-                                            // Update details from real execution
-                                            executedQty = parseFloat(order.executedQty);
-                                            actualSpent = parseFloat(order.cummulativeQuoteQty);
-                                            executionPrice = actualSpent / executedQty;
-                                        } catch (err) {
-                                            console.error(`❌ AUTO-BUY FAILED: ${err.message}`);
-                                            success = false;
+                                // LOG SCAN RESULT (Clean Format)
+                                const emoji = signal.includes('BUY') ? '🟢' : (signal.includes('SELL') ? '🔴' : '⚪');
+                                console.log(`   > ${symbol} (${interval}) [${strat}]: ${emoji} ${signal} (${intensity}%)`);
+
+                                // LOGIC: ONLY ENTER ON "STRONG_BUY" OR HIGH INTENSITY
+                                // Blitz needs BUY (it's aggressive). Sniper needs STRONG_BUY or high intensity.
+                                let enter = false;
+
+                                if (analysisMode === 'BLITZ') {
+                                    if (signal === 'BUY' || signal === 'STRONG_BUY') enter = true;
+                                } else {
+                                    if (signal === 'STRONG_BUY' || (signal === 'BUY' && intensity >= 80)) enter = true;
+                                }
+
+                                if (enter) {
+                                    console.log(`🚀 [${mode}] AUTO-SIGNAL DETECTED: ${symbol} (${signal} - ${intensity}%) via ${strat}`);
+
+                                    // EXECUTE TRADE
+                                    const risk = wallet.riskPercentage || 10;
+                                    const balance = wallet.currentBalance || 0;
+                                    const amountToInvest = (balance * (risk / 100));
+
+                                    if (amountToInvest > 10) {
+                                        let executionPrice = currentPrice;
+                                        let executedQty = amountToInvest / currentPrice;
+                                        let actualSpent = amountToInvest;
+                                        let success = true;
+
+                                        if (mode === 'LIVE') {
+                                            try {
+                                                console.log(`💸 AUTO-BUYING ${symbol} on BINANCE...`);
+                                                const order = await binanceClient.executeOrder(symbol, 'BUY', amountToInvest, currentPrice, 'MARKET', true);
+                                                executedQty = parseFloat(order.executedQty);
+                                                actualSpent = parseFloat(order.cummulativeQuoteQty);
+                                                executionPrice = actualSpent / executedQty;
+                                            } catch (err) {
+                                                console.error(`❌ AUTO-BUY FAILED: ${err.message}`);
+                                                success = false;
+                                            }
+                                        } else {
+                                            wallet.currentBalance -= (amountToInvest * 1.001);
                                         }
-                                    } else {
-                                        // SIMULATION
-                                        wallet.currentBalance -= (amountToInvest * 1.001); // Deduct + Fee
-                                    }
 
-                                    if (success) {
-                                        const newTrade = {
-                                            id: uuidv4(),
-                                            symbol: symbol,
-                                            entryPrice: executionPrice,
-                                            investedAmount: actualSpent,
-                                            quantity: executedQty,
-                                            type: 'LONG',
-                                            timestamp: new Date().toISOString(),
-                                            strategy: strategy + '_AUTO', // Tag as Auto
-                                            mode: mode,
-                                            isManual: false,
-                                            // Set ATR Targets if available from analysis
-                                            takeProfit: null, // Let the main monitor handle generic TP, or extract from result if OB
-                                            stopLoss: null
-                                        };
+                                        if (success) {
+                                            const newTrade = {
+                                                id: uuidv4(),
+                                                symbol: symbol,
+                                                entryPrice: executionPrice,
+                                                investedAmount: actualSpent,
+                                                quantity: executedQty,
+                                                type: 'LONG',
+                                                timestamp: new Date().toISOString(),
+                                                strategy: strat, // Store specific strategy
+                                                mode: mode,
+                                                isManual: false,
+                                                takeProfit: result.obZone?.tp || null, // Use OB targets if avail
+                                                stopLoss: result.obZone?.sl || null
+                                            };
 
-                                        newActiveTrades.push(newTrade);
-                                        await sendRawTelegram(`🤖 **[${mode}] AUTONOMOUS ENTRY**\n🚀 **${symbol}**\n🔥 Signal: ${signal}\n💰 Entry: $${executionPrice.toFixed(4)}\n💸 Invested: $${actualSpent.toFixed(2)}`);
+                                            newActiveTrades.push(newTrade);
+                                            await sendRawTelegram(`🤖 **[${mode}] AUTONOMOUS ENTRY**\n🚀 **${symbol}**\n🔧 Strat: ${strat}\n🔥 Signal: ${label}\n💰 Entry: $${executionPrice.toFixed(4)}`);
+                                            break; // Stop checking other strategies for this symbol if one triggered
+                                        }
                                     }
                                 }
                             }
