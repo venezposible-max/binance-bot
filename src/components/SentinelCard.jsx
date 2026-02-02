@@ -202,7 +202,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 <motion.button
                     className={styles.actionButton}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => onSimulate(symbol.replace('USDT', ''), price)}
+                    onClick={() => onSimulate(symbol, price)}
                     style={{
                         background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', border: '1px solid #10B981',
                         width: '100%', padding: '10px', marginTop: '10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'
@@ -230,7 +230,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
             {symbol === 'ETHUSDT' && (
                 <motion.button
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => onSimulate(symbol.replace('USDT', ''), price, 'LONG')}
+                    onClick={() => onSimulate(symbol, price, 'LONG')}
                     style={{
                         background: 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
                         color: '#000',
