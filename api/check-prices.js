@@ -116,27 +116,37 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     console.log(`[LIVE] ⚠️ Discovered ${positions.length} held assets on Binance not in Redis. Syncing...`);
 
                     // Convert to trade objects so the bot can Manage them (SL/TP)
-                    const syncedTrades = await Promise.all(positions.map(async (pos) => {
+                    const syncedTrades = (await Promise.all(positions.map(async (pos) => {
                         const symbol = `${pos.asset}USDT`;
                         const priceData = await fetchGlobalPrice(symbol);
                         const currentPrice = priceData?.price || 0;
+                        const qty = parseFloat(pos.free) + parseFloat(pos.locked);
+                        const valueUsd = qty * currentPrice;
 
-                        // We can't know the entry price easily without full history scan, 
-                        // so we assume current price or try to protect from NOW.
-                        // Ideally we'd fetch trade history, but for SAFETY now, we adopt them.
+                        // FILTER DUST: Ignore assets worth less than $5
+                        if (valueUsd < 5) return null;
+
                         return {
                             id: uuidv4(),
                             symbol: symbol,
                             entryPrice: currentPrice, // Approximate
-                            investedAmount: (parseFloat(pos.free) + parseFloat(pos.locked)) * currentPrice,
-                            quantity: parseFloat(pos.free) + parseFloat(pos.locked),
+                            investedAmount: valueUsd,
+                            quantity: qty,
                             type: 'LONG',
                             timestamp: new Date().toISOString(),
                             strategy: 'MANUAL_SYNC',
                             mode: 'LIVE',
                             isManual: true
                         };
-                    }));
+                    }))).filter(t => t !== null); // Remove nulls (dust)
+
+                    if (syncedTrades.length > 0) {
+                        activeTrades = syncedTrades;
+                        await redis.set(activeKey, JSON.stringify(activeTrades));
+                        console.log(`[LIVE] ✅ Application State Synced: ${activeTrades.length} trades adopted (Dust filtered).`);
+                    } else {
+                        console.log(`[LIVE] 🧹 Only dust found. No trades adopted.`);
+                    }
 
                     activeTrades = syncedTrades;
                     await redis.set(activeKey, JSON.stringify(activeTrades));
@@ -258,8 +268,25 @@ export default async function handler(req, res) {
         const marketPairs = await getDynamicTopPairs();
 
         // Parallel Processing
+        // Parallel Processing
         const activeModeUI = await redis.get('sentinel_active_mode') || 'SIMULATION';
-        const tasks = [processMode('SIMULATION', marketPairs, marketCache, null, null)];
+        const tasks = [];
+
+        // Only run SIMULATION if users wants it or we are NOT in LIVE prioritized mode
+        // User requested "Quita los trades falsos", so if KEY exists, we focus on LIVE.
+        if (!process.env.BINANCE_API_KEY) {
+            tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
+        } else {
+            // Check if user specifically enabled SIM in parallel? For now, we reduce noise.
+            // We run SIM only if explicit env var or maybe just skip it to please user.
+            // Let's run it BUT log less? The user said "fake tradings quitalos".
+            // So if we have KEYS, we SKIP Simulation Engine to focus resources and logs on REAL MONEY.
+            // Wait, this might break the "Switch Mode" UI if they want to switch back. 
+            // Better: Check activeModeUI. If LIVE, skip SIM processing to clean logs.
+            if (activeModeUI !== 'LIVE') {
+                tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
+            }
+        }
 
         if (process.env.BINANCE_API_KEY) {
             tasks.push(processMode('LIVE', marketPairs, marketCache, null, null));

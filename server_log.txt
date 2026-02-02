@@ -17,28 +17,26 @@ CWD: /Users/franklincolina/.gemini/antigravity/scratch/binance
 🔐 VIP DATA MODE: ENABLED
 💓 Heartbeat: ENABLED (Direct Internal Execution)
 ============================================================
-📡 MARKET WORKER: Connected to BTCUSDT WebSocket
 🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...
-📡 MARKET WORKER: Connected to ETHUSDT WebSocket
 📡 MARKET WORKER: Connected to SOLUSDT WebSocket
+📡 MARKET WORKER: Connected to BTCUSDT WebSocket
+📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
+📡 MARKET WORKER: Connected to ETHUSDT WebSocket
 📡 MARKET WORKER: Connected to XRPUSDT WebSocket
 📡 MARKET WORKER: Connected to TRXUSDT WebSocket
-📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
 📡 MARKET WORKER: Connected to ADAUSDT WebSocket
-📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 📡 MARKET WORKER: Connected to BNBUSDT WebSocket
+📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 📡 MARKET WORKER: Connected to AVAXUSDT WebSocket
 
-⏳ [2026-02-02T04:23:55.272Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
+⏳ [2026-02-02T04:30:22.267Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
 🚀 [DUAL ENGINE] check-prices START
 [SIMULATION] 💼 Config Loaded. Active Trades: 0
 [LIVE] 💼 Config Loaded. Active Trades: 0
-[LIVE] ⚠️ Discovered 8 held assets on Binance not in Redis. Syncing...
-[LIVE] ✅ Application State Synced: 8 trades adopted.
-[LIVE] 💰 Syncing Balance: Redis ($1000) -> Binance ($340.30911068)
-.. [LIVE] 👁️ MON: ETHUSDT | PnL: 0.01% | SL: -3%
-.. [LIVE] 👁️ MON: BTCUSDT | PnL: -0.00% | SL: -3%
-.. [LIVE] 👁️ MON: DOGEUSDT | PnL: 0.08% | SL: -3%
+[LIVE] ⚠️ Discovered 5 held assets on Binance not in Redis. Syncing...
+[LIVE] 🧹 Only dust found. No trades adopted.
+[LIVE] ✅ Application State Synced: 0 trades adopted.
+[LIVE] 💰 Syncing Balance: Redis ($1000) -> Binance ($425.01054226)
 ✅ SCAN COMPLETE: 0 Active Trades | 0 New Alerts
 🔍 [TRADER ORACLE] Scouting for Lead Traders manually/background...
 📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...
