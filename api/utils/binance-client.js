@@ -10,10 +10,11 @@ const API_SECRET = process.env.BINANCE_API_SECRET;
 const getBaseUrl = () => {
     // Si tienes una variable específica para URL, úsala
     if (process.env.BINANCE_BASE_URL) return process.env.BINANCE_BASE_URL;
-    // Si no, inferir por región
-    return (process.env.REGION === 'EU' || !process.env.REGION)
-        ? 'https://api.binance.com'
-        : 'https://api.binance.us';
+    // Si no, inferir por región (Prioritize domains that bypass CloudFront 403)
+    // ONLY use .US if explicitly set to US. Everything else (EU, WORLD, undefined) goes to Global/GCP.
+    return (process.env.REGION === 'US')
+        ? 'https://api.binance.us'
+        : 'https://api-gcp.binance.com'; // Default to Global GCP mirror
 };
 
 const sign = (queryString) => {
