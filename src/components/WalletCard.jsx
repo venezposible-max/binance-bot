@@ -35,20 +35,19 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
         // 1. Capital Allocation
         let availableReal = binanceBalance?.total || 0;
-        let capitalLabel = isLive
-            ? `💰 CAPITAL REAL ASIGNADO (Max: $${availableReal.toFixed(2)} USDT):`
-            : `🧪 SALDO VIRTUAL INICIAL:`;
+        let newCap = 0;
 
-        let currentCap = isLive ? (wallet.allocatedCapital || 0) : (wallet.initialBalance || 1000);
-
-        let newCapInput = prompt(`${modalTitle}\n\n${capitalLabel}`, currentCap);
-        if (newCapInput === null) return;
-        let newCap = parseFloat(newCapInput);
-
-        // Security check for LIVE
-        if (isLive && newCap > availableReal) {
-            alert(`⚠️ ERROR: No puedes asignar $${newCap} porque tu saldo real en Binance es de $${availableReal.toFixed(2)}.\n\nEl sistema solo permite reducir o mantener el capital asignado.`);
-            return;
+        if (isLive) {
+            newCap = availableReal; // Auto-set to Binance Real Balance
+            if (newCap <= 0) {
+                alert("⚠️ ERROR: No tienes saldo disponible en Binance (USDT). El bot no puede operar sin capital.");
+                return;
+            }
+        } else {
+            let currentCap = wallet.initialBalance || 1000;
+            let newCapInput = prompt(`${modalTitle}\n\n🧪 SALDO VIRTUAL INICIAL:`, currentCap);
+            if (newCapInput === null) return;
+            newCap = parseFloat(newCapInput);
         }
 
         // 2. Risk
