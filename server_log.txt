@@ -1,11 +1,19 @@
-file:///Users/franklincolina/.gemini/antigravity/scratch/binance/api/manual-trade.js:111
-    } else if (action === 'CLOSE') {
-    ^
-
-SyntaxError: Missing catch or finally after try
-    at compileSourceTextModule (node:internal/modules/esm/utils:344:16)
-    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:105:18)
-    at #translate (node:internal/modules/esm/loader:534:12)
-    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:581:27)
-
-Node.js v22.17.0
+🔌 Initializing Redis Client... NO URL PROVIDED
+⚠️ WARNING: No REDIS_URL provided. using IN-MEMORY FALLBACK (Data lost on restart).
+🔫 CVD SNIPER: Class Initialized
+📡 MARKET WORKER: Initializing Zero-Latency Stream...
+========================================
+🔥 SERVER STARTING...
+Node Version: v22.17.0
+Platform: darwin
+CWD: /Users/franklincolina/.gemini/antigravity/scratch/binance
+========================================
+🔌 Configured PORT: 8080
+✅ Server initialization complete
+🔫 CVD SNIPER: Connecting to wss://stream.binance.com:9443/ws/btcusdt@aggTrade...
+============================================================
+🚀 SENTINEL BOT SYSTEMS ONLINE & STABLE | PORT 8080
+🌍 Environment: production
+🔐 VIP DATA MODE: DISABLED
+💓 Heartbeat: ENABLED (Direct Internal Execution)
+============================================================

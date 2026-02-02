@@ -24,16 +24,6 @@ export default async function handler(req, res) {
         let walletConfigStr = await redis.get(configKey);
         let sniperTradesStr = await redis.get(sniperKey);
 
-        // Migration Fallback
-        if (activeMode === 'SIMULATION' && !activeTradesStr) {
-            const oldActive = await redis.get('sentinel_active_trades');
-            if (oldActive) activeTradesStr = oldActive;
-            const oldHistory = await redis.get('sentinel_win_history');
-            if (oldHistory) winHistoryStr = oldHistory;
-            const oldSniper = await redis.get('sentinel_sniper_trades');
-            if (oldSniper) sniperTradesStr = oldSniper;
-        }
-
         const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
         const sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
@@ -126,15 +116,21 @@ export default async function handler(req, res) {
                 // --- CRITICAL: Execute Real Sell if LIVE ---
                 const isLive = trade.mode === 'LIVE';
                 if (isLive) {
+                    const coin = trade.symbol.replace('USDT', '');
                     console.log(`💸 Manual Close for LIVE trade: Selling ${trade.symbol} on Binance...`);
                     try {
-                        // Use quantity if available, else calculate from invested
-                        const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
-                        await binanceClient.executeOrder(trade.symbol, 'SELL', qty, exitPrice || trade.entryPrice, 'MARKET', true);
-                        console.log('✅ Real SELL executed for manual closure');
+                        const balanceData = await binanceClient.getAccountBalance();
+                        const assetBalance = balanceData.balances?.find(b => b.asset === coin);
+                        const qty = assetBalance ? parseFloat(assetBalance.free) : 0;
+
+                        if (qty > 0) {
+                            await binanceClient.executeOrder(trade.symbol, 'SELL', qty, exitPrice || trade.entryPrice, 'MARKET', true);
+                            console.log(`✅ Real SELL executed for ${qty} ${coin}`);
+                        } else {
+                            console.warn(`🛑 No actual balance found for ${coin} on Binance. Removing from UI.`);
+                        }
                     } catch (err) {
                         console.error('❌ FAILED to sell live trade on Binance:', err.message);
-                        // We still continue to remove from UI to avoid stuck state, but user is alerted via console
                     }
                 }
 
@@ -166,8 +162,7 @@ export default async function handler(req, res) {
                     const netPnlPercent = (netProfit / trade.investedAmount) * 100;
 
                     // Add to History (So user can see it)
-                    let winHistoryStr = await redis.get('sentinel_win_history');
-                    let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+                    // winHistory is already loaded at the top
 
                     winHistory.unshift({
                         symbol: trade.symbol,

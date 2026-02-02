@@ -99,49 +99,41 @@ const formatPrice = (symbol, price) => {
 };
 
 export const executeOrder = async (symbol, side, quantity, currentPrice = 0, type = 'MARKET', isLiveOverride = null) => {
+    const formattedSymbol = symbol.toUpperCase();
     // Priority: 1. Argument Override (from UI/Wallet) | 2. ENV Variable
     const isLive = isLiveOverride !== null ? isLiveOverride : (process.env.TRADING_MODE === 'LIVE');
 
     // 1. MIN NOTIONAL SAFETY ($10 Minimum)
     const investmentInUsd = (side === 'BUY') ? quantity : (quantity * (currentPrice || 1));
-    if (investmentInUsd < 10.5) { // 10.5 to be safe against fees/spread
+    if (isLive && investmentInUsd < 10.1) { // 10.1 to be safe
         throw new Error(`SAFETY: Investment $${investmentInUsd.toFixed(2)} is below Binance minimum (~$10)`);
     }
 
     if (!isLive) {
-        const formattedQty = formatQuantity(symbol, side === 'BUY' ? (quantity / (currentPrice || 1)) : quantity);
-        console.log(`🧪 SIMULATED ORDER: ${side} ${formattedQty} ${symbol} @ $${currentPrice}`);
+        const simQty = (side === 'BUY')
+            ? (currentPrice > 0 ? formatQuantity(formattedSymbol, quantity / currentPrice) : 0)
+            : formatQuantity(formattedSymbol, quantity);
 
-        // Math for Sim
-        let execQty = 0;
-        let quoteQty = 0;
-
-        if (side === 'BUY') {
-            quoteQty = quantity;
-            execQty = currentPrice > 0 ? formatQuantity(symbol, quantity / currentPrice) : 0;
-        } else {
-            execQty = formatQuantity(symbol, quantity);
-            quoteQty = currentPrice > 0 ? (execQty * currentPrice) : 0;
-        }
+        console.log(`🧪 SIMULATED ORDER: ${side} ${simQty} ${formattedSymbol} @ $${currentPrice}`);
 
         return {
             status: 'FILLED',
             orderId: 'SIM_' + Date.now(),
-            executedQty: execQty,
-            cummulativeQuoteQty: quoteQty,
+            executedQty: simQty,
+            cummulativeQuoteQty: (side === 'BUY') ? quantity : (simQty * (currentPrice || 1)),
             avgPrice: currentPrice || 0
         };
     }
 
     // REAL EXECUTION 💸
-    console.log(`💸 REAL ORDER EXECUTING: ${side} ${quantity} ${symbol}`);
+    console.log(`💸 REAL ORDER EXECUTING: ${side} ${quantity} ${formattedSymbol}`);
 
     // Validaciones de Seguridad
     if (side === 'BUY' && quantity > 10000) throw new Error('SAFETY: Quantity too high for auto-bot');
 
     // Params para Binance
     const params = {
-        symbol: symbol,
+        symbol: formattedSymbol,
         side: side,
         type: type,
     };
@@ -149,7 +141,8 @@ export const executeOrder = async (symbol, side, quantity, currentPrice = 0, typ
     if (side === 'BUY') {
         params.quoteOrderQty = quantity.toFixed(2); // USDT precision
     } else {
-        params.quantity = formatQuantity(symbol, quantity);
+        // For SELL, we must round to LOT_SIZE
+        params.quantity = formatQuantity(formattedSymbol, quantity);
     }
 
     return await privateRequest('/api/v3/order', 'POST', params);

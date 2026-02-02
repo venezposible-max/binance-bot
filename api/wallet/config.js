@@ -7,17 +7,6 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
         try {
             let configStr = await redis.get(redisKey);
-
-            // Migration/Fallback: If no specific config exists, try to load from the old unified key
-            if (!configStr) {
-                const oldConfigStr = await redis.get('sentinel_wallet_config');
-                if (oldConfigStr) {
-                    configStr = oldConfigStr;
-                    // Seed the new key with old data
-                    await redis.set(redisKey, oldConfigStr);
-                }
-            }
-
             const existingConfig = configStr ? JSON.parse(configStr) : {};
 
             // Merge with defaults

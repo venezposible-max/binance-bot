@@ -142,14 +142,7 @@ export default async function handler(req, res) {
         let activeTradesStr = await redis.get(activeKey);
         let winHistoryStr = await redis.get(historyKey);
         let walletConfigStr = await redis.get(configKey);
-
-        // FALLBACK: Migration
-        if (activeMode === 'SIMULATION' && !activeTradesStr) {
-            const oldActive = await redis.get('sentinel_active_trades');
-            if (oldActive) activeTradesStr = oldActive;
-            const oldHistory = await redis.get('sentinel_win_history');
-            if (oldHistory) winHistoryStr = oldHistory;
-        }
+        let sniperTradesStr = await redis.get(sniperKey);
 
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
@@ -728,12 +721,9 @@ export default async function handler(req, res) {
         let freshActiveTrades = finalActiveStr ? JSON.parse(finalActiveStr) : [];
 
         // 5. SNIPER ENGINE SYNC
-        let sniperTradesStr = await redis.get(sniperKey);
-        if (activeMode === 'SIMULATION' && !sniperTradesStr) {
-            const oldSniper = await redis.get('sentinel_sniper_trades');
-            if (oldSniper) sniperTradesStr = oldSniper;
-        }
-        let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+        // 5. SNIPER ENGINE SYNC
+        let currentSniperTradesStr = await redis.get(sniperKey);
+        let sniperTradesData = currentSniperTradesStr ? JSON.parse(currentSniperTradesStr) : [];
 
         // 2. Identify trades we closed in THIS process
         const initialIds = activeTrades.map(t => t.id);

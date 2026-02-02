@@ -118,27 +118,32 @@ function App() {
     loadModeAndConfig();
   }, []);
 
-  const toggleTradingMode = async () => {
-    const newMode = tradingMode === 'SIMULATION' ? 'LIVE' : 'SIMULATION';
+  const fetchCloudStatus = async (explicitMode = null) => {
     try {
-      const res = await fetch('/api/wallet/active-mode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: newMode })
-      });
-      if (res.ok) {
+      const modeToFetch = explicitMode || tradingMode;
+      const res = await axios.get(`/api/get-status?mode=${modeToFetch}`);
+      setCloudStatus({ active: res.data.active || [], history: res.data.history || [] });
+    } catch (err) {
+      console.error('Cloud Status Sync Error:', err);
+    }
+  };
+
+  const toggleTradingMode = async () => {
+    try {
+      const newMode = tradingMode === 'SIMULATION' ? 'LIVE' : 'SIMULATION';
+      const res = await axios.post('/api/wallet/active-mode', { mode: newMode });
+
+      if (res.status === 200) {
         setTradingMode(newMode);
+
         // Reload config for the new mode
-        const configRes = await fetch(`/api/wallet/config?mode=${newMode}`);
-        const data = await configRes.json();
-        setWalletConfig(data);
+        const configRes = await axios.get(`/api/wallet/config?mode=${newMode}`);
+        setWalletConfig(configRes.data);
 
         // Reload Cloud Status (Trades/History) for the new mode
-        const statusRes = await fetch('/api/get-status');
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          setCloudStatus(statusData);
-        }
+        await fetchCloudStatus(newMode);
+
+        console.log(`🌓 Mode toggled to: ${newMode}`);
       }
     } catch (e) {
       console.error("Toggle Mode Error:", e);
