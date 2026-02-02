@@ -89,7 +89,7 @@ class CVDSniper {
         if (this.history.length > this.maxHistory) this.history.shift();
 
         // 🎯 DUAL ENGINE TRIGGER CHECK
-        if (delta > 10000) { // Slight optimization: Don't fetch redis for tiny trades
+        if (delta > 1000) { // optimization: Allow getting config for small tests
             await this.evaluateTrigger(price, delta);
         }
     }
