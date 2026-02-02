@@ -310,7 +310,11 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
                             if (strat === 'SNIPER') {
                                 // SNIPER is handled exclusively by api/stream/cvd-worker.js (Whale Tracker)
-                                // We do NOT scan candles for Sniper.
+                                const modeIcon = mode === 'LIVE' ? '🔴' : '🔵';
+                                // Only log for BTCUSDT as it's the only pair Sniper watches
+                                if (symbol === 'BTCUSDT') {
+                                    console.log(`   ${modeIcon} [${mode}] ${symbol} (CVD) [SNIPER]: 🔫 MONITORING WHALES (Background Worker)`);
+                                }
                                 continue;
                             }
 
