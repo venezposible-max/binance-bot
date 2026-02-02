@@ -17,30 +17,21 @@ CWD: /Users/franklincolina/.gemini/antigravity/scratch/binance
 🔐 VIP DATA MODE: DISABLED
 💓 Heartbeat: ENABLED (Direct Internal Execution)
 ============================================================
+📡 MARKET WORKER: Connected to BTCUSDT WebSocket
 🔫 CVD SNIPER: WebSocket Connected! Listening for Whale Movements...
 📡 MARKET WORKER: Connected to ETHUSDT WebSocket
 📡 MARKET WORKER: Connected to SOLUSDT WebSocket
 📡 MARKET WORKER: Connected to ADAUSDT WebSocket
-📡 MARKET WORKER: Connected to BTCUSDT WebSocket
-📡 MARKET WORKER: Connected to XRPUSDT WebSocket
-📡 MARKET WORKER: Connected to BNBUSDT WebSocket
 📡 MARKET WORKER: Connected to DOGEUSDT WebSocket
-📡 MARKET WORKER: Connected to TRXUSDT WebSocket
-📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 📡 MARKET WORKER: Connected to AVAXUSDT WebSocket
+📡 MARKET WORKER: Connected to XRPUSDT WebSocket
+📡 MARKET WORKER: Connected to TRXUSDT WebSocket
+📡 MARKET WORKER: Connected to BNBUSDT WebSocket
+📡 MARKET WORKER: Connected to LINKUSDT WebSocket
 
-⏳ [2026-02-02T03:08:31.376Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
+⏳ [2026-02-02T03:13:29.619Z] INTERNAL CRON (STARTUP_FAST): Triggering Scan...
 🚀 [DUAL ENGINE] check-prices START
 ⚠️ [LIVE ENGINE] Skipped: Missing BINANCE_API_KEY/SECRET in environment.
 [SIMULATION] 💼 Config: SNIPER, HYBRID_SWING | Active: 0
-.. [SIMULATION] 🔎 ANALYZING: ETHUSDT | RSI: 17.10
-🧪 SIMULATED ORDER: BUY 0.0442 ETHUSDT @ $2261.035
-Telegram send error: getaddrinfo ENOTFOUND api.telegram.org
-.. [SIMULATION] 🔎 ANALYZING: BTCUSDT | RSI: 22.09
-🧪 SIMULATED ORDER: BUY 0.00117 BTCUSDT @ $76427.025
-Telegram send error: getaddrinfo ENOTFOUND api.telegram.org
-.. [SIMULATION] 🔎 ANALYZING: XRPUSDT | RSI: 28.97
-🧪 SIMULATED ORDER: BUY 51.1 XRPUSDT @ $1.5839500000000002
-Telegram send error: getaddrinfo ENOTFOUND api.telegram.org
-✅ DUAL ENGINE COMPLETE | SIM: 3 | LIVE: OFF
-✅ SCAN COMPLETE: 3 Active Trades | 0 New Alerts
+.. [SIMULATION] 🔎 ANALYZING: ETHUSDT | RSI: 16.50
+🧪 SIMULATED ORDER: BUY 0.0445 ETHUSDT @ $2242.4849999999997
