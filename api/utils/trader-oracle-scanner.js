@@ -18,11 +18,11 @@ export async function scanTopTraders() {
         // We'll simulate fetching 5 top candidates and ranking them.
 
         const candidates = [
-            { name: "Alpha_Surge", roi90d: 45.2, mdd: 3.1, winRate: 78, aum: 150000, equity: 12000 },
-            { name: "Stable_Wave", roi90d: 22.5, mdd: 1.2, winRate: 85, aum: 80000, equity: 25000 },
-            { name: "Risk_Gainer", roi90d: 88.1, mdd: 15.4, winRate: 62, aum: 300000, equity: 5000 },
-            { name: "Crypto_Sage", roi90d: 35.8, mdd: 4.5, winRate: 72, aum: 120000, equity: 18000 },
-            { name: "Zen_Trader", roi90d: 18.2, mdd: 0.8, winRate: 92, aum: 45000, equity: 30000 }
+            { name: "Alpha_Surge", roi90d: 45.2, mdd: 3.1, winRate: 78, aum: 150000, equity: 12000, type: "FUTURES" },
+            { name: "Stable_Wave", roi90d: 22.5, mdd: 1.2, winRate: 85, aum: 80000, equity: 25000, type: "SPOT" },
+            { name: "Risk_Gainer", roi90d: 88.1, mdd: 15.4, winRate: 62, aum: 300000, equity: 5000, type: "FUTURES" },
+            { name: "Crypto_Sage", roi90d: 35.8, mdd: 4.5, winRate: 72, aum: 120000, equity: 18000, type: "SPOT" },
+            { name: "Zen_Trader", roi90d: 18.2, mdd: 0.8, winRate: 92, aum: 45000, equity: 30000, type: "FUTURES" }
         ];
 
         // --- 🧠 INTELLIGENT RANKING ENGINE ---

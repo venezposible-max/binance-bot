@@ -78,7 +78,20 @@ const TraderOracle = () => {
                                         <span className={styles.avatarText}>{trader?.name?.charAt(0)}</span>
                                     </div>
                                     <div className={styles.traderInfo}>
-                                        <h4>{trader?.name}</h4>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <h4>{trader?.name}</h4>
+                                            <span style={{
+                                                fontSize: '8px',
+                                                background: trader?.type === 'FUTURES' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                                color: trader?.type === 'FUTURES' ? '#EF4444' : '#10B981',
+                                                padding: '1px 5px',
+                                                borderRadius: '3px',
+                                                fontWeight: '900',
+                                                border: `1px solid ${trader?.type === 'FUTURES' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`
+                                            }}>
+                                                {trader?.type}
+                                            </span>
+                                        </div>
                                         <p className={styles.traderId}>ID: X16A7XYFZ</p>
                                     </div>
                                 </div>
