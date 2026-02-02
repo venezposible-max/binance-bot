@@ -12,7 +12,11 @@ export default async function handler(req, res) {
 
     try {
         // 1. Load Data
-        const activeMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        // 1. Load Data
+        // FORENSIC FIX: Prioritize explicit mode from Request (Override), fall back to Global Redis
+        const globalMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        const activeMode = req.body.mode || globalMode;
+
         const suffix = activeMode === 'LIVE' ? '_real' : '_sim';
         const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
         const activeKey = `sentinel_active_trades${suffix}`;
