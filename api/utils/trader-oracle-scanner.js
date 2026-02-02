@@ -24,22 +24,29 @@ export async function scanTopTraders() {
             { name: "mrwin68", roi90d: 120.0, roiMonthly: 40.0, mdd: 15.0, winRate: 65, aum: 150000, equity: 10000, type: "FUTURES" }
         ];
 
-        // --- 🧠 INTELLIGENT RANKING ENGINE ---
+        // --- 🧠 ALPHA TRADER DISCOVERY SKILL ---
+        // Formula: score = (MonthlyROI * (WinRate / 100)) / (MDD * 2) 
+        // Normalized to a 0-10 scale roughly.
+
         const ranked = candidates.map(t => {
-            // Formula: (ROI / (MDD * 2)) + (WinRate / 10) + (Equity / 5000)
-            // Penalize MDD heavily
-            let score = (t.roi90d / (t.mdd * 2.5)) + (t.winRate / 10);
+            // Base Alpha Calculation
+            let rawAlpha = (t.roiMonthly * (t.winRate / 100));
+            // Risk Penalty
+            let riskFactor = (t.mdd * 2.5) || 1;
 
-            // Safety Filter: Drawdown > 10% is immediately de-ranked
-            if (t.mdd > 10) score -= 50;
+            let alphaScore = (rawAlpha / riskFactor) * 2; // Scaling factor for readability
 
-            // Experience Filter: High equity/AUM adds bonus
-            if (t.equity > 15000) score += 2;
+            // Hard caps and bonuses
+            if (t.mdd > 15) alphaScore = 0; // Disqualify high risk
+            if (t.equity > 100000) alphaScore += 0.5; // Whale bonus
 
-            return { ...t, score };
+            // Clamp to 10
+            if (alphaScore > 10) alphaScore = 9.9;
+
+            return { ...t, alphaScore: parseFloat(alphaScore.toFixed(1)) };
         });
 
-        ranked.sort((a, b) => b.score - a.score);
+        ranked.sort((a, b) => b.alphaScore - a.alphaScore);
 
         const topTrader = ranked[0];
 

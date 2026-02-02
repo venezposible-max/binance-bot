@@ -137,7 +137,20 @@ const TraderOracle = () => {
 
                                 {/* Footer Action */}
                                 <div className={styles.footer}>
-                                    <button className={styles.actionBtn}>View Performance</button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>ALPHA SCORE:</span>
+                                        <div style={{
+                                            background: 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            fontWeight: 'bold',
+                                            color: '#fff',
+                                            fontSize: '0.8rem',
+                                            boxShadow: '0 2px 5px rgba(245, 158, 11, 0.3)'
+                                        }}>
+                                            💎 {trader?.alphaScore}/10
+                                        </div>
+                                    </div>
                                     <p className={styles.disclaimer}>*Autonomous selection based on risk profile</p>
                                 </div>
                             </div>
