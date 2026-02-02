@@ -372,19 +372,9 @@ export default async function handler(req, res) {
 
         // Only run SIMULATION if users wants it or we are NOT in LIVE prioritized mode
         // User requested "Quita los trades falsos", so if KEY exists, we focus on LIVE.
-        if (!process.env.BINANCE_API_KEY) {
-            tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
-        } else {
-            // Check if user specifically enabled SIM in parallel? For now, we reduce noise.
-            // We run SIM only if explicit env var or maybe just skip it to please user.
-            // Let's run it BUT log less? The user said "fake tradings quitalos".
-            // So if we have KEYS, we SKIP Simulation Engine to focus resources and logs on REAL MONEY.
-            // Wait, this might break the "Switch Mode" UI if they want to switch back. 
-            // Better: Check activeModeUI. If LIVE, skip SIM processing to clean logs.
-            if (activeModeUI !== 'LIVE') {
-                tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
-            }
-        }
+        // ALWAYS RUN BOTH MODES (User Request: "Los dos a la vez")
+        // This ensures he can test strategies in SIM while earning money in LIVE.
+        tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
 
         if (process.env.BINANCE_API_KEY) {
             tasks.push(processMode('LIVE', marketPairs, marketCache, null, null));
