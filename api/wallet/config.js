@@ -1,12 +1,26 @@
 import redis from '../../src/utils/redisClient.js';
 
 export default async function handler(req, res) {
+    const mode = req.query.mode || await redis.get('sentinel_active_mode') || 'SIMULATION';
+    const redisKey = mode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+
     if (req.method === 'GET') {
         try {
-            const configStr = await redis.get('sentinel_wallet_config');
+            let configStr = await redis.get(redisKey);
+
+            // Migration/Fallback: If no specific config exists, try to load from the old unified key
+            if (!configStr) {
+                const oldConfigStr = await redis.get('sentinel_wallet_config');
+                if (oldConfigStr) {
+                    configStr = oldConfigStr;
+                    // Seed the new key with old data
+                    await redis.set(redisKey, oldConfigStr);
+                }
+            }
+
             const existingConfig = configStr ? JSON.parse(configStr) : {};
 
-            // Merge with defaults to ensure all required fields exist
+            // Merge with defaults
             const config = {
                 initialBalance: 1000,
                 currentBalance: 1000,
@@ -16,7 +30,8 @@ export default async function handler(req, res) {
                 takeProfit: 1.25,
                 stopLoss: 3.0,
                 useStopLoss: false,
-                swingMode: 'CONSERVATIVE', // NEW: CONSERVATIVE or AGGRESSIVE
+                swingMode: 'CONSERVATIVE',
+                tradingMode: mode === 'LIVE' ? 'LIVE' : 'SIMULATION',
                 ...existingConfig
             };
 
@@ -27,19 +42,17 @@ export default async function handler(req, res) {
     } else if (req.method === 'POST') {
         try {
             const { initialBalance, riskPercentage, reset } = req.body;
-
             let newConfig;
 
             if (reset) {
-                // Get current state to preserve isBotActive status
-                const currentStr = await redis.get('sentinel_wallet_config');
+                const currentStr = await redis.get(redisKey);
                 const current = currentStr ? JSON.parse(currentStr) : {};
 
                 newConfig = {
                     initialBalance: parseFloat(initialBalance),
                     currentBalance: parseFloat(initialBalance),
-                    allocatedCapital: req.body.allocatedCapital ? parseFloat(req.body.allocatedCapital) : parseFloat(initialBalance), // New: Real Money Cap
-                    tradingMode: req.body.tradingMode || 'SIMULATION', // New: LIVE or SIMULATION
+                    allocatedCapital: req.body.allocatedCapital ? parseFloat(req.body.allocatedCapital) : parseFloat(initialBalance),
+                    tradingMode: mode === 'LIVE' ? 'LIVE' : 'SIMULATION',
                     riskPercentage: parseFloat(riskPercentage),
                     maxTrades: req.body.maxTrades ? parseInt(req.body.maxTrades) : (current.maxTrades || 3),
                     dailyLossLimit: req.body.dailyLossLimit ? parseFloat(req.body.dailyLossLimit) : (current.dailyLossLimit || 50),
@@ -51,19 +64,16 @@ export default async function handler(req, res) {
                     whaleThreshold: req.body.whaleThreshold ? parseFloat(req.body.whaleThreshold) : (current.whaleThreshold || 150000)
                 };
             } else {
-                // Update specific fields
-                const configStr = await redis.get('sentinel_wallet_config');
+                const configStr = await redis.get(redisKey);
                 const existing = configStr ? JSON.parse(configStr) : {};
-
                 newConfig = { ...existing, ...req.body };
-                // Ensure numeric types
+
                 if (newConfig.riskPercentage) newConfig.riskPercentage = parseFloat(newConfig.riskPercentage);
                 if (newConfig.allocatedCapital) newConfig.allocatedCapital = parseFloat(newConfig.allocatedCapital);
                 if (newConfig.whaleThreshold) newConfig.whaleThreshold = parseFloat(newConfig.whaleThreshold);
             }
 
-
-            await redis.set('sentinel_wallet_config', JSON.stringify(newConfig));
+            await redis.set(redisKey, JSON.stringify(newConfig));
             res.status(200).json(newConfig);
         } catch (error) {
             res.status(500).json({ error: error.message });

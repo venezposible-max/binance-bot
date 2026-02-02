@@ -107,29 +107,25 @@ export default async function handler(req, res) {
             console.warn('⚠️ Market Cache Fetch Failed (Using REST Fallback)');
         }
 
-        console.log(`🤖 Sentinel Bot Waking Up... [REGION: ${REGION}] [METHOD: ${req.method}]`);
+        // 🚀 PHASE 0: Fetch Active Mode and Mode-Specific Config
+        const activeMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
 
-        // --- VIP & SAFETY LOGS ---
-        if (process.env.BINANCE_API_KEY) {
-            console.log('🔐 VIP DATA ACCESS: ENABLED (High Performance Mode)');
-        } else {
-            console.log('☁️ STANDARD DATA: Public API (Rate Limited)');
-        }
-        const alertsSent = [];
+        console.log(`🤖 Sentinel Bot Waking Up... [MODE: ${activeMode}] [REGION: ${REGION}]`);
 
         let activeTradesStr = await redis.get('sentinel_active_trades');
         let winHistoryStr = await redis.get('sentinel_win_history');
-        let walletConfigStr = await redis.get('sentinel_wallet_config');
+        let walletConfigStr = await redis.get(configKey);
 
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
             currentBalance: 1000,
             riskPercentage: 10,
-            allocatedCapital: 500, // Default
-            tradingMode: 'SIMULATION', // Default
+            allocatedCapital: 500,
+            tradingMode: activeMode,
             isBotActive: true,
             maxTrades: 3,
-            dailyLossLimit: 50, // Fixed 50 USDT or 5% of 1000
+            dailyLossLimit: 50,
             cooldownMinutes: 30
         };
 
@@ -696,7 +692,7 @@ export default async function handler(req, res) {
 
         // 4. Final Save
         await redis.set('sentinel_active_trades', JSON.stringify(finalSaveList));
-        await redis.set('sentinel_wallet_config', JSON.stringify(wallet));
+        await redis.set(configKey, JSON.stringify(wallet));
 
         if (newWins.length > 0) {
             const currentHistoryStr = await redis.get('sentinel_win_history');

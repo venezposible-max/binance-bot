@@ -27,7 +27,8 @@ import getStatus from './api/get-status.js';
 import walletConfig from './api/wallet/config.js';
 import candles from './api/candles.js'; // Chart Data Proxy
 import ticker from './api/ticker.js'; // Real-time Price Proxy
-import walletBalance from './api/wallet/balance.js'; // New
+import walletBalance from './api/wallet/balance.js';
+import activeMode from './api/wallet/active-mode.js'; // New
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -61,7 +62,9 @@ app.get('/api/wallet/config', vercelAdapter(walletConfig));
 app.post('/api/wallet/config', vercelAdapter(walletConfig));
 app.get('/api/wallet/config', vercelAdapter(walletConfig));
 app.post('/api/wallet/config', vercelAdapter(walletConfig));
-app.get('/api/wallet/balance', vercelAdapter(walletBalance)); // New Route
+app.get('/api/wallet/balance', vercelAdapter(walletBalance));
+app.get('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
+app.post('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 
 // CVD SNIPER SERVICE (Singleton)
 import cvdSniper from './api/stream/cvd-worker.js';

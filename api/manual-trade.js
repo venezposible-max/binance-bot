@@ -12,16 +12,20 @@ export default async function handler(req, res) {
 
     try {
         // 1. Load Data
+        const activeMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+
         let activeTradesStr = await redis.get('sentinel_active_trades');
         let sniperTradesStr = await redis.get('sentinel_sniper_trades');
-        let walletConfigStr = await redis.get('sentinel_wallet_config');
+        let walletConfigStr = await redis.get(configKey);
 
         let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
         let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
             initialBalance: 1000,
             currentBalance: 1000,
-            riskPercentage: 10
+            riskPercentage: 10,
+            tradingMode: activeMode
         };
 
         if (action === 'OPEN') {
@@ -47,7 +51,8 @@ export default async function handler(req, res) {
                 investedAmount: investedAmount, // Track investment
                 strategy: strategy || 'SWING',
                 takeProfit,
-                stopLoss
+                stopLoss,
+                mode: activeMode
             };
             activeTrades.push(newTrade);
 
@@ -161,8 +166,11 @@ export default async function handler(req, res) {
         }
 
         // Save State
+        const finalActiveMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        const finalConfigKey = finalActiveMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+
         await redis.set('sentinel_active_trades', JSON.stringify(activeTrades));
-        await redis.set('sentinel_wallet_config', JSON.stringify(wallet));
+        await redis.set(finalConfigKey, JSON.stringify(wallet));
 
         res.status(200).json({ success: true, active: activeTrades, wallet });
 

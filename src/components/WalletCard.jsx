@@ -1,13 +1,14 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styles from './WalletCard.module.css';
 
-const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy }, ref) => {
+const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance }, ref) => {
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const fetchWallet = async () => {
         try {
-            const res = await fetch('/api/wallet/config');
+            // Using tradingMode from props to fetch the correct profile
+            const res = await fetch(`/api/wallet/config?mode=${tradingMode || 'SIMULATION'}`);
             if (res.ok) {
                 const data = await res.json();
                 setWallet(data);
@@ -22,44 +23,51 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     useEffect(() => {
         fetchWallet();
-        // Refresh every 2s for fast multi-device sync
         const interval = setInterval(fetchWallet, 2000);
         return () => clearInterval(interval);
-    }, []);
+    }, [tradingMode]);
 
     const handleConfigure = async () => {
-        // 1. Select Mode
-        const modeInput = prompt('ESCOGE MODO DE EJECUCIÓN:\n1 = SIMULACIÓN (Paper Trading)\n2 = LIVE (Dinero Real 💸)', wallet?.tradingMode === 'LIVE' ? '2' : '1');
-        if (modeInput === null) return;
-        const newMode = modeInput === '2' ? 'LIVE' : 'SIMULATION';
+        if (!wallet) return;
 
-        // 2. Initial Balance OR Allocated Capital
-        const balanceLabel = newMode === 'LIVE' ? '💰 Capital REAL Asignado (USDT Max):' : '🧪 Saldo Virtual Inicial:';
-        const defaultBal = newMode === 'LIVE' ? (wallet?.allocatedCapital || 500) : (wallet?.initialBalance || 1000);
+        const isLive = tradingMode === 'LIVE';
+        const modalTitle = isLive ? '⚙️ CONFIGURACIÓN LIVE (DINERO REAL)' : '⚙️ CONFIGURACIÓN SIMULACIÓN (PAPER TRADING)';
 
-        const newBalance = prompt(balanceLabel, defaultBal);
-        if (newBalance === null) return;
+        // 1. Capital Allocation
+        let availableReal = binanceBalance?.total || 0;
+        let capitalLabel = isLive
+            ? `💰 CAPITAL REAL ASIGNADO (Max: $${availableReal.toFixed(2)} USDT):`
+            : `🧪 SALDO VIRTUAL INICIAL:`;
 
-        // 3. Risk
-        const newRisk = prompt('Porcentaje de Riesgo por Operación (%):', wallet?.riskPercentage || 10);
+        let currentCap = isLive ? (wallet.allocatedCapital || 0) : (wallet.initialBalance || 1000);
+
+        let newCapInput = prompt(`${modalTitle}\n\n${capitalLabel}`, currentCap);
+        if (newCapInput === null) return;
+        let newCap = parseFloat(newCapInput);
+
+        // Security check for LIVE
+        if (isLive && newCap > availableReal) {
+            alert(`⚠️ ERROR: No puedes asignar $${newCap} porque tu saldo real en Binance es de $${availableReal.toFixed(2)}.\n\nEl sistema solo permite reducir o mantener el capital asignado.`);
+            return;
+        }
+
+        // 2. Risk
+        const newRisk = prompt('Porcentaje de Riesgo por Operación (%):', wallet.riskPercentage || 10);
         if (newRisk === null) return;
 
+        // 3. SL Seguridad
         const useSlInput = confirm('🛡️ ¿Deseas activar un Stop Loss de seguridad GLOBAL?\n(Adicional al SL estructural de la IA)');
         const newUseSL = useSlInput;
-        const newSL = newUseSL ? prompt('Distancia del Stop Loss (%):', wallet?.stopLoss || 3.0) : (wallet?.stopLoss || 3.0);
+        const newSL = newUseSL ? prompt('Distancia del Stop Loss (%):', wallet.stopLoss || 3.0) : (wallet.stopLoss || 3.0);
 
-        // 4. Max Trades Configuration
-        const maxTradesInput = prompt('Número Máximo de Trades Simultáneos:', wallet?.maxTrades || 3);
+        // 4. Max Trades
+        const maxTradesInput = prompt('Número Máximo de Trades Simultáneos:', wallet.maxTrades || 3);
         if (maxTradesInput === null) return;
         const maxTrades = parseInt(maxTradesInput);
 
-        // 5. Other Defaults (Still hidden for simplicity as they are less critical)
-        const lossLimit = wallet?.dailyLossLimit || 50;
-        const cooldown = wallet?.cooldownMinutes || 30;
-
-        const confirmMsg = newMode === 'LIVE'
-            ? `⚠️⚠️ PELIGRO: MODO LIVE ⚠️⚠️\n\nEstás a punto de activar DINERO REAL.\nCapital Asignado: $${newBalance}\nRiesgo: ${newRisk}%\nMax Trades: ${maxTrades}\nSL Seguridad: ${newUseSL ? (newSL + '%') : 'OFF'}\n\n¿CONFIRMAS?`
-            : `Confirmar Reconfiguración:\nModo: SIMULACIÓN\nSaldo: $${newBalance}\nRiesgo: ${newRisk}%\nSL Seguridad: ${newUseSL ? (newSL + '%') : 'OFF'}`;
+        const confirmMsg = isLive
+            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\n\n¿Estás seguro?`
+            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%`;
 
         if (confirm(confirmMsg)) {
             try {
@@ -67,30 +75,24 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        initialBalance: parseFloat(newBalance),
-                        allocatedCapital: parseFloat(newBalance),
-                        tradingMode: newMode,
+                        initialBalance: isLive ? wallet.initialBalance : newCap,
+                        allocatedCapital: isLive ? newCap : wallet.allocatedCapital,
+                        tradingMode: tradingMode, // Always sync with current mode
                         riskPercentage: parseFloat(newRisk),
                         maxTrades: parseInt(maxTrades),
-                        dailyLossLimit: parseFloat(lossLimit),
-                        cooldownMinutes: parseInt(cooldown),
                         useStopLoss: newUseSL,
                         stopLoss: parseFloat(newSL),
-                        strategy: activeStrategy || wallet?.strategy || 'HYBRID_SWING',
-                        reset: true
+                        strategy: activeStrategy || wallet.strategy || 'HYBRID_SWING',
+                        reset: !isLive // Only full reset simulation balance
                     })
                 });
 
                 if (res.ok) {
                     await fetchWallet();
-                    alert('✅ Billetera Reconfigurada Exitosamente');
-                } else {
-                    const errData = await res.json();
-                    throw new Error(errData.error || 'Server rejected config');
+                    alert('✅ Configuración Guardada');
                 }
             } catch (error) {
-                console.error(error);
-                alert(`❌ Error al guardar: ${error.message}`);
+                alert(`❌ Error: ${error.message}`);
             }
         }
     };

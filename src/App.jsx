@@ -85,32 +85,58 @@ function App() {
     if (tab === 'settings') walletRef.current?.configure(); // Open config modal
   };
 
-  // --- INITIAL CONFIG LOAD ---
-  useEffect(() => {
-    fetch('/api/wallet/config')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data) {
-          setWalletConfig(data);
-          // SYNC: Ensure frontend activeStrategy matches database on startup
-          if (data.strategy && data.strategy !== activeStrategy) {
-            setActiveStrategy(data.strategy);
-            localStorage.setItem('sentinel_strategy', data.strategy);
+  // --- MODE & CONFIG SYNC ---
+  const loadModeAndConfig = useCallback(async () => {
+    try {
+      // 1. Fetch Global Mode
+      const modeRes = await fetch('/api/wallet/active-mode');
+      const { mode } = modeRes.ok ? await modeRes.json() : { mode: 'SIMULATION' };
+      setTradingMode(mode);
 
-            // Force Timeframe for Special Modes on Startup
-            if (data.strategy && (data.strategy.includes('BLITZ') || data.strategy === 'SCALP')) {
-              setTimeframe('5m');
-            } else if (data.strategy === 'TRIPLE') {
-              setTimeframe('15m');
-            }
-          } else {
-            // Even if strategy matches, ensure timeframe is correct for Blitz
-            if (data.strategy && data.strategy.includes('BLITZ') && timeframe !== '5m') setTimeframe('5m');
-          }
+      // 2. Fetch Config for that mode
+      const configRes = await fetch(`/api/wallet/config?mode=${mode}`);
+      const data = configRes.ok ? await configRes.json() : null;
+
+      if (data) {
+        setWalletConfig(data);
+        // SYNC: Ensure frontend activeStrategy matches database on startup
+        if (data.strategy && data.strategy !== activeStrategy) {
+          setActiveStrategy(data.strategy);
+          localStorage.setItem('sentinel_strategy', data.strategy);
+          if (data.strategy.includes('BLITZ') || data.strategy === 'SCALP') setTimeframe('5m');
+          else if (data.strategy === 'TRIPLE') setTimeframe('15m');
+        } else {
+          if (data.strategy && data.strategy.includes('BLITZ') && timeframe !== '5m') setTimeframe('5m');
         }
-      })
-      .catch(err => console.error('Failed to load initial config:', err));
+      }
+    } catch (err) {
+      console.error('Failed to sync mode/config:', err);
+    }
+  }, [activeStrategy, timeframe]);
+
+  useEffect(() => {
+    loadModeAndConfig();
   }, []);
+
+  const toggleTradingMode = async () => {
+    const newMode = tradingMode === 'SIMULATION' ? 'LIVE' : 'SIMULATION';
+    try {
+      const res = await fetch('/api/wallet/active-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: newMode })
+      });
+      if (res.ok) {
+        setTradingMode(newMode);
+        // Reload config for the new mode
+        const configRes = await fetch(`/api/wallet/config?mode=${newMode}`);
+        const data = await configRes.json();
+        setWalletConfig(data);
+      }
+    } catch (e) {
+      console.error("Toggle Mode Error:", e);
+    }
+  };
 
   // --- WALLET REF for mobile config ---
   const walletRef = useRef(null);
@@ -370,7 +396,31 @@ function App() {
             </span>
           )}
 
-          <span style={{ color: 'var(--color-binance-yellow)' }}>
+          {/* MODE TOGGLE */}
+          <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <button
+              onClick={() => tradingMode === 'SIMULATION' ? null : toggleTradingMode()}
+              style={{
+                padding: '4px 10px', borderRadius: '4px', fontSize: '0.65rem', border: 'none', cursor: 'pointer', fontWeight: 'bold',
+                background: tradingMode === 'SIMULATION' ? 'var(--color-binance-yellow)' : 'transparent',
+                color: tradingMode === 'SIMULATION' ? '#000' : '#64748B'
+              }}
+            >
+              SIM
+            </button>
+            <button
+              onClick={() => tradingMode === 'LIVE' ? null : toggleTradingMode()}
+              style={{
+                padding: '4px 10px', borderRadius: '4px', fontSize: '0.65rem', border: 'none', cursor: 'pointer', fontWeight: 'bold',
+                background: tradingMode === 'LIVE' ? '#EF4444' : 'transparent',
+                color: tradingMode === 'LIVE' ? '#fff' : '#64748B'
+              }}
+            >
+              REAL
+            </button>
+          </div>
+
+          <span className={styles.strategyBadge} style={{ border: `1px solid ${activeStrategy === 'SNIPER' ? '#D946EF' : '#00D9FF'}`, background: 'rgba(0,0,0,0.3)' }}>
             {activeStrategy} {activeStrategy !== 'SNIPER' && `(${timeframe})`}
           </span>
 
@@ -434,6 +484,8 @@ function App() {
             activeTrades={cloudStatus.active}
             marketData={marketData}
             activeStrategy={activeStrategy}
+            tradingMode={tradingMode}
+            binanceBalance={binanceBalance}
           />
         </div>
 
