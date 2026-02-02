@@ -29,7 +29,7 @@ class CVDSniper {
             this.connect();
         });
 
-        // HEARTBEAT & TELEMETRY
+        // HEARTBEAT & TELEMETRY (Fast Mode: 10s)
         setInterval(async () => {
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 const liveCount = this.activeTrades.filter(t => t.mode === 'LIVE').length;
@@ -41,17 +41,14 @@ class CVDSniper {
                 const statusReal = confReal ? '✅' : '❌';
                 const statusSim = confSim ? '✅' : '❌';
 
-                console.log(`🔫 [SNIPER] BTCUSDT Heartbeat:
-                | Ticks/min: ${this.stats.messages} 
-                | CVD: $${Math.round(this.cvd)} 
-                | Price: $${this.lastPrice}
+                console.log(`🔫 [SNIPER] BTCUSDT Heartbeat (10s):
+                | Ticks: ${this.stats.messages} | CVD: $${Math.round(this.cvd)} 
                 | Configs: Real[${statusReal}] Sim[${statusSim}]
-                | Active Trades: ${liveCount} (Live) / ${simCount} (Sim)`);
+                | Active: ${liveCount} (Live) / ${simCount} (Sim)`);
 
-                // Reset tick counter for next minute
                 this.stats.messages = 0;
             }
-        }, 60000);
+        }, 10000);
     }
 
     async loadState() {
