@@ -425,14 +425,50 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         } catch (e) { console.error(`[${mode}] Error processing ${symbol}:`, e.message); }
     }
 
-    // --- Save States ---
-    await redis.set(activeKey, JSON.stringify(newActiveTrades));
+    // --- STATE INTEGRITY GUARD (Merge-Before-Commit) ---
+    // Prevent overwriting manual actions that happened during the scan (Race Condition Fix)
+    const finalFreshStateStr = await redis.get(activeKey);
+    const finalFreshState = finalFreshStateStr ? JSON.parse(finalFreshStateStr) : [];
+
+    // 1. Detect External Adds (Manual Buys or Sniper Triggers while we were scanning)
+    const externallyAdded = finalFreshState.filter(freshT => !activeTrades.find(localT => localT.id === freshT.id));
+
+    // 2. Detect External Deletes (Manual Sells or Stop Losses while we were scanning)
+    // If a trade was in our 'activeTrades' at start (snapshot) but is GONE from 'finalFreshState',
+    // it means it was deleted externally. We must NOT save it back.
+    // However, 'newActiveTrades' is our *proposed* next state.
+    // We need to filter 'newActiveTrades' to strictly exclude things that are missing from fresh state 
+    // UNLESS they are brand new trades we just generated ourselves in this cycle.
+
+    // A. Identify IDs that existed at start of this cycle
+    const snapshotIds = activeTrades.map(t => t.id);
+
+    // B. Filter our proposed state
+    const mergedActiveTrades = newActiveTrades.filter(proposedT => {
+        // Condition 1: It's a brand new trade we just made (ID not in snapshot) -> KEEP IT
+        if (!snapshotIds.includes(proposedT.id)) return true;
+
+        // Condition 2: It's an old trade. Does it still exist in Redis?
+        // If yes -> KEEP IT. If no (someone deleted it) -> DROP IT.
+        const stillExisteInRedis = finalFreshState.find(f => f.id === proposedT.id);
+        return !!stillExisteInRedis;
+    });
+
+    // C. Add the external additions
+    const finalState = [...mergedActiveTrades, ...externallyAdded];
+
+    // Log if intervention occurred
+    if (finalState.length !== newActiveTrades.length) {
+        console.log(`🛡️ [INTEGRITY GUARD] Race Condition Prevented! Merged ${externallyAdded.length} new & removed ${newActiveTrades.length - mergedActiveTrades.length} stale trades.`);
+    }
+
+    await redis.set(activeKey, JSON.stringify(finalState));
     await redis.set(configKey, JSON.stringify(wallet));
     if (newWins.length > 0) {
         const h = JSON.parse(await redis.get(historyKey) || '[]');
         await redis.set(historyKey, JSON.stringify([...newWins, ...h].slice(0, 50)));
     }
-    return { mode, activeCount: newActiveTrades.length, alerts: [] };
+    return { mode, activeCount: finalState.length, alerts: [] };
 }
 
 export default async function handler(req, res) {
