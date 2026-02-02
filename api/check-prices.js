@@ -383,72 +383,67 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         });
 
         const found = await Promise.all(scanPromises);
-        newFoundTrades = found.filter(t => t !== null);
-    }
+        // newFoundTrades = found.filter(t => t !== null); // Not needed anymore as we process directly below
 
-    // CONSTRUCT FINAL STATE (Preserving Const Reference)
-    const finalList = [...keptTrades, ...manualAddedTrades];
+        // 3. SEQUENTIAL EXECUTION OF CANDIDATES (Prevents Race Condition)
+        // Filter out nulls
+        const validCandidates = found.filter(c => c !== null);
 
-    // 3. SEQUENTIAL EXECUTION OF CANDIDATES (Prevents Race Condition)
-    // Filter out nulls
-    const validCandidates = found.filter(c => c !== null);
+        // Sort by intensity (Prioritize best signals)
+        validCandidates.sort((a, b) => b.intensity - a.intensity);
 
-    // Sort by intensity (Prioritize best signals)
-    validCandidates.sort((a, b) => b.intensity - a.intensity);
+        for (const cand of validCandidates) {
+            // DOUBLE CHECK LIMIT (The critical fix)
+            // We re-calculate current count including the ones we JUST added in this loop.
+            if (finalList.length < maxTrades) {
+                const risk = wallet.riskPercentage || 10;
+                const balance = wallet.currentBalance || 0;
+                const amountToInvest = (balance * (risk / 100));
 
-    for (const cand of validCandidates) {
-        // DOUBLE CHECK LIMIT (The critical fix)
-        // We re-calculate current count including the ones we JUST added in this loop.
-        if (finalList.length < maxTrades) {
-            const risk = wallet.riskPercentage || 10;
-            const balance = wallet.currentBalance || 0;
-            const amountToInvest = (balance * (risk / 100));
+                // Re-verify Price (Micro-slippage check)
+                const buyPrice = cand.price;
 
-            // Re-verify Price (Micro-slippage check)
-            // Not strictly necessary for market orders but good practice.
-            // We use the price from scan timestamp.
-            const buyPrice = cand.price;
+                let executionPrice = buyPrice;
+                let executedQty = amountToInvest / buyPrice;
+                let actualSpent = amountToInvest;
 
-            let executionPrice = buyPrice;
-            let executedQty = amountToInvest / buyPrice;
-            let actualSpent = amountToInvest;
+                try {
+                    if (mode === 'LIVE') {
+                        const order = await binanceClient.executeOrder(cand.symbol, 'BUY', amountToInvest, buyPrice, 'MARKET', true);
+                        executedQty = parseFloat(order.executedQty);
+                        actualSpent = parseFloat(order.cummulativeQuoteQty);
+                        executionPrice = actualSpent / executedQty;
+                    } else {
+                        wallet.currentBalance -= (amountToInvest * 1.001);
+                    }
 
-            try {
-                if (mode === 'LIVE') {
-                    const order = await binanceClient.executeOrder(cand.symbol, 'BUY', amountToInvest, buyPrice, 'MARKET', true);
-                    executedQty = parseFloat(order.executedQty);
-                    actualSpent = parseFloat(order.cummulativeQuoteQty);
-                    executionPrice = actualSpent / executedQty;
-                } else {
-                    wallet.currentBalance -= (amountToInvest * 1.001);
+                    const newTrade = {
+                        id: uuidv4(),
+                        symbol: cand.symbol,
+                        entryPrice: executionPrice,
+                        investedAmount: actualSpent,
+                        quantity: executedQty,
+                        type: 'LONG',
+                        timestamp: new Date().toISOString(),
+                        strategy: cand.strategy,
+                        mode: mode,
+                        isManual: false,
+                        takeProfit: cand.obZone?.tp || null,
+                        stopLoss: cand.obZone?.sl || null
+                    };
+
+                    finalList.push(newTrade);
+                    await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 **${cand.symbol}**\n🔧 Strat: ${cand.strategy}\n💰 Entry: $${executionPrice.toFixed(4)}`);
+                    console.log(`[${mode}] ✅ Executed ${cand.symbol} (${cand.intensity}%)`);
+
+                } catch (execErr) {
+                    console.error(`[${mode}] ❌ Execution Failed for ${cand.symbol}:`, execErr.message);
                 }
-
-                const newTrade = {
-                    id: uuidv4(),
-                    symbol: cand.symbol,
-                    entryPrice: executionPrice,
-                    investedAmount: actualSpent,
-                    quantity: executedQty,
-                    type: 'LONG',
-                    timestamp: new Date().toISOString(),
-                    strategy: cand.strategy,
-                    mode: mode,
-                    isManual: false,
-                    takeProfit: cand.obZone?.tp || null,
-                    stopLoss: cand.obZone?.sl || null
-                };
-
-                finalList.push(newTrade);
-                await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 **${cand.symbol}**\n🔧 Strat: ${cand.strategy}\n💰 Entry: $${executionPrice.toFixed(4)}`);
-                console.log(`[${mode}] ✅ Executed ${cand.symbol} (${cand.intensity}%)`);
-
-            } catch (execErr) {
-                console.error(`[${mode}] ❌ Execution Failed for ${cand.symbol}:`, execErr.message);
+            } else {
+                console.log(`[${mode}] ⏸️ Quota Full (${maxTrades}). Skipped ${cand.symbol}.`);
             }
-        } else {
-            console.log(`[${mode}] ⏸️ Quota Full (${maxTrades}). Skipped ${cand.symbol}.`);
         }
-    }
+    } // End of if (currentTotal < maxTrades)
 
     // Mutate the const array in place
     newActiveTrades.splice(0, newActiveTrades.length, ...finalList);
