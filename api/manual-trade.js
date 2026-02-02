@@ -1,8 +1,9 @@
-import redis from '../src/utils/redisClient.js';
+import redis from './utils/redisClient.js';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import binanceClient from './utils/binance-client.js';
 import { sendRawTelegram } from '../src/utils/telegram.js';
+import { calculateNetProfit } from '../src/utils/finance.js';
 // Telegram hardcoded config removed - using src/utils/telegram.js
 
 export default async function handler(req, res) {
@@ -148,80 +149,71 @@ export default async function handler(req, res) {
                 }
 
                 // Calculate PnL if exitPrice is provided
-                if (exitPrice && trade.investedAmount) {
-                    let pnlPercent = 0;
-                    if (trade.type === 'SHORT') {
-                        pnlPercent = ((trade.entryPrice - exitPrice) / trade.entryPrice) * 100;
-                    } else {
-                        pnlPercent = ((exitPrice - trade.entryPrice) / trade.entryPrice) * 100;
-                    }
+                // Use Unified Finance Logic
+                const finResult = calculateNetProfit(trade.entryPrice, exitPrice, trade.investedAmount, trade.type);
+                const { netProfit, roi, fees } = finResult;
+                const netReturn = trade.investedAmount + netProfit;
 
-                    const profitValue = trade.investedAmount * (pnlPercent / 100);
-                    const grossReturn = trade.investedAmount + profitValue;
+                // Credit to Wallet
+                wallet.currentBalance += netReturn;
 
-                    // Fee Logic (Exit 0.1%)
-                    const closeFee = grossReturn * 0.001;
-                    const netReturn = grossReturn - closeFee;
+                console.log(`💰 Wallet Credit: Returned $${netReturn.toFixed(2)} (Fees: $${fees.toFixed(3)})`);
 
-                    // Credit to Wallet
-                    wallet.currentBalance += netReturn;
-
-                    console.log(`💰 Wallet Credit: Returned $${netReturn.toFixed(2)} (Fees: $${closeFee.toFixed(3)})`);
-
-                    // Calculate NET PnL % (Real ROI)
-                    // We assume 0.1% entry fee was paid.
-                    const estimatedOpenFee = trade.investedAmount * 0.001;
-                    const netProfit = netReturn - trade.investedAmount - estimatedOpenFee;
-                    const netPnlPercent = (netProfit / trade.investedAmount) * 100;
-
-                    // Add to History (So user can see it)
-                    // winHistory is already loaded at the top
-
-                    winHistory.unshift({
-                        symbol: trade.symbol,
-                        pnl: netPnlPercent, // Storing NET PnL now
-                        profitUsd: netProfit, // Storing NET Profit ($)
-                        type: trade.type,
-                        strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
+                // Add to History
+                // winHistory is already loaded at the top
+                winHistory.unshift({
+                    symbol: trade.symbol,
+                    pnl: roi, // Unified ROI
+                    profitUsd: netProfit,
+                    type: trade.type,
+                    strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
+                    timestamp: new Date().toISOString(),
+                    entryPrice: trade.entryPrice,
+                    exitPrice: exitPrice || trade.entryPrice,
+                    investedAmount: trade.investedAmount,
+                    isManual: true
+                });
+                type: trade.type,
+                    strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
                         timestamp: new Date().toISOString(),
-                        entryPrice: trade.entryPrice,
-                        exitPrice: exitPrice || trade.entryPrice,
-                        investedAmount: trade.investedAmount, // Critical for Value Amount display
-                        isManual: true
-                    });
+                            entryPrice: trade.entryPrice,
+                                exitPrice: exitPrice || trade.entryPrice,
+                                    investedAmount: trade.investedAmount, // Critical for Value Amount display
+                                        isManual: true
+            });
 
-                    // Keep last 50
-                    winHistory = winHistory.slice(0, 50);
-                    await redis.set(historyKey, JSON.stringify(winHistory));
-                }
-
-                // Remove from correct array
-                if (isSniper) {
-                    sniperTrades.splice(tradeIndex, 1);
-                    await redis.set(sniperKey, JSON.stringify(sniperTrades));
-
-                    // Activate cooldown to prevent immediate reopening
-                    await redis.set('sentinel_sniper_cooldown', Date.now().toString());
-                    console.log('🔫 Sniper cooldown activated (manual close)');
-                } else {
-                    activeTrades.splice(tradeIndex, 1);
-                    await redis.set(activeKey, JSON.stringify(activeTrades));
-                }
-            }
-
-        } else if (action === 'CLEAR_HISTORY') {
-            await redis.set(historyKey, JSON.stringify([]));
-            return res.status(200).json({ success: true, history: [] });
+            // Keep last 50
+            winHistory = winHistory.slice(0, 50);
+            await redis.set(historyKey, JSON.stringify(winHistory));
         }
 
-        // Save State (Final Sync)
-        await redis.set(activeKey, JSON.stringify(activeTrades));
-        await redis.set(configKey, JSON.stringify(wallet));
+        // Remove from correct array
+        if (isSniper) {
+            sniperTrades.splice(tradeIndex, 1);
+            await redis.set(sniperKey, JSON.stringify(sniperTrades));
 
-        res.status(200).json({ success: true, active: activeTrades, wallet });
+            // Activate cooldown to prevent immediate reopening
+            await redis.set('sentinel_sniper_cooldown', Date.now().toString());
+            console.log('🔫 Sniper cooldown activated (manual close)');
+        } else {
+            activeTrades.splice(tradeIndex, 1);
+            await redis.set(activeKey, JSON.stringify(activeTrades));
+        }
+    }
+
+        } else if (action === 'CLEAR_HISTORY') {
+    await redis.set(historyKey, JSON.stringify([]));
+    return res.status(200).json({ success: true, history: [] });
+}
+
+// Save State (Final Sync)
+await redis.set(activeKey, JSON.stringify(activeTrades));
+await redis.set(configKey, JSON.stringify(wallet));
+
+res.status(200).json({ success: true, active: activeTrades, wallet });
 
     } catch (error) {
-        console.error('Manual Trade Error:', error);
-        res.status(500).json({ error: error.message });
-    }
+    console.error('Manual Trade Error:', error);
+    res.status(500).json({ error: error.message });
+}
 }

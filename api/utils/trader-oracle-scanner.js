@@ -1,4 +1,4 @@
-import redis from '../../src/utils/redisClient.js';
+import redis from '../utils/redisClient.js';
 import { authenticatedRequest } from './binance-client.js';
 import 'dotenv/config';
 

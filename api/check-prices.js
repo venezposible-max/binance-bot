@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { RSI, EMA, BollingerBands } from 'technicalindicators';
 import * as analysis from '../src/utils/analysis.js';
-import redis from '../src/utils/redisClient.js';
+import redis from './utils/redisClient.js';
 import binanceClient from './utils/binance-client.js';
 import { authenticatedRequest } from './utils/binance-client.js';
 import { v4 as uuidv4 } from 'uuid';

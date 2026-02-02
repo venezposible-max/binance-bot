@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import redis from '../../src/utils/redisClient.js';
+import redis from '../utils/redisClient.js';
 import binanceClient from '../utils/binance-client.js';
 import { sendRawTelegram } from '../../src/utils/telegram.js';
 

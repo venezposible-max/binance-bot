@@ -1,4 +1,4 @@
-import redis from '../../src/utils/redisClient.js';
+import redis from '../utils/redisClient.js';
 
 export default async function handler(req, res) {
     const mode = req.query.mode || await redis.get('sentinel_active_mode') || 'SIMULATION';
