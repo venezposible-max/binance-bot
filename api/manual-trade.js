@@ -35,6 +35,8 @@ export default async function handler(req, res) {
             // Deduct from Balance (Investment + Fee)
             wallet.currentBalance -= (investedAmount + openFee);
 
+            const { takeProfit, stopLoss } = req.body;
+
             const newTrade = {
                 id: uuidv4(),
                 symbol,
@@ -43,12 +45,20 @@ export default async function handler(req, res) {
                 timestamp: new Date().toISOString(),
                 isManual: true,
                 investedAmount: investedAmount, // Track investment
-                strategy: strategy || 'SWING'
+                strategy: strategy || 'SWING',
+                takeProfit,
+                stopLoss
             };
             activeTrades.push(newTrade);
 
             // Notify Telegram
-            await sendRawTelegram(`👆 **MANUAL ENTRY** ✍️\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 **Inversión:** $${investedAmount.toFixed(2)}\n📉 Fee: -$${openFee.toFixed(3)}\n\n_Vigilando objetivo +1% en la nube..._`);
+            let targetMsg = `\n_Vigilando objetivo +1% en la nube..._`;
+            if (takeProfit) {
+                const pnl = ((takeProfit - price) / price) * 100;
+                targetMsg = `\n🎯 **Objetivo (ATR):** $${takeProfit.toFixed(4)} (+${pnl.toFixed(2)}%)`;
+            }
+
+            await sendRawTelegram(`👆 **MANUAL ENTRY** ✍️\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type}\n💰 Precio: $${price}\n💸 **Inversión:** $${investedAmount.toFixed(2)}\n📉 Fee: -$${openFee.toFixed(3)}${targetMsg}`);
 
         } else if (action === 'CLOSE') {
             // Check both regular and Sniper trades
