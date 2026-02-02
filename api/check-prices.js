@@ -291,14 +291,16 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                             let analysisMode = 'SWING';
                             let useHybrid = false;
 
+                            if (strat === 'SNIPER') {
+                                // SNIPER is handled exclusively by api/stream/cvd-worker.js (Whale Tracker)
+                                // We do NOT scan candles for Sniper.
+                                continue;
+                            }
+
                             if (strat.includes('BLITZ')) {
                                 interval = '5m';
                                 analysisMode = 'BLITZ';
                                 useHybrid = true;
-                            } else if (strat === 'SNIPER') {
-                                interval = '5m';
-                                analysisMode = 'SNIPER';
-                                useHybrid = false; // Sniper uses basic RSI/BB in analyzePair logic
                             }
 
                             // FETCH CANDLES
