@@ -311,11 +311,6 @@ function App() {
     // Always sync the full configuration state
     setWalletConfig(newConfig);
 
-    // Sync Trading Mode indicator if present
-    if (newConfig.tradingMode) {
-      setTradingMode(newConfig.tradingMode);
-    }
-
     // Check if strategy changed from WalletCard
     if (newConfig.strategy && newConfig.strategy !== activeStrategy) {
       console.log(`🔄 Strategy Changed: ${activeStrategy} -> ${newConfig.strategy}`);
