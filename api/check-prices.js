@@ -31,7 +31,7 @@ async function getDynamicTopPairs() {
                 });
                 relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
                 // Increased Search Depth to 20 to find alternatives
-                return relevant.slice(0, 20).map(p => p.symbol);
+                return relevant.slice(0, 10).map(p => p.symbol);
             }
         } catch (e) {
             console.warn(`⚠️ Dynamic Pairs [${src.label}] Fail: ${e.response?.status === 403 ? '403 Blocked' : e.message}`);
