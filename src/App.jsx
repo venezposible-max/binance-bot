@@ -437,13 +437,7 @@ function App() {
             cloudStatus.active.length > 0 && (
               <>
                 <h2 className={styles.sectionTitle}>🚀 OPERACIONES ACTIVAS ({cloudStatus.active.length})</h2>
-                <div style={{
-                  display: 'flex',
-                  gap: '15px',
-                  overflowX: 'auto',
-                  paddingBottom: '10px',
-                  marginBottom: '30px'
-                }}>
+                <div className={styles.tradeGrid}>
                   {cloudStatus.active.map((trade) => (
                     <ActiveTradeCard
                       key={trade.id}
