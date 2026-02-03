@@ -1,18 +1,20 @@
+```
 import axios from 'axios';
 
 // --- SHARED CONFIG ---
-// Region Switch: 'US' (Default) or 'EU' (Binance Global)
-// Set this via Railway Environment Variable: REGION=EU
-export const getConfig = () => {
-    return {
-        REGION: process.env.REGION || 'US',
-        // URLs
-        BINANCE_US: 'https://api.binance.us/api/v3',
+// FORCE GLOBAL REGION
+export const CONFIG = {
+    REGION: 'EU',
+    
+    // API ENDPOINTS
+    API: {
         BINANCE_GLOBAL: 'https://api.binance.com/api/v3',
-    };
+        BINANCE_GCP: 'https://api-gcp.binance.com/api/v3'
+    }
 };
 
 export const getBaseUrl = () => {
-    const config = getConfig();
-    return config.REGION === 'EU' ? config.BINANCE_GLOBAL : config.BINANCE_US;
+    // Since REGION is permanently 'EU', we can directly return BINANCE_GLOBAL
+    return CONFIG.API.BINANCE_GLOBAL;
 };
+```

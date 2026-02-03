@@ -26,26 +26,24 @@ export default async function handler(req, res) {
     const { symbols } = req.query; // Comma separated symbols
 
     if (!symbols) {
-        return res.status(400).json({ error: 'Symbols required' });
+        return res.status(400).json({ error: 'Symbols parameter is required' });
     }
 
-    const symbolList = symbols.split(',');
+    const symbolArray = symbols.split(',');
     const prices = {};
 
-    // URLS
-    const BINANCE_US = 'https://api.binance.us/api/v3';
-    const BINANCE_GLOBAL = 'https://api.binance.com/api/v3';
+    // Sources Loop (Global Only)
+    // 1. GCP Mirror (Fastest)
+    // 2. Global Main (Backup)
+    // 3. Alt Mirror (Backup)
+    const sources = [
+        'https://api-gcp.binance.com/api/v3/ticker/price',
+        'https://api.binance.com/api/v3/ticker/price',
+        'https://api1.binance.com/api/v3/ticker/price'
+    ];
 
     try {
-        const promises = symbolList.map(async (s) => {
-            // STRATEGY: Robust Multi-Source Fetch (Global -> GCP -> API1)
-            // Removed Binance US to prevent "Symbol Not Found" for global pairs like ZAMA
-            const sources = [
-                { url: `https://api.binance.com/api/v3/ticker/price?symbol=${s}`, label: 'Global' },
-                { url: `https://api-gcp.binance.com/api/v3/ticker/price?symbol=${s}`, label: 'GCP' },
-                { url: `https://api1.binance.com/api/v3/ticker/price?symbol=${s}`, label: 'API1' }
-            ];
-
+        const promises = symbolArray.map(async (s) => {
             let price = null;
 
             for (const src of sources) {

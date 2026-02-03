@@ -7,7 +7,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Symbol is required' });
     }
 
-    const REGION = process.env.REGION || 'US';
+
 
     try {
         // Prioritize Binance US for typical Vercel/Railway regions, Fallback to Global

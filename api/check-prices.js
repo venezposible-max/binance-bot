@@ -42,12 +42,11 @@ async function fetchGlobalPrice(symbol, cache = null) {
     const sources = [
         { url: `https://api-gcp.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU_GCP' },
         { url: `https://api1.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU_ALT' },
-        { url: `https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_GLOBAL' }, // Added back for ZAMA fix
-        { url: `https://api.binance.us/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_US' }
+        { url: `https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_GLOBAL' }
     ];
 
-    const workingLabel = lastWorkingSource || (process.env.REGION === 'EU' ? 'EU' : 'USA');
-    if (workingLabel === 'USA') sources.reverse();
+    // Removed Region Check: Always Global
+    const workingLabel = 'EU';
 
     for (const src of sources) {
         try {
@@ -72,10 +71,9 @@ async function fetchGlobalPrice(symbol, cache = null) {
 async function fetchGlobalKlines(symbol, interval, limit = 250) {
     const sources = [
         { url: `https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'EU_GCP' },
-        { url: `https://api.binance.us/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'USA' }
+        { url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'GLOBAL' }
     ];
-    const workingLabel = lastWorkingSource || (process.env.REGION === 'EU' ? 'EU' : 'USA');
-    if (workingLabel === 'USA') sources.reverse();
+    // Removed Region Check: Always Global
     for (const src of sources) {
         try {
             const res = await axios.get(src.url, { timeout: 5000 });
