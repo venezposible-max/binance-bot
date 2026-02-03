@@ -109,19 +109,18 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
                     </span>
                 </div>
 
-                {/* STOP LOSS ROW */}
-                <div className={`${styles.targetRow} ${slPrice ? styles.slRow : styles.slRowNeutral}`}>
-                    <div className={styles.tagGroup}>
-                        <span style={{ fontSize: '0.65rem', color: slPrice ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 SL</span>
-                        {slPrice && <span style={{ fontSize: '0.65rem', color: '#FECACA' }}>({slDist.toFixed(1)}%)</span>}
+                {/* STOP LOSS ROW (Only show if actually exists, hidden by default now) */}
+                {slPrice > 0 && (
+                    <div className={`${styles.targetRow} ${styles.slRow}`}>
+                        <div className={styles.tagGroup}>
+                            <span style={{ fontSize: '0.65rem', color: '#EF4444', fontWeight: '800' }}>🛑 SL</span>
+                            <span style={{ fontSize: '0.65rem', color: '#FECACA' }}>({slDist.toFixed(1)}%)</span>
+                        </div>
+                        <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#fff' }}>
+                            ${slPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                        </span>
                     </div>
-                    <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: slPrice ? '#fff' : '#94A3B8' }}>
-                        {slPrice
-                            ? `$${slPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
-                            : 'SIN S/L'
-                        }
-                    </span>
-                </div>
+                )}
             </div>
 
             <div className={styles.infoRow}>

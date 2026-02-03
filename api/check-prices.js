@@ -301,7 +301,12 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             // Log dynamic targets for debugging
             // console.log(`   Targets for ${symbol}: TP +${effectiveTP}% | SL -${effectiveSL}%`);
 
-            if (effectiveSL !== null && pnl <= -effectiveSL) {
+            // 2. CHECK STOP LOSS (SAFETY)
+            // Fix: Only trigger SL if explicitly enabled in wallet config OR if manual trade has specific SL
+            const globalSLActive = wallet.useStopLoss !== false; // Default true
+            const hasSpecificSL = trade.stopLoss !== null && trade.stopLoss !== undefined; // Check if trade has an explicit SL set
+
+            if ((globalSLActive || hasSpecificSL) && effectiveSL !== null && pnl <= -effectiveSL) {
                 console.log(`[${mode}] 🛑 STOP LOSS TRIGGERED for ${symbol} @ ${pnl.toFixed(2)}% (Target: -${effectiveSL}%)`);
                 isExit = true;
             }
