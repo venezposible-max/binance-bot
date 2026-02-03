@@ -395,9 +395,7 @@ function App() {
             </button>
           </div>
 
-          <span className={styles.strategyBadge} style={{ border: `1px solid ${activeStrategy === 'SNIPER' ? '#D946EF' : '#00D9FF'}`, background: 'rgba(0,0,0,0.3)' }}>
-            {activeStrategy} {activeStrategy !== 'SNIPER' && `(${timeframe})`}
-          </span>
+          {/* Strategy Badge Removed (Redundant) */}
 
           {/* REAL BALANCE INDICATOR - LIVE ONLY */}
           {tradingMode === 'LIVE' ? (
