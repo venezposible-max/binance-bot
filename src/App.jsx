@@ -8,10 +8,10 @@ import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
 
-import DocumentationModal from './components/DocumentationModal'; // NEW: Docs
-import LogConsole from './components/LogConsole'; // NEW: Logs
+import DocumentationModal from './components/DocumentationModal';
+import LogConsole from './components/LogConsole';
 import { sendTelegramAlert } from './utils/telegram';
-import { BookOpen, Terminal } from 'lucide-react';
+import { BookOpen, Terminal, ShieldCheck } from 'lucide-react';
 import ActiveTradeCard from './components/ActiveTradeCard';
 
 function App() {
@@ -328,7 +328,10 @@ function App() {
       <main className={styles.mainContent}>
         <header className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.logo}>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></div>
+            <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldCheck size={26} color="#00D9FF" strokeWidth={2.5} />
+              <span>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></span>
+            </div>
             <div
               className={styles.statusBadge}
               onClick={toggleTradingMode}
