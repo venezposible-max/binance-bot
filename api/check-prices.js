@@ -390,7 +390,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     const candidates = marketPairs.filter(s => !occupiedSymbols.includes(s));
 
     if (!wallet.isBotActive) {
-        console.log(`[${mode}] ⏸️ BOT PAUSED: Skipping new trade scan (Active: ${activeTrades.length} trades managed)`);
+        // User Request: "Si esta pausado... decir lo que tenia skipping"
+        console.log(`[${mode}] ⏸️ PAUSED: Monitoring [${candidates.join(', ')}] but skipping execution.`);
     } else {
         console.log(`🔍 [${mode}] Scanning [${candidates.join(', ')}] for BLITZ signals...`);
 
