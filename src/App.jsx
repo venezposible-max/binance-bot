@@ -225,36 +225,38 @@ function App() {
 
       // 3. Process each pair
       for (const symbol of currentPairs) {
-        const klines = candlesMap[symbol];
-        if (!klines || klines.length < 50) continue; // Need history for RSI/EMA
-
-        // [FIX] Use Price from Ticker Map OR Fallback to Candle Close
+        // [FIX] Permissive Rendering: Don't skip if data is partial
+        const klines = candlesMap[symbol] || [];
         let price = pricesMap[symbol];
 
+        // Fallback Price
         if (!price && klines.length > 0) {
           price = klines[klines.length - 1].close;
         }
 
-        if (!price) continue;
-
-        try {
-          const analysis = {
-            ...analyzePair(klines),
-            ...analyzeFlow(klines),
-            ...analyzeTriple(klines),
-            ...analyzeOB(klines),
-            ...analyzeHybrid(klines),
-            forecast: calculateForecast(klines)
-          };
-
-          results[symbol] = {
-            symbol,
-            price,
-            ...analysis
-          };
-        } catch (err) {
-          console.warn(`Analysis failed for ${symbol}:`, err);
+        // Run Analysis only if we have enough data
+        let analysis = {};
+        if (klines.length >= 20) {
+          try {
+            analysis = {
+              ...analyzePair(klines),
+              ...analyzeFlow(klines),
+              ...analyzeTriple(klines),
+              ...analyzeOB(klines),
+              ...analyzeHybrid(klines),
+              forecast: calculateForecast(klines)
+            };
+          } catch (err) {
+            console.warn(`Analysis failed for ${symbol}:`, err);
+          }
         }
+
+        // ALWAYS push to results (Force UI Render)
+        results[symbol] = {
+          symbol,
+          price: price || 0,
+          ...analysis
+        };
       }
 
       setMarketData(results);
