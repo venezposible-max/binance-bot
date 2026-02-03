@@ -179,56 +179,7 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 300) => {
     }
 };
 
-/**
- * Fetch Real-Time Prices via Backend Proxy (with Browser Fallback)
- * @param {Array} symbols - List of symbols (e.g. ['BTCUSDT', 'ETHUSDT'])
- */
-export const fetchTickerPrices = async (symbols) => {
-    try {
-        const symbolsParam = symbols.join(',');
 
-        // 1. Try Backend Proxy (Best for CORS, but might be Rate Limited/IP Blocked)
-        // If this works, great. If it fails or returns empty (due to IP block), we catch it.
-        const response = await axios.get(`/api/ticker`, {
-            params: { symbols: symbolsParam },
-            timeout: 5000
-        });
-
-        if (response.data && Object.keys(response.data).length > 0) {
-            return response.data;
-        }
-
-        throw new Error("Backend returned empty data");
-
-    } catch (error) {
-        console.warn("Backend Ticker failed, trying Direct Browser Fetch...", error.message);
-
-        // Helper to format ticker array to object
-        const processTickerData = (data, symbols) => {
-            const prices = {};
-            data.forEach(t => {
-                if (symbols.includes(t.symbol)) {
-                    prices[t.symbol] = parseFloat(t.price);
-                }
-            });
-            return prices;
-        };
-
-        // 2. Fallback A: Direct Browser Fetch (GLOBAL - api.binance.com)
-        // This is what the user requested and works best for international IPs.
-        try {
-            console.log("Fallback A: Trying Binance Global...");
-            const globalResponse = await axios.get('https://api.binance.com/api/v3/ticker/price', {
-                timeout: 3000
-            });
-            return processTickerData(globalResponse.data, symbols);
-        } catch (globalError) {
-            console.error("Global Fetch failed:", globalError.message);
-            // Removed Binance US fallback to prevent false $0 prices for Global-only assets (ZAMA)
-            return {};
-        }
-    }
-};
 
 /**
  * Fetch 24hr Ticker for current price and change %
