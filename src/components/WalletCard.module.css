@@ -232,3 +232,70 @@
         justify-content: space-between;
     }
 }
+
+/* NEW MOBILE STYLES */
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.titleGroup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.controlsGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.liveTag {
+    font-size: 0.6rem;
+    background: #EF4444;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    animation: pulse 2s infinite;
+    white-space: nowrap;
+    /* Prevent tag break */
+}
+
+.modeToggleBtn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+@media (max-width: 450px) {
+    .headerRow {
+        flex-direction: column;
+        /* Stack Title and Controls vertically */
+        align-items: flex-start;
+    }
+
+    .controlsGroup {
+        width: 100%;
+        justify-content: space-between;
+        /* Spread buttons */
+    }
+
+    .modeToggleBtn,
+    .startBtn,
+    .pauseBtn {
+        flex: 1;
+        /* Make buttons verify full width/half width */
+        text-align: center;
+    }
+}
