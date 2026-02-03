@@ -9,10 +9,10 @@
     padding-bottom: 60px;
 }
 
-@media (max-width: 768px) {
-    .grid {
-        grid-template-columns: 1fr;
-        /* Mobile: 1 column */
-        gap: 15px;
-    }
+.grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    box-sizing: border-box;
 }
