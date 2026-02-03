@@ -1,4 +1,4 @@
-
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 // import ParticlesBackground from './components/ParticlesBackground';
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
