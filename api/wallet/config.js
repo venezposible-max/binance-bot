@@ -17,8 +17,7 @@ export default async function handler(req, res) {
                 whaleThreshold: 150000,
                 isBotActive: true,
                 takeProfit: 1.25,
-                stopLoss: 3.0,
-                useStopLoss: false,
+                // STOP LOSS DELETED AS REQUESTED
                 swingMode: 'CONSERVATIVE',
                 tradingMode: mode === 'LIVE' ? 'LIVE' : 'SIMULATION',
                 strategyConfig: {

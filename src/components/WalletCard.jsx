@@ -76,10 +76,9 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         const newRisk = prompt('Porcentaje de Riesgo por Operación (%):', wallet.riskPercentage || 10);
         if (newRisk === null) return;
 
-        // 3. SL Seguridad (REMOVED for Spot Mode preference)
-        // Defaulting to FALSE/0 for Spot freedom. User can manually enable if code supports it later, but UI is clean now.
-        const newUseSL = false;
-        const newSL = 0;
+        // 3. SL Seguridad (REMOVED)
+        // Defaulting to FALSE/0 for Spot freedom.
+
 
         // 4. Max Trades
         const maxTradesInput = prompt('Número Máximo de Trades Simultáneos:', wallet.maxTrades || 3);
@@ -104,8 +103,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         tradingMode: tradingMode, // Always sync with current mode
                         riskPercentage: parseFloat(newRisk),
                         maxTrades: parseInt(maxTrades),
-                        // useStopLoss: REMOVED
-                        // stopLoss: REMOVED 
+                        maxTrades: parseInt(maxTrades),
+
                         strategy: activeStrategy || wallet.strategy || 'HYBRID_SWING',
                         reset: !isLive // Only full reset simulation balance
                     })
