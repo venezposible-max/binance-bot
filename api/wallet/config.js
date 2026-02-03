@@ -22,10 +22,10 @@ export default async function handler(req, res) {
                 swingMode: 'CONSERVATIVE',
                 tradingMode: mode === 'LIVE' ? 'LIVE' : 'SIMULATION',
                 strategyConfig: {
-                    SNIPER: { active: true },
-                    HYBRID_SWING: { active: true },
-                    HYBRID_BLITZ: { active: false }
+                    HYBRID_BLITZ: { active: true }
                 },
+                strategy: 'HYBRID_BLITZ',
+                timeframe: '5m',
                 ...existingConfig
             };
 
@@ -53,12 +53,10 @@ export default async function handler(req, res) {
                     cooldownMinutes: req.body.cooldownMinutes ? parseInt(req.body.cooldownMinutes) : (current.cooldownMinutes || 30),
                     isBotActive: current.isBotActive !== undefined ? current.isBotActive : true,
                     multiFrameMode: false,
-                    strategy: req.body.strategy || current.strategy || 'SWING',
-                    timeframe: req.body.timeframe || current.timeframe || '4h',
-                    strategyConfig: req.body.strategyConfig || current.strategyConfig || {
-                        SNIPER: { active: true },
-                        HYBRID_SWING: { active: true },
-                        HYBRID_BLITZ: { active: false }
+                    strategy: 'HYBRID_BLITZ',
+                    timeframe: '5m',
+                    strategyConfig: {
+                        HYBRID_BLITZ: { active: true }
                     },
                     whaleThreshold: req.body.whaleThreshold ? parseFloat(req.body.whaleThreshold) : (current.whaleThreshold || 150000)
                 };

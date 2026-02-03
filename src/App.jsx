@@ -443,9 +443,9 @@ function App() {
 
       <main className={styles.main}>
         <section className={styles.heroSection}>
-          <h1 className={styles.heroTitle}>MARKET SENTINEL AI</h1>
+          <h1 className={styles.heroTitle}>SENTINEL BLITZ</h1>
           <p className={styles.heroSubtitle}>
-            <span>Patrullando 24/7 de forma autónoma en la nube.</span>
+            <span>Patrullando 24/7 en modo Blitz autónomo.</span>
 
           </p>
         </section>

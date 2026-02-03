@@ -264,62 +264,11 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 })()}
             </div>
 
-            {/* --- MULTI-STRATEGY PANEL --- */}
+            {/* --- BLITZ STATUS PANEL --- */}
             <div style={{ marginBottom: '15px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {/* --- HYBRID TREE --- */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '2px solid rgba(0,217,255,0.2)', paddingLeft: '8px' }}>
-                        <div style={{ fontSize: '0.6rem', color: '#00D9FF', opacity: 0.8, marginBottom: '2px' }}>HYBRID ENGINE</div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                            {['HYBRID_SWING', 'HYBRID_BLITZ'].map(s => {
-                                const isActive = (wallet.strategyConfig || {})[s]?.active;
-                                return (
-                                    <button
-                                        key={s}
-                                        onClick={() => handleToggleStrategyActive(s)}
-                                        style={{
-                                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer',
-                                            border: `1px solid ${isActive ? '#00D9FF' : '#333'}`,
-                                            background: isActive ? '#00D9FF22' : 'transparent',
-                                            color: isActive ? '#00D9FF' : '#64748B'
-                                        }}
-                                    >
-                                        <span>{s === 'HYBRID_SWING' ? '🏛️ SWING' : '⚡ BLITZ'} {isActive ? '✓' : '○'}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* --- SNIPER NODE --- */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '2px solid rgba(217,70,239,0.2)', paddingLeft: '8px', marginLeft: '8px' }}>
-                        <div style={{ fontSize: '0.6rem', color: '#D946EF', opacity: 0.8, marginBottom: '2px' }}>ELITE SNIPER</div>
-                        <button
-                            onClick={() => handleToggleStrategyActive('SNIPER')}
-                            style={{
-                                padding: '4px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 'bold', cursor: 'pointer',
-                                border: `1px solid ${(wallet.strategyConfig || {})['SNIPER']?.active ? '#D946EF' : '#333'}`,
-                                background: (wallet.strategyConfig || {})['SNIPER']?.active ? '#D946EF22' : 'transparent',
-                                color: (wallet.strategyConfig || {})['SNIPER']?.active ? '#D946EF' : '#64748B'
-                            }}
-                        >
-                            <span>🎯 SNIPER {(wallet.strategyConfig || {})['SNIPER']?.active ? '✓' : '○'}</span>
-                        </button>
-                    </div>
-
-                    {/* --- AI BRAIN INDICATOR (Phase 5) --- */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '2px solid rgba(255,165,0,0.2)', paddingLeft: '8px', marginLeft: '8px' }}>
-                        <div style={{ fontSize: '0.6rem', color: '#FFA500', opacity: 0.8, marginBottom: '2px' }}>🧠 AI BRAIN</div>
-                        <div style={{
-                            fontSize: '0.65rem', color: wallet.aiRegime?.color || '#FFA500', fontWeight: 'bold',
-                            display: 'flex', alignItems: 'center', gap: '4px'
-                        }}>
-                            {wallet.aiRegime?.label || 'ANALIZANDO...'}
-                            <span style={{ fontSize: '0.6rem', opacity: 0.7, fontWeight: 'normal' }}>
-                                ({wallet.aiRegime?.riskMultiplier || 1.0}x Risk)
-                            </span>
-                        </div>
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#00D9FF', fontWeight: 'bold' }}>⚡ BLITZ ENGINE ACTIVE</div>
+                    <span style={{ fontSize: '0.6rem', color: '#64748B' }}>(5m High Frequency)</span>
                 </div>
             </div>
 
@@ -377,9 +326,9 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     <div className={styles.label}><span>RIESGO</span></div>
                     <div style={{ fontWeight: 'bold' }}><span>{wallet.riskPercentage}%</span></div>
                 </div>
-                <div className={styles.statItem} onClick={handleCycleStrategy} style={{ cursor: 'pointer' }}>
+                <div className={styles.statItem}>
                     <div className={styles.label}><span>ESTRATEGIA</span></div>
-                    <div style={{ fontWeight: 'bold', color: getStrategyColor(currentStrategy) }}><span>{currentStrategy}</span></div>
+                    <div style={{ fontWeight: 'bold', color: '#00D9FF' }}><span>BLITZ</span></div>
                 </div>
                 <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>
             </div>

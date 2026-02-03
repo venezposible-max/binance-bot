@@ -392,65 +392,47 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
         const scanPromises = candidates.map(async (symbol) => {
             try {
-                const strategiesRaw = wallet.strategyConfig || { SNIPER: { active: true } };
-                const activeStrategies = Object.keys(strategiesRaw).filter(k => strategiesRaw[k].active);
-                if (activeStrategies.length === 0) activeStrategies.push(wallet.strategy || 'SWING');
+                // FORCE BLITZ MODE
+                const interval = '5m';
+                const analysisMode = 'BLITZ';
 
-                for (const strat of activeStrategies) {
-                    if (strat === 'SNIPER') continue;
+                const candles = await fetchGlobalKlines(symbol, interval, 60);
+                if (!candles || candles.length < 30) return null;
 
-                    let interval = '4h';
-                    let analysisMode = 'SWING';
-                    let useHybrid = false;
+                // Hybrid analysis tailored for Blitz
+                const result = analysis.analyzeOB(candles, { mode: analysisMode });
 
-                    if (strat.includes('BLITZ')) { interval = '5m'; analysisMode = 'BLITZ'; useHybrid = true; }
-                    else if (strat.includes('HYBRID') || strat.includes('SWING')) { interval = '4h'; analysisMode = 'SWING'; useHybrid = true; }
+                const signal = result.prediction?.signal;
+                const intensity = result.prediction?.intensity || 0;
 
-                    const candles = await fetchGlobalKlines(symbol, interval, 60);
-                    if (!candles || candles.length < 30) continue;
+                if (intensity > 60) {
+                    const emoji = signal.includes('BUY') ? '🟢' : '🔴';
+                    console.log(`   [${mode}] ${symbol} [BLITZ]: ${emoji} ${signal} (${intensity}%)`);
+                }
 
-                    let result;
-                    if (useHybrid) result = analysis.analyzeOB(candles, { mode: analysisMode });
-                    else result = analysis.analyzePair(candles, { swingMode: 'AGGRESSIVE', mode: analysisMode });
+                let enter = false;
+                if (signal === 'BUY' || signal === 'STRONG_BUY') enter = true;
 
-                    const signal = result.prediction?.signal;
-                    const intensity = result.prediction?.intensity || 0;
+                if (enter) {
+                    console.log(`🚀 [${mode}] AUTO-SIGNAL: ${symbol} (${signal} - ${intensity}%)`);
 
-                    if (intensity > 60) {
-                        const emoji = signal.includes('BUY') ? '🟢' : '🔴';
-                        console.log(`   [${mode}] ${symbol} [${strat}]: ${emoji} ${signal} (${intensity}%)`);
-                    }
+                    const risk = wallet.riskPercentage || 10;
+                    const balance = wallet.currentBalance || 0;
+                    const amountToInvest = (balance * (risk / 100));
 
-                    let enter = false;
-                    if (analysisMode === 'BLITZ') {
-                        if (signal === 'BUY' || signal === 'STRONG_BUY') enter = true;
-                    } else {
-                        if (signal === 'STRONG_BUY' || (signal === 'BUY' && intensity >= 80)) enter = true;
-                    }
+                    if (amountToInvest > 10) {
+                        const pd = await fetchGlobalPrice(symbol, marketCache);
+                        const buyPrice = pd?.price;
+                        if (!buyPrice) return null;
 
-                    if (enter) {
-                        console.log(`🚀 [${mode}] AUTO-SIGNAL: ${symbol} (${signal} - ${intensity}%)`);
-
-                        const risk = wallet.riskPercentage || 10;
-                        const balance = wallet.currentBalance || 0;
-                        const amountToInvest = (balance * (risk / 100));
-
-                        if (amountToInvest > 10) {
-                            const pd = await fetchGlobalPrice(symbol, marketCache);
-                            const buyPrice = pd?.price;
-                            if (!buyPrice) continue;
-
-                            // 🛡️ RACE CONDITION FIX: DO NOT EXECUTE HERE
-                            // Just return the candidate signal. Execution happens sequentially below.
-                            return {
-                                symbol: symbol,
-                                signal: signal,
-                                intensity: intensity,
-                                price: buyPrice,
-                                strategy: strat,
-                                obZone: result.obZone
-                            };
-                        }
+                        return {
+                            symbol: symbol,
+                            signal: signal,
+                            intensity: intensity,
+                            price: buyPrice,
+                            strategy: 'HYBRID_BLITZ',
+                            obZone: result.obZone
+                        };
                     }
                 }
             } catch (scanErr) { }
@@ -458,10 +440,6 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         });
 
         const found = await Promise.all(scanPromises);
-        // newFoundTrades = found.filter(t => t !== null); // Not needed anymore as we process directly below
-
-        // 3. SEQUENTIAL EXECUTION OF CANDIDATES (Prevents Race Condition)
-        // Filter out nulls
         const validCandidates = found.filter(c => c !== null);
 
         // Sort by intensity (Prioritize best signals)
