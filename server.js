@@ -38,6 +38,7 @@ console.warn = (...args) => { originalWarn(...args); try { LogStore.add('WARN', 
 // --- CRASH PREVENTION & LOGGING ---
 console.log('========================================');
 console.log('🔥 SERVER STARTING...');
+console.log('🚀 DEPLOYMENT TRIGGER CHECK: V_0_0_3_FORCE (TIMESTAMP: ' + new Date().toISOString() + ')');
 console.log('Node Version:', process.version);
 console.log('========================================');
 
