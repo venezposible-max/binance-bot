@@ -40,10 +40,11 @@ async function getDynamicTopPairs() {
 async function fetchGlobalPrice(symbol, cache = null) {
     if (cache && cache[symbol]) return { ...cache[symbol], source: 'WS_CACHE' };
 
-    // Updated Sources to use GCP mirror to bypass 403
+    // Updated Sources: Prioritize GCP/Alt, but fallback to Main API (Robustness fix)
     const sources = [
         { url: `https://api-gcp.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU_GCP' },
         { url: `https://api1.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU_ALT' },
+        { url: `https://api.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_GLOBAL' }, // Added back for ZAMA fix
         { url: `https://api.binance.us/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_US' }
     ];
 
@@ -55,7 +56,11 @@ async function fetchGlobalPrice(symbol, cache = null) {
             const res = await axios.get(src.url, { timeout: 3000 });
             lastWorkingSource = src.label.includes('US') ? 'USA' : 'EU';
             return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: src.label };
-        } catch (e) { if (!e.response || e.response.status !== 403) break; }
+        } catch (e) {
+            // FIX: Don't break! Try next source. Only 403 indicates we might be blocked, but even then, mirrors might work.
+            // console.warn(`⚠️ Price Fetch Fail [${src.label}]: ${e.message}`);
+            continue;
+        }
     }
 
     const base = symbol.replace('USDT', '');
