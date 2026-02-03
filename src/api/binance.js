@@ -73,6 +73,24 @@ const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  */
 export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
     try {
+        // HANDLE BATCH (ARRAY) REQUEST
+        if (Array.isArray(symbol)) {
+            // Parallel Fetch with Map Return
+            const promises = symbol.map(async (s) => {
+                const klines = await fetchCandles(s, interval, limit);
+                return { symbol: s, data: klines };
+            });
+
+            const results = await Promise.all(promises);
+
+            // Convert to Object Map: { BTCUSDT: [...], ETHUSDT: [...] }
+            return results.reduce((acc, item) => {
+                acc[item.symbol] = item.data;
+                return acc;
+            }, {});
+        }
+
+        // SINGULAR REQUEST
         // JITTER: Random delay (300ms - 800ms) to avoid synchronized bursts hitting rate limits
         const delay = Math.floor(Math.random() * 500) + 300;
         await wait(delay);
@@ -85,8 +103,10 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
 
         return response.data; // Already formatted by backend
     } catch (error) {
-        console.error(`Error fetching candles for ${symbol}:`, error);
-        return [];
+        console.error(`Error fetching candles for ${symbol}:`, error.message);
+        // If batch failed (unlikely here as we map), return empty. 
+        // If singular failed, return empty array.
+        return Array.isArray(symbol) ? {} : [];
     }
 };
 
