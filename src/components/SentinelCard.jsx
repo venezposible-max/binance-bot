@@ -16,16 +16,19 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, walletConfig, current
     }
 
     const {
-        price,
-        forecast,
-        indicators,
-        signal,
-        score,
-        obZone,
-        triple, // { confirmed: true/false, direction: 'UP'/'DOWN' }
-        flow,    // Volume Flow
-        hybrid   // Hybrid Logic
-    } = data;
+        price = 0,
+        forecast = {},
+        indicators = { rsi: 50, ema: 0 },
+        signal = 'WAIT',
+        score = 0,
+        obZone = {},
+        triple = {},
+        flow = {},
+        hybrid = {},
+        candles = [],
+        chartData = {},
+        wallPrice = 0
+    } = data || {};
 
 
     // DETERMINE SIGNAL LABEL & COLOR
@@ -161,13 +164,14 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, walletConfig, current
             )}
 
             {/* CHART AREA - Standard Candlesticks */}
+            {/* CHART AREA - Standard Candlesticks */}
             <ProfessionalChart
-                candles={data.candles}
-                emaData={data.chartData?.ema}
+                candles={candles}
+                emaData={chartData?.ema || []}
                 color={color}
-                obZone={data.obZone}
-                wallPrice={data.wallPrice}
-                forecast={data.forecast}
+                obZone={obZone}
+                wallPrice={wallPrice}
+                forecast={forecast}
             />
 
 
