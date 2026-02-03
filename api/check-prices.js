@@ -99,15 +99,33 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     // GOD-MODE OPTIMIZATION: Parallel Redis Fetch (Reduce RTT)
     const [activeTradesStr, winHistoryStr, walletConfigStr] = await redis.mget([activeKey, historyKey, configKey]);
 
-    // console.warn(`🐛 DEBUG: REDIS FETCHED for ${mode}`); // REMOVED DEBUG
-
     let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
     let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
     let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
-        initialBalance: 1000, currentBalance: 1000, riskPercentage: 10, allocatedCapital: 500,
-        tradingMode: mode, isBotActive: true, maxTrades: 3, dailyLossLimit: 50, cooldownMinutes: 30,
-        strategyConfig: { HYBRID_BLITZ: { active: true } }
+        initialBalance: 1000,
+        currentBalance: 1000,
+        riskPercentage: 10,
+        maxTrades: 3,
+        strategy: 'HYBRID_BLITZ'
     };
+
+    // --- SYNC REAL BALANCE (LIVE MODE) ---
+    if (mode === 'LIVE') {
+        try {
+            const usdt = await binanceClient.getAccountBalance('USDT');
+            if (usdt && !usdt.error) {
+                wallet.currentBalance = usdt.total;
+                // Auto-save updated balance to Redis so logs remain accurate
+                await redis.set(configKey, JSON.stringify(wallet));
+            }
+        } catch (e) {
+            // Ignore sync error, proceed with cached balance
+        }
+    }
+
+    // console.warn(`🐛 DEBUG: REDIS FETCHED for ${mode}`); // REMOVED DEBUG
+
+
 
     // FORCE CLEAN DISPLAY: Ignore stale Redis strategy configs
     const strategiesStr = 'BLITZ';
