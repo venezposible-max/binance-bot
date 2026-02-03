@@ -22,7 +22,6 @@ import traderOracle from './api/wallet/trader-oracle.js';
 import marketWorker from './api/stream/market-worker.js';
 import debug from './api/debug.js';
 import cleanup from './api/cleanup.js';
-import cleanup from './api/cleanup.js';
 import getMarketPairs from './api/get-market-pairs.js'; // NEW: Sync Endpoint
 import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 
