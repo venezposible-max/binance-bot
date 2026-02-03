@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
 import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
-import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB, analyzeHybrid, calculateForecast } from './utils/analysis';
+import { analyzePair, analyzeFlow, analyzeBlitz, calculateForecast } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
@@ -21,13 +21,9 @@ function App() {
   const isFetchingBus = useRef(false); // OPTIMIZATION: Request Lock
 
 
-  const [timeframe, setTimeframe] = useState(() => {
-    const s = localStorage.getItem('sentinel_strategy') || 'SWING';
-    if (s.includes('BLITZ') || s === 'SCALP') return '5m';
-    if (s === 'TRIPLE') return '15m';
-    return '4h';
-  });
-  const [activeStrategy, setActiveStrategy] = useState(() => localStorage.getItem('sentinel_strategy') || 'SWING');
+  // FORCE BLITZ MODE
+  const [timeframe, setTimeframe] = useState('5m');
+  const [activeStrategy, setActiveStrategy] = useState('BLITZ');
   const [tradingMode, setTradingMode] = useState('SIMULATION'); // Default safe
   const [walletConfig, setWalletConfig] = useState({}); // bot logic and risk settings
 

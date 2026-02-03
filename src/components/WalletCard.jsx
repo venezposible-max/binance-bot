@@ -160,63 +160,32 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     }
 
 
-    const getStrategy = () => {
-        // Favor local wallet state as it is more reactive to immediate clicks
-        if (wallet?.strategy) return wallet.strategy;
-        if (activeStrategy) return activeStrategy;
-        return 'HYBRID_SWING';
-    };
+    // REFACTORED: Only BLITZ Strategy supported
+    const currentStrategy = 'BLITZ';
 
-    const currentStrategy = getStrategy();
-
-    const handleCycleStrategy = async () => {
-        if (!wallet) return;
-        const strategies = ['HYBRID_SWING', 'HYBRID_BLITZ', 'SNIPER'];
-        const currentIndex = strategies.indexOf(currentStrategy);
-        const nextStrategy = strategies[(currentIndex + 1) % strategies.length];
-
-        try {
-            setWallet(prev => ({ ...prev, strategy: nextStrategy }));
-            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategy: nextStrategy, tradingMode })
-            });
-            if (onConfigChange) onConfigChange({ ...wallet, strategy: nextStrategy });
-        } catch (e) {
-            console.error('Failed to cycle strategy', e);
-        }
-    };
-
-    const getStrategyColor = (s) => {
-        if (s.startsWith('HYBRID')) return '#00D9FF';
-        if (s === 'SNIPER') return '#D946EF';
-        return '#666';
-    };
+    // REMOVED: handleCycleStrategy
+    // REMOVED: getStrategyColor (Not used in new UI)
 
     const handleToggleBot = async () => {
         if (!wallet) return;
-        const strategyConfig = wallet.strategyConfig || {};
-        const currentConfig = strategyConfig[currentStrategy] || { active: false };
-        const newState = !currentConfig.active;
 
-        const newStrategyConfig = {
-            ...strategyConfig,
-            [currentStrategy]: { ...currentConfig, active: newState }
-        };
+        // Simplified Toggle: Just Toggle global active state
+        const newState = !wallet.isBotActive;
 
         try {
-            setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, isBotActive: newState }));
+            setWallet(prev => ({ ...prev, isBotActive: newState }));
             await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyConfig: newStrategyConfig, isBotActive: newState, tradingMode })
+                body: JSON.stringify({ isBotActive: newState, tradingMode })
             });
-            if (onConfigChange) onConfigChange({ ...wallet, strategyConfig: newStrategyConfig });
+            if (onConfigChange) onConfigChange({ ...wallet, isBotActive: newState });
         } catch (e) {
             console.error(e);
         }
     };
+    // REMOVED: handleToggleStrategyActive (Only BLITZ now)
+    // REMOVED: handleSetHybridMode
 
     const handleToggleStrategyActive = async (strategyName) => {
         if (!wallet) return;

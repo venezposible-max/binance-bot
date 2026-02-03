@@ -217,232 +217,126 @@ export const analyzeFlow = (depth, candles) => {
 };
 
 /**
- * STRATEGY: TRIPLE LOUPE (15m + 1h + 4h)
- * @param {Array} k4h - 4h Candles
- * @param {Array} k1h - 1h Candles
- * @param {Array} k15m - 15m Candles
- */
-export const analyzeTriple = (k4h, k1h, k15m) => {
-    const c4h = k4h.map(c => c.close);
-    const c1h = k1h.map(c => c.close);
-    const c15m = k15m.map(c => c.close);
-
-    const r4h = RSI.calculate({ values: c4h, period: 14 }).slice(-1)[0] || 50;
-    const r1h = RSI.calculate({ values: c1h, period: 14 }).slice(-1)[0] || 50;
-    const r15m = RSI.calculate({ values: c15m, period: 14 }).slice(-1)[0] || 50;
-
-    const lastPrice = c4h[c4h.length - 1];
-    const isStrongBuy = (r4h < 30 && r1h < 30 && r15m < 30);
-
-    // EMA for visual trend (using 4h)
-    const emaValues = EMA.calculate({ period: 200, values: c4h }) || [];
-    const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
-
-    return {
-        price: lastPrice,
-        chartData: {
-            ema: emaValues.slice(-50)
-        },
-        indicators: {
-            rsi: r4h.toFixed(1),
-            rsi1h: r1h.toFixed(1),
-            rsi15m: r15m.toFixed(1),
-            ema: currentEMA ? currentEMA.toFixed(1) : '---'
-        },
-        prediction: {
-            signal: isStrongBuy ? 'STRONG_BUY' : 'NEUTRAL',
-            label: isStrongBuy ? '🚨 TRIPLE CONFIRMED 🚀' : 'ESPERANDO ALINEACIÓN',
-            color: isStrongBuy ? '#00ffaa' : '#64748B',
-            intensity: isStrongBuy ? 100 : 0
-        }
-    };
-};
-
-/**
- * STRATEGY: ORDER BLOCKS (OB)
- * Detects institutional zones and reversals.
- * @param {Array} candles
- * @param {Object} config - { mode: 'SWING' | 'BLITZ' }
- */
-export const analyzeOB = (candles, config = {}) => {
-    const isBlitz = config.mode === 'BLITZ';
-    if (!candles || candles.length < 10) {
-        return {
-            price: 0,
-            prediction: { signal: 'NEUTRAL', label: 'CARGANDO OB' }
-        };
-    }
-
-    const lastCandle = candles[candles.length - 1];
-    const lastPrice = lastCandle.close || parseFloat(lastCandle[4]);
-
-    // 🚀 INITIALIZE INDICATORS FIRST (Fix ReferenceError)
+ * STRATEGY: BLITZ (The Only Strategy)
+ * Fast, Aggressive, Logic-based entry.
+ * @param { Object } depth - Order Book depth
+        * @param { Array } candles - Price history
+            */
+export const analyzeBlitz = (depth, candles) => {
+    // 1. Run Core Analysis (Order Block + Trend)
+    // We inline the relevant parts of analyzeOB here for simplicity/efficiency
     const closes = candles.map(c => c.close || parseFloat(c[4]));
-    const highs = candles.map(c => c.high || parseFloat(c[2]));
-    const lows = candles.map(c => c.low || parseFloat(c[3]));
+    const lastPrice = closes[closes.length - 1];
 
+    // Indicators
     const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
     const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
     const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
-    // Phase 3: ATR for Volatility-adjusted Risk
+    // ATR for TP calculation
+    const highs = candles.map(c => c.high || parseFloat(c[2]));
+    const lows = candles.map(c => c.low || parseFloat(c[3]));
     const atrValues = ATR.calculate({ high: highs, low: lows, close: closes, period: 14 }) || [];
     const currentATR = atrValues.length > 0 ? atrValues[atrValues.length - 1] : lastPrice * 0.02;
 
+    // --- LOGIC: ORDER BLOCK SCAN ---
     let obZone = null;
-    let signal = 'NEUTRAL';
-    let label = 'BUSCANDO ZONA';
-    let color = '#94A3B8';
-    let intensity = 0;
+    let foundOB = false;
+    let obSignal = 'NEUTRAL';
 
-    // Scan backwards for a bullish Order Block (Impulse + Bearish Candle)
-    // We look at the last 30 candles to find the most recent valid zone
+    // Scan backwards (last 30 candles)
     for (let i = candles.length - 2; i > candles.length - 30 && i > 0; i--) {
         const candle = candles[i];
         const prevCandle = candles[i - 1];
-
-        const open = parseFloat(candle.open || candle[1]);
         const close = parseFloat(candle.close || candle[4]);
-        const low = parseFloat(candle.low || candle[3]);
-        const high = parseFloat(candle.high || candle[2]);
-
         const prevOpen = parseFloat(prevCandle.open || prevCandle[1]);
         const prevClose = parseFloat(prevCandle.close || prevCandle[4]);
         const prevHigh = parseFloat(prevCandle.high || prevCandle[2]);
         const prevLow = parseFloat(prevCandle.low || prevCandle[3]);
 
-        // 1. Check for Bullish Impulse (current candle closed > prev open)
+        // Bullish Impulse?
         const impulse = ((close - prevOpen) / prevOpen) * 100;
         const isBearish = prevClose < prevOpen;
 
-        const impulseThreshold = isBlitz ? 0.5 : 2.0; // RESTORED: Strict Swing (2.0)
-
-        if (impulse >= impulseThreshold && isBearish) {
-            // Found a bullish OB Zone: prevLow to prevHigh
-            const obMid = (prevLow + prevHigh) / 2; // 50% EQUILIBRIUM
-
+        // BLITZ Threshold: > 0.5% impulse is enough
+        if (impulse >= 0.5 && isBearish) {
+            const obMid = (prevLow + prevHigh) / 2;
             obZone = {
                 low: prevLow,
                 high: prevHigh,
                 mid: obMid,
                 impulse: impulse,
-                // Phase 3: ATR-Based Dynamic Targets
-                // BLITZ FIX: Disable Tight Stop Loss (User Request: "No Negative Closes")
-                // We set SL to null for Blitz, relying on Global/Manual SL only.
+                // BLITZ TARGETS:
+                // TP: 2.5x ATR
+                // SL: NULL (No Negative Closes)
                 tp: lastPrice + (currentATR * 2.5),
-                sl: isBlitz ? null : (lastPrice - (currentATR * 1.5))
+                sl: null
             };
 
-            // 2. Expert Logic: Check Trend + Precision Entry
-            const isTrendBulish = lastPrice > (currentEMA || 0);
-            const isAtMidpoint = lastPrice >= obZone.low && lastPrice <= obMid;
-
-            if (isTrendBulish && isAtMidpoint) {
-                signal = 'BUY';
-                label = `🎯 EXPERT OB (+${impulse.toFixed(1)}%)`;
-                color = '#10B981';
-                intensity = 90;
-            } else if (!isTrendBulish) {
-                signal = 'NEUTRAL';
-                label = 'FILTRO EMA (ESPERANDO)';
-                color = '#EF4444';
-                intensity = 20;
-            } else if (isBlitz && lastPrice <= obZone.high) {
-                // AGGRESSIVE: In Blitz, we trigger 'BUY' if we touch the OB High
-                signal = 'BUY';
-                label = `⚡ BLITZ ENTRY (+${impulse.toFixed(1)}%)`;
-                color = '#10B981';
-                intensity = 85;
-            } else {
-                signal = 'BULLISH';
-                label = 'OB DETECTADO (BUSCANDO MID)';
-                color = '#34D399';
-                intensity = 50;
+            // Signal Logic
+            // If price is near OB High or retracing
+            if (lastPrice <= obZone.high * 1.01) {
+                obSignal = 'BUY';
+                foundOB = true;
             }
-            break; // Stop at first (most recent) OB found
+            break;
         }
     }
 
-    return {
-        price: lastPrice,
-        obZone,
-        chartData: {
-            ema: emaValues.slice(-50)
-        },
-        indicators: {
-            rsi: currentRSI.toFixed(1),
-            ema: currentEMA ? currentEMA.toFixed(1) : '---',
-            atr: currentATR.toFixed(4)
-        },
-        prediction: {
-            signal,
-            label,
-            color,
-            intensity
-        }
-    };
-};
+    // --- LOGIC: FLOW (Order Book) ---
+    // Simplified Flow check
+    let flowSignal = 'NEUTRAL';
+    let bidPercent = 50;
+    let wallPrice = 0;
 
-/**
- * STRATEGY: HYBRID CONFLUENCE (OB + FLOW + TREND)
- * The Elite engine. Requires structural and momentum alignment.
- * @param {Object} depth - Order Book depth
- * @param {Array} candles - Price history
- * @param {Object} config - { timeframe, mode: 'SWING' | 'BLITZ' }
- */
-export const analyzeHybrid = (depth, candles, config = {}) => {
-    // 1. Run OB analysis with shared config (mode, etc)
-    const obResult = analyzeOB(candles, config);
+    if (depth && depth.bids && depth.asks) {
+        const topBids = depth.bids.slice(0, 20);
+        const bidVol = topBids.reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+        const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
+        const totalVol = bidVol + askVol;
 
-    // 2. Run Flow analysis
-    const flowResult = analyzeFlow(depth, candles);
+        bidPercent = totalVol > 0 ? (bidVol / totalVol) * 100 : 50;
 
-    const lastPrice = obResult.price;
-    const obZone = obResult.obZone;
-    const flow = flowResult.indicators.flow;
-    const buyPressure = parseFloat(flow.ratio);
+        // BLITZ FLOW: Needs > 1.1 ratio (mild buy pressure)
+        const ratio = askVol > 0 ? bidVol / askVol : 1;
+        if (ratio >= 1.1) flowSignal = 'BUY';
 
-    // 3. Confluence Logic
-    const isBlitz = config.mode === 'BLITZ';
+        const masterWall = topBids.sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]))[0];
+        wallPrice = masterWall ? parseFloat(masterWall[0]) : 0;
+    }
 
-    // ELITE FILTER: Relax EMA 200 for Blitz (allow mean reversion)
-    const isMacroBullish = isBlitz ? true : (lastPrice > (obResult.ema || 0));
-    const isBullishOB = obResult.prediction.signal === 'BUY' || obResult.prediction.signal === 'BULLISH';
-
-    // TURBO: Ultra-low flow requirement for Blitz (Tuned from 1.2)
-    const flowThreshold = isBlitz ? 1.1 : 1.5;
-    const isBullishFlow = buyPressure >= flowThreshold;
-
+    // --- FINAL CONFLUENCE ---
     let signal = 'NEUTRAL';
-    let label = 'BUSCANDO CONFLUENCIA';
+    let label = 'ESPERANDO';
     let color = '#94A3B8';
     let intensity = 0;
 
-    if (isBullishOB && isBullishFlow && isMacroBullish) {
+    // 1. Trend Filter (Relaxed for Blitz: Just allows if not crash)
+    // Actually, Blitz is mean reversion too. Checks if price > EMA usually good.
+    // User wants simplistic "Blitz".
+
+    if (foundOB && flowSignal === 'BUY') {
         signal = 'STRONG_BUY';
-        label = `🎯 HYBRID ${isBlitz ? 'BLITZ' : 'CONFLUENCE'} (${flow.bidPercent}%)`;
-        color = isBlitz ? '#F59E0B' : '#00D9FF';
-        intensity = 100;
-    } else if (isBullishOB && isMacroBullish) {
-        label = 'OB ZONA (ESPERANDO FLOW)';
+        label = `⚡ BLITZ ENTRY (${bidPercent.toFixed(0)}%)`;
+        color = '#F59E0B'; // Amber
+        intensity = 90;
+    } else if (foundOB) {
+        signal = 'BUY';
+        label = 'BLITZ (OB ONLY)';
         color = '#10B981';
-        intensity = 40;
-    } else if (isBullishFlow) {
-        label = 'FLOW ALCISTA (SIN ZONA)';
-        color = '#34D399';
-        intensity = 40;
+        intensity = 60;
     }
 
     return {
         price: lastPrice,
-        obZone: obZone,
-        wallPrice: flowResult.wallPrice,
+        wallPrice,
+        obZone,
+        chartData: { ema: emaValues.slice(-50) },
         indicators: {
-            ...flowResult.indicators,
-            ...obResult.indicators,
-            mode: config.mode || 'SWING'
+            rsi: currentRSI.toFixed(1),
+            ema: currentEMA ? currentEMA.toFixed(1) : '---',
+            flow: { bidPercent: bidPercent.toFixed(1) }
         },
-        chartData: obResult.chartData,
         prediction: {
             signal,
             label,
@@ -453,173 +347,27 @@ export const analyzeHybrid = (depth, candles, config = {}) => {
 };
 
 /**
- * PHASE 5: AI REGIME DETECTION
- * Identifies if the market is Trending or Ranging using ADX.
- * @param {Array} candles - Price history
- */
-export const detectRegime = (candles) => {
-    if (!candles || candles.length < 30) return { regime: 'UNKNOWN', adx: 0 };
-
-    const highs = candles.map(c => c.high || parseFloat(c[2]));
-    const lows = candles.map(c => c.low || parseFloat(c[3]));
-    const closes = candles.map(c => c.close || parseFloat(c[4]));
-
-    const adxValues = ADX.calculate({
-        high: highs,
-        low: lows,
-        close: closes,
-        period: 14
-    });
-
-    const currentADX = adxValues.length > 0 ? adxValues[adxValues.length - 1].adx : 0;
-
-    // ADX Logic: > 25 = Strong Trend, < 20 = Ranging/Weak Trend
-    let regime = 'RANGING';
-    let label = 'LATERAL / RANGO ⚖️';
-    if (currentADX > 25) {
-        regime = 'TRENDING';
-        label = 'TENDENCIAL 📈';
-    } else if (currentADX > 20) {
-        label = 'INICIO TENDENCIA ↗️';
-    }
-
-    return {
-        regime,
-        adx: currentADX,
-        label,
-        color: regime === 'TRENDING' ? '#00D9FF' : '#94A3B8'
-    };
-};
-
-/**
- * PHASE 5: AI KELLY CRITERION (Dynamic Risk)
- * Suggests a risk multiplier based on recent win rate from history.
- * @param {Array} history - Trading history
- */
-export const calculateKelly = (history) => {
-    if (!history || history.length < 5) return 1.0; // Default multiplier
-
-    const recent = history.slice(-10); // Look at last 10 trades
-    const wins = recent.filter(t => t.pnl > 0).length;
-    const winRate = wins / recent.length;
-
-    // Simplified Kelly: Risk more when win rate is high, less when low.
-    // We cap the multiplier between 0.5x and 1.5x for safety.
-    let multiplier = 1.0;
-    if (winRate > 0.6) multiplier = 1.3; // Hot streak
-    if (winRate > 0.8) multiplier = 1.5; // Burning
-    if (winRate < 0.4) multiplier = 0.7; // Cold streak
-    if (winRate < 0.2) multiplier = 0.5; // Defensive
-
-    return multiplier;
-};
-
-/**
- * PHASE 6: STRATEGY RECOMMENDATION (Dashboard Alert)
- * Analyzes market conditions (Volatility + Trend) to suggest best mode.
- * @param {Array} candles - Price history (usually BTCUSDT)
- * @returns {Object} { id: 'BLITZ'|'SWING'|'CASH', label: string, color: string, reason: string }
- */
-export const getStrategyRecommendation = (candles) => {
-    if (!candles || candles.length < 50) return { id: 'UNKNOWN', label: 'ANÁLISIS PENDIENTE', color: '#64748B', reason: 'Recopilando datos...' };
-
-    // 1. Calculate Indicators
-    const highs = candles.map(c => c.high || parseFloat(c[2]));
-    const lows = candles.map(c => c.low || parseFloat(c[3]));
-    const closes = candles.map(c => c.close || parseFloat(c[4]));
-
-    // ATR (Volatility)
-    const atrValues = ATR.calculate({ high: highs, low: lows, close: closes, period: 14 });
-    const currentATR = atrValues.length > 0 ? atrValues[atrValues.length - 1] : 0;
-    const currentPrice = closes[closes.length - 1];
-    const atrPercent = (currentATR / currentPrice) * 100;
-
-    // RSI (Momentum)
-    const rsiValues = RSI.calculate({ values: closes, period: 14 });
-    const currentRSI = rsiValues.length > 0 ? rsiValues[rsiValues.length - 1] : 50;
-
-    // Dump Detection (Last 4h candle drop > 3%)
-    const lastOpen = candles[candles.length - 1].open || parseFloat(candles[candles.length - 1][1]);
-    const dropPercent = ((lastOpen - currentPrice) / lastOpen) * 100;
-
-    // 2. Logic Matrix
-
-    // 🚨 CRASH SCENARIO (CASH)
-    // If Price Drop > 3% recently OR RSI < 25 (Oversold Panic) combined with High Volatility
-    if (dropPercent > 3.0 || (currentRSI < 25 && atrPercent > 1.5)) {
-        return {
-            id: 'CASH',
-            label: '🛑 RECOMENDACIÓN: PAUSA / CASH',
-            color: '#EF4444', // Red
-            description: 'ALTA VOLATILIDAD BAJISTA DETECTADA',
-            reason: `DUMP ACTIVADO (${dropPercent.toFixed(1)}% Caída). Mejor esperar a que pase la tormenta.`
-        };
-    }
-
-    // 🔥 HIGH VOLATILITY SCENARIO (BLITZ)
-    // If ATR > 0.8% (Price moves a lot)
-    if (atrPercent > 0.8) {
-        return {
-            id: 'BLITZ',
-            label: '🔥 RECOMENDACIÓN: BLITZ',
-            color: '#F59E0B', // Amber/Orange
-            description: 'MERCADO VOLÁTIL Y RÁPIDO',
-            reason: `Volatilidad Alta (${atrPercent.toFixed(2)}%). El modo Blitz aprovecha estos movimientos rápidos.`
-        };
-    }
-
-    // ⚖️ LOW VOLATILITY / RANGING (SWING)
-    return {
-        id: 'SWING',
-        label: '⚖️ RECOMENDACIÓN: SWING',
-        color: '#10B981', // Emerald/Green
-        description: 'MERCADO ESTABLE / LATERAL',
-        reason: `Volatilidad Baja (${atrPercent.toFixed(2)}%). Mejor buscar entradas precisas y pacientes con Swing.`
-    };
-};
-
-/**
- * PHASE 7: PREDICTIVE ENGINE (The Oracle)
- * Uses Linear Regression to project the next N candles.
- * @param {Array} candles - Price history
- * @param {number} period - Number of past candles to analyze (default 50)
- * @param {number} projection - Number of future candles to project (default 5)
+ * PHASE 7: FORECAST (Visual Only)
+ * Kept for UI Chart
  */
 export const calculateForecast = (candles, period = 50, projection = 5) => {
     if (!candles || candles.length < period) return null;
-
     const slice = candles.slice(-period);
     const n = slice.length;
-
-    // Prepare X (time index) and Y (close price)
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-
-    // Normalize prices to avoid huge numbers (relative to first candle of slice)
-    const baseTime = 0;
 
     for (let i = 0; i < n; i++) {
         const x = i;
         const y = slice[i].close || parseFloat(slice[i][4]);
-
-        sumX += x;
-        sumY += y;
-        sumXY += (x * y);
-        sumXX += (x * x);
+        sumX += x; sumY += y; sumXY += (x * y); sumXX += (x * x);
     }
-
-    // Linear Regression Formulas
-    // Slope (m) = (n*sumXY - sumX*sumY) / (n*sumXX - sumX*sumX)
-    // Intercept (b) = (sumY - m*sumX) / n
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
 
-    // Calculate R-Squared (Confidence)
-    // SST = sum((y - avgY)^2), SSR = sum((predY - avgY)^2)
+    // Standard deviation for bands
     const avgY = sumY / n;
-    let ssTot = 0;
-    let ssRes = 0;
-
+    let ssTot = 0, ssRes = 0;
     for (let i = 0; i < n; i++) {
         const x = i;
         const y = slice[i].close || parseFloat(slice[i][4]);
@@ -627,40 +375,19 @@ export const calculateForecast = (candles, period = 50, projection = 5) => {
         ssTot += Math.pow(y - avgY, 2);
         ssRes += Math.pow(y - predY, 2);
     }
-
     const rSquared = 1 - (ssRes / ssTot);
+    const stdDev = Math.sqrt(ssRes / (n - 2));
 
-    // Calculate Standard Deviation (Volatility of Price around Regression Line)
-    const stdDev = Math.sqrt(ssRes / (n - 2)); // Unbiased estimator
-
-    // Generate Projection Points with Probability Channels
     const forecastPoints = [];
-
-    // We want to draw the channels starting from the last known data point to visual continuity
-    const lastKnownX = n - 1;
-
     for (let i = 0; i <= projection; i++) {
-        const x = lastKnownX + i;
-        const projectedPrice = slope * x + intercept;
-
+        const x = n - 1 + i;
+        const p = slope * x + intercept;
         forecastPoints.push({
-            index: x, // Relative index for chart extending
-            price: projectedPrice,
-            upper1: projectedPrice + (1 * stdDev),
-            lower1: projectedPrice - (1 * stdDev),
-            upper2: projectedPrice + (2 * stdDev),
-            lower2: projectedPrice - (2 * stdDev)
+            index: x, price: p,
+            upper1: p + stdDev, lower1: p - stdDev,
+            upper2: p + 2 * stdDev, lower2: p - 2 * stdDev
         });
     }
 
-    return {
-        slope,
-        intercept,
-        stdDev,
-        rSquared: rSquared.toFixed(2),
-        points: forecastPoints,
-        startPrice: slope * (n - 1) + intercept,
-        endPrice: slope * (n - 1 + projection) + intercept,
-        direction: slope > 0 ? 'UP' : 'DOWN'
-    };
+    return { slope, intercept, stdDev, rSquared: rSquared.toFixed(2), points: forecastPoints };
 };

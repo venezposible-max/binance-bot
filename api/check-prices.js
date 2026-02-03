@@ -476,8 +476,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     const candles = await fetchGlobalKlines(symbol, interval, 60);
                     if (!candles || candles.length < 30) return null;
 
-                    // Hybrid analysis tailored for Blitz
-                    const result = analysis.analyzeOB(candles, { mode: analysisMode });
+                    // Analysis: BLITZ only
+                    const result = analysis.analyzeBlitz(marketCache && marketCache[symbol] ? { bids: [], asks: [] } : null, candles);
 
                     const signal = result.prediction?.signal;
                     const intensity = result.prediction?.intensity || 0;
@@ -507,7 +507,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                                 signal: signal,
                                 intensity: intensity,
                                 price: buyPrice,
-                                strategy: 'HYBRID_BLITZ',
+                                strategy: 'BLITZ', // CLEAN NAME
                                 obZone: result.obZone
                             };
                         }
