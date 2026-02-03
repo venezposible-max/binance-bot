@@ -48,7 +48,10 @@ export default async function handler(req, res) {
 
             for (const src of sources) {
                 try {
-                    const res = await axios.get(src.url, { timeout: 3000 });
+                    const res = await axios.get(src, {
+                        params: { symbol: s }, // Pass symbol parameter!
+                        timeout: 3000
+                    });
                     if (res.data && res.data.price) {
                         price = parseFloat(res.data.price);
                         break; // Found it!
