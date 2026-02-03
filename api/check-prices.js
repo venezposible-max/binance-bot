@@ -392,6 +392,17 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
         const scanPromises = candidates.map(async (symbol) => {
             try {
+                // 🛡️ COOLDOWN CHECK: Prevent re-entry if closed < 5 mins ago
+                const lastClose = winHistory.find(h => h.symbol === symbol);
+                if (lastClose) {
+                    const closeTime = new Date(lastClose.timestamp).getTime();
+                    // 5 minutes * 60 * 1000
+                    if (Date.now() - closeTime < 300000) {
+                        console.log(`⏳ [${mode}] COOLDOWN: ${symbol} closed recently. Skipping re-entry.`);
+                        return null;
+                    }
+                }
+
                 // FORCE BLITZ MODE
                 const interval = '5m';
                 const analysisMode = 'BLITZ';

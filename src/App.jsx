@@ -12,7 +12,6 @@ import CVDChart from './components/CVDChart'; // NEW: Embedded CVD Chart
 import DocumentationModal from './components/DocumentationModal'; // NEW: Docs
 import { sendTelegramAlert } from './utils/telegram';
 import { BookOpen } from 'lucide-react';
-import TraderOracle from './components/TraderOracle';
 import ActiveTradeCard from './components/ActiveTradeCard';
 
 function App() {
@@ -36,25 +35,6 @@ function App() {
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
-
-  // --- MARKET RECOMMENDATION STATE ---
-  const [recommendation, setRecommendation] = useState(null);
-
-  const fetchRecommendation = async () => {
-    try {
-      const candles = await fetchCandles('BTCUSDT', '1h', 100);
-      const rec = getStrategyRecommendation(candles);
-      setRecommendation(rec);
-    } catch (e) {
-      console.warn('Recommendation fetch failed:', e);
-    }
-  };
-
-  useEffect(() => {
-    fetchRecommendation();
-    const interval = setInterval(fetchRecommendation, 60000); // Check every minute
-    return () => clearInterval(interval);
-  }, []);
 
   // --- BINANCE REAL BALANCE ---
   const [binanceBalance, setBinanceBalance] = useState(null);
@@ -370,9 +350,6 @@ function App() {
           <span className={styles.brandNameBinance}>BINANCE</span>
           <span className={styles.brandNameSentinel}>SENTINEL</span>
           <img src="/logo-192.png" className={styles.brandIcon} alt="Sentinel Icon" />
-          <div style={{ marginLeft: '10px' }}>
-            <TraderOracle />
-          </div>
         </div>
         <nav style={{ display: 'flex', gap: '20px', color: '#EAECEF', fontWeight: '600', fontSize: '0.9rem' }}>
           {/* TRADING MODE BADGE */}
@@ -449,31 +426,6 @@ function App() {
 
           </p>
         </section>
-
-        {/* --- MARKET RECOMMENDATION BANNER --- */}
-        {recommendation && recommendation.id !== 'UNKNOWN' && (
-          <div style={{
-            maxWidth: '1200px', margin: '0 auto 20px auto',
-            background: `linear-gradient(90deg, ${recommendation.color}20 0%, rgba(0,0,0,0) 100%)`,
-            borderLeft: `5px solid ${recommendation.color}`,
-            borderRadius: '4px',
-            padding: '15px',
-            display: 'flex', alignItems: 'center', gap: '15px',
-            boxShadow: `0 4px 6px -1px rgba(0, 0, 0, 0.1)`
-          }}>
-            <div style={{ fontSize: '2rem' }}>
-              {recommendation.id === 'CASH' ? '🛑' : (recommendation.id === 'BLITZ' ? '🔥' : '⚖️')}
-            </div>
-            <div>
-              <div style={{ color: recommendation.color, fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '4px' }}>
-                {recommendation.label}
-              </div>
-              <div style={{ color: '#E2E8F0', fontSize: '0.9rem' }}>
-                {recommendation.description} — <span style={{ opacity: 0.7 }}>{recommendation.reason}</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div id="wallet-section">
           <WalletCard
