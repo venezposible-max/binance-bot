@@ -72,50 +72,36 @@ const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @param {number} limit - Number of candles (default 100 for RSI calc)
  */
 /**
- * Direct Browser Fetch (Fallback)
+ * Direct Browser Fetch (Robust Multi-Mirror Fallback)
  */
 const fetchCandlesDirect = async (symbolOrArray, interval, limit) => {
     const symbols = Array.isArray(symbolOrArray) ? symbolOrArray : [symbolOrArray];
     const results = {};
 
-    // Parallel Fetch (Limit concurrency if possible, but 10 is usually fine for browser)
+    // Global Mirrors (Optimized for Venezuela/LATAM and General Global access)
+    // removed .us as per user request
+    const MIRRORS = [
+        'https://api.binance.com',
+        'https://api1.binance.com',
+        'https://api2.binance.com',
+        'https://api3.binance.com',
+        'https://api-gcp.binance.com',
+        'https://data-api.binance.vision' // Public Data fallback
+    ];
+
+    // Parallel Fetch with Round-Robin Failover
     const promises = symbols.map(async (s) => {
-        try {
-            const res = await axios.get('https://api.binance.com/api/v3/klines', {
-                params: { symbol: s, interval, limit }
-            });
-            // Format: [time, open, high, low, close, volume]
-            const formatted = res.data.map(c => ({
-                time: c[0],
-                open: parseFloat(c[1]),
-                high: parseFloat(c[2]),
-                low: parseFloat(c[3]),
-                close: parseFloat(c[4]),
-                volume: parseFloat(c[5])
-            }));
-            return { s, data: formatted };
-        } catch (e) {
-            // Try GCP fallback if main fails
+        let finalData = [];
+
+        for (const host of MIRRORS) {
             try {
-                const res = await axios.get('https://api-gcp.binance.com/api/v3/klines', {
-                    params: { symbol: s, interval, limit }
+                const res = await axios.get(`${host}/api/v3/klines`, {
+                    params: { symbol: s, interval, limit },
+                    timeout: 4000 // Aggressive timeout to switch mirrors quickly
                 });
-                const formatted = res.data.map(c => ({
-                    time: c[0],
-                    open: parseFloat(c[1]),
-                    high: parseFloat(c[2]),
-                    low: parseFloat(c[3]),
-                    close: parseFloat(c[4]),
-                    volume: parseFloat(c[5])
-                }));
-                return { s, data: formatted };
-            } catch (e2) {
-                // Try Binance US fallback (Last resort for US users)
-                try {
-                    const res = await axios.get('https://api.binance.us/api/v3/klines', {
-                        params: { symbol: s, interval, limit }
-                    });
-                    const formatted = res.data.map(c => ({
+
+                if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+                    finalData = res.data.map(c => ({
                         time: c[0],
                         open: parseFloat(c[1]),
                         high: parseFloat(c[2]),
@@ -123,13 +109,18 @@ const fetchCandlesDirect = async (symbolOrArray, interval, limit) => {
                         close: parseFloat(c[4]),
                         volume: parseFloat(c[5])
                     }));
-                    return { s, data: formatted };
-                } catch (e3) {
-                    console.warn(`Direct fetch failed for ${s}:`, e3.message);
-                    return { s, data: [] };
+                    break; // Found data, exit loop
                 }
+            } catch (e) {
+                // Ignore and try next mirror
             }
         }
+
+        if (finalData.length === 0) {
+            console.warn(`All mirrors failed for ${s}`);
+        }
+
+        return { s, data: finalData };
     });
 
     const items = await Promise.all(promises);
