@@ -76,7 +76,7 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
         // Use backend proxy to bypass browser geo-blocks
         const response = await axios.get(`/api/candles`, {
             params: { symbol, interval, limit },
-            timeout: 10000
+            timeout: 20000 // Extended timeout for Global/GCP failover loops
         });
 
         return response.data; // Already formatted by backend

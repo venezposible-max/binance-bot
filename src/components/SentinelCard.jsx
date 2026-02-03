@@ -8,12 +8,14 @@ import styles from './SentinelCard.module.css';
 // Animated Number Component
 const NumberTicker = ({ value, decimals = 2, prefix = '', suffix = '', style }) => {
     const ref = useRef(null);
-    const motionValue = useMotionValue(value);
-    const springValue = useSpring(motionValue, { stiffness: 50, damping: 15 }); // Soft spring
+    // Safety check: if value is null, undefined, or NaN, treat as 0 or handle display
+    const safeValue = (value !== null && value !== undefined && !isNaN(value)) ? value : 0;
+    const motionValue = useMotionValue(safeValue);
+    const springValue = useSpring(motionValue, { stiffness: 50, damping: 15 });
 
     useEffect(() => {
-        motionValue.set(value);
-    }, [value]);
+        motionValue.set(safeValue);
+    }, [safeValue]);
 
     useEffect(() => {
         const unsubscribe = springValue.on("change", (latest) => {
@@ -24,7 +26,9 @@ const NumberTicker = ({ value, decimals = 2, prefix = '', suffix = '', style }) 
         return () => unsubscribe();
     }, [springValue, decimals, prefix, suffix]);
 
-    return <span ref={ref} style={style}>{prefix + value.toFixed(decimals) + suffix}</span>;
+    if (value === null || value === undefined || isNaN(value)) return <span style={style}>---</span>;
+
+    return <span ref={ref} style={style}>{prefix + safeValue.toFixed(decimals) + suffix}</span>;
 };
 
 const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
