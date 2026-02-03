@@ -217,21 +217,20 @@ function App() {
 
       // 1. Fetch Market Context (Binance)
       // 0. Dynamic Pair Selection (Top Volume + Active Trades)
-      let currentPairs = pairs;
-      if (loading) { // Only fetch new list on initial load or manual refresh
+      let currentPairs = [...pairs];
+
+      // ALWAYS Ensure Active Trades are in the fetch list
+      const activeSymbols = cloudStatus.active.map(t => t.symbol);
+      // Merge unique
+      currentPairs = [...new Set([...currentPairs, ...activeSymbols])];
+
+      if (loading) { // Only fetch new Top Market list on initial load
         try {
-          // Fetch Top Pairs
           const topPairs = await fetchTopPairs();
-
-          // Also include any active trade symbols if they are not in the top list
-          // This ensures we keep tracking price/logic for open positions even if volume drops
-          const activeSymbols = cloudStatus.active.map(t => t.symbol);
-          const combined = [...new Set([...topPairs, ...activeSymbols])];
-
-          if (JSON.stringify(combined) !== JSON.stringify(pairs)) {
-            setPairs(combined);
-            currentPairs = combined;
-          }
+          // Update base pairs state
+          setPairs(topPairs);
+          // Update local for this cycle
+          currentPairs = [...new Set([...topPairs, ...activeSymbols])];
         } catch (e) {
           console.warn("Using fallback pairs", e);
         }
