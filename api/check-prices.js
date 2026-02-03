@@ -104,7 +104,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     };
 
     // FORCE CLEAN DISPLAY: Ignore stale Redis strategy configs
-    const strategiesStr = 'HYBRID_BLITZ';
+    const strategiesStr = 'BLITZ';
 
     const activeColor = mode === 'LIVE' ? '🔴' : '🔵';
     console.log(`${activeColor} [${mode}] STRATEGY: ${strategiesStr} | Active: ${activeTrades.length} | Balance: $${wallet.currentBalance.toFixed(0)}`);
@@ -389,7 +389,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         const occupiedSymbols = [...keptTrades, ...manualAddedTrades].map(t => t.symbol);
         const candidates = marketPairs.filter(s => !occupiedSymbols.includes(s));
 
-        console.log(`🔍 [${mode}] Scanning ${candidates.length} pairs for Blitz signals...`);
+        console.log(`🔍 [${mode}] Scanning [${candidates.join(', ')}] for BLITZ signals...`);
 
         const scanPromises = candidates.map(async (symbol) => {
             try {
