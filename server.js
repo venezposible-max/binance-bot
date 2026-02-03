@@ -1,12 +1,4 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import axios from 'axios';
-import { scanTopTraders } from './api/utils/trader-oracle-scanner.js';
-import logsHandler from './api/logs.js';
-import { LogStore } from './api/utils/logger.js';
+
 
 // --- LOG CAPTURE HOOK ---
 const originalLog = console.log;
@@ -34,6 +26,12 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // Import handlers 
+import { fileURLToPath } from 'url';
+import axios from 'axios';
+import { scanTopTraders } from './api/utils/trader-oracle-scanner.js';
+import logsHandler from './api/logs.js';
+import telegramProxy from './api/telegram-proxy.js'; // NEW
+import { LogStore } from './api/utils/logger.js';
 import checkPrices from './api/check-prices.js';
 import manualTrade from './api/manual-trade.js';
 import getStatus from './api/get-status.js';
@@ -81,6 +79,7 @@ app.get('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 app.post('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle)); // New
 app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
+app.post('/api/telegram-proxy', vercelAdapter(telegramProxy)); // CORS Fix
 
 // CVD SNIPER SERVICE REMOVED (Legacy)
 import marketWorker from './api/stream/market-worker.js'; // Phase 1
