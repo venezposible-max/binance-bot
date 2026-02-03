@@ -237,20 +237,24 @@ function App() {
 
         if (!price) continue;
 
-        const analysis = {
-          ...analyzePair(klines),
-          ...analyzeFlow(klines),
-          ...analyzeTriple(klines),
-          ...analyzeOB(klines),
-          ...analyzeHybrid(klines),
-          forecast: calculateForecast(klines)
-        };
+        try {
+          const analysis = {
+            ...analyzePair(klines),
+            ...analyzeFlow(klines),
+            ...analyzeTriple(klines),
+            ...analyzeOB(klines),
+            ...analyzeHybrid(klines),
+            forecast: calculateForecast(klines)
+          };
 
-        results[symbol] = {
-          symbol,
-          price,
-          ...analysis
-        };
+          results[symbol] = {
+            symbol,
+            price,
+            ...analysis
+          };
+        } catch (err) {
+          console.warn(`Analysis failed for ${symbol}:`, err);
+        }
       }
 
       setMarketData(results);
