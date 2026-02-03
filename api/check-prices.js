@@ -31,7 +31,16 @@ async function getDynamicTopPairs() {
                 });
                 relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
                 // Increased Search Depth to 20 to find alternatives
-                return relevant.slice(0, 10).map(p => p.symbol);
+                const finalPairs = relevant.slice(0, 10).map(p => p.symbol);
+
+                // SYNC: Save "Official" List to Redis for Frontend
+                try {
+                    await redis.set('sentinel_active_pairs', JSON.stringify(finalPairs));
+                } catch (redisErr) {
+                    console.warn('⚠️ Failed to save top pairs to Redis:', redisErr.message);
+                }
+
+                return finalPairs;
             }
         } catch (e) {
             console.warn(`⚠️ Dynamic Pairs [${src.label}] Fail: ${e.response?.status === 403 ? '403 Blocked' : e.message}`);

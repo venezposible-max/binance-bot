@@ -13,42 +13,21 @@ export let TOP_PAIRS = [
  */
 export const fetchTopPairs = async () => {
     try {
-        const res = await axios.get(`${BASE_URL}/ticker/24hr`);
-        const allPairs = res.data;
+        // [NEW] Fetch from our Backend Sync (Redis)
+        const res = await axios.get('/api/get-market-pairs');
+        const top10 = res.data;
 
-        // Explicit Blacklist of Stablecoins & Non-Volatile Assets
-        const BLACKLIST = [
-            'USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP',
-            'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD',
-            'ZAMA', 'ZEC' // User Requested Blacklist
-        ];
-
-        // Filter valid USDT pairs (exclude stablecoins & non-volatile assets)
-        const relevant = allPairs.filter(p => {
-            if (!p.symbol.endsWith('USDT')) return false;
-
-            // REGEX: Filter out non-alphanumeric symbols (e.g. Chinese chars like 币安人生USDT)
-            if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;
-
-            // Check against Blacklist
-            const isBlacklisted = BLACKLIST.some(blocked => p.symbol.includes(blocked));
-            if (isBlacklisted) return false;
-
-            // Volume Filter
-            return parseFloat(p.quoteVolume) > 5000000;
-        });
-
-        // Sort by Volume (quoteVolume = Volume in USDT)
-        relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-
-        // Get Top 10
-        const top10 = relevant.slice(0, 10).map(p => p.symbol);
+        // Validation
+        if (!Array.isArray(top10) || top10.length === 0) {
+            console.warn('Backend returned empty pairs, using fallback');
+            return TOP_PAIRS;
+        }
 
         // Update local reference
         TOP_PAIRS = top10;
         return top10;
     } catch (e) {
-        console.error('Error fetching Top Pairs:', e);
+        console.error('Error fetching Top Pairs from Backend:', e);
         return TOP_PAIRS; // Return fallback on error
     }
 };

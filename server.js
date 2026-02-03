@@ -22,6 +22,8 @@ import traderOracle from './api/wallet/trader-oracle.js';
 import marketWorker from './api/stream/market-worker.js';
 import debug from './api/debug.js';
 import cleanup from './api/cleanup.js';
+import cleanup from './api/cleanup.js';
+import getMarketPairs from './api/get-market-pairs.js'; // NEW: Sync Endpoint
 import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 
 // --- LOG CAPTURE HOOK ---
@@ -74,7 +76,9 @@ const vercelAdapter = (handler) => async (req, res) => {
 
 // Registered Routes
 app.post('/api/check-prices', vercelAdapter(checkPrices));
+app.post('/api/check-prices', vercelAdapter(checkPrices));
 app.get('/api/check-prices', vercelAdapter(checkPrices));
+app.get('/api/get-market-pairs', vercelAdapter(getMarketPairs)); // NEW: Sync Endpoint
 app.post('/api/manual-trade', vercelAdapter(manualTrade));
 app.get('/api/get-status', vercelAdapter(getStatus));
 app.get('/api/wallet/config', vercelAdapter(walletConfig));
