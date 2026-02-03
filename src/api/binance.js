@@ -71,39 +71,104 @@ const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @param {string} interval - Time interval (1h, 4h, 1d)
  * @param {number} limit - Number of candles (default 100 for RSI calc)
  */
+/**
+ * Direct Browser Fetch (Fallback)
+ */
+const fetchCandlesDirect = async (symbolOrArray, interval, limit) => {
+    const symbols = Array.isArray(symbolOrArray) ? symbolOrArray : [symbolOrArray];
+    const results = {};
+
+    // Parallel Fetch (Limit concurrency if possible, but 10 is usually fine for browser)
+    const promises = symbols.map(async (s) => {
+        try {
+            const res = await axios.get('https://api.binance.com/api/v3/klines', {
+                params: { symbol: s, interval, limit }
+            });
+            // Format: [time, open, high, low, close, volume]
+            const formatted = res.data.map(c => ({
+                time: c[0],
+                open: parseFloat(c[1]),
+                high: parseFloat(c[2]),
+                low: parseFloat(c[3]),
+                close: parseFloat(c[4]),
+                volume: parseFloat(c[5])
+            }));
+            return { s, data: formatted };
+        } catch (e) {
+            // Try GCP fallback if main fails
+            try {
+                const res = await axios.get('https://api-gcp.binance.com/api/v3/klines', {
+                    params: { symbol: s, interval, limit }
+                });
+                const formatted = res.data.map(c => ({
+                    time: c[0],
+                    open: parseFloat(c[1]),
+                    high: parseFloat(c[2]),
+                    low: parseFloat(c[3]),
+                    close: parseFloat(c[4]),
+                    volume: parseFloat(c[5])
+                }));
+                return { s, data: formatted };
+            } catch (e2) {
+                console.warn(`Direct fetch failed for ${s}:`, e.message);
+                return { s, data: [] };
+            }
+        }
+    });
+
+    const items = await Promise.all(promises);
+
+    // If singular input, return array
+    if (!Array.isArray(symbolOrArray)) {
+        return items[0].data;
+    }
+
+    // If batch input, return Map
+    items.forEach(i => results[i.s] = i.data);
+    return results;
+};
+
 export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
     try {
         // HANDLE BATCH (ARRAY) REQUEST
         if (Array.isArray(symbol)) {
-            // OPTIMIZATION: Send single batch request to backend (Server-side parallelization)
-            // This prevents browser request congestion and 400 errors
             const symbolsParam = symbol.join(',');
 
+            // Try Backend Proxy
             const response = await axios.get(`/api/candles`, {
                 params: { symbol: symbolsParam, interval, limit },
-                timeout: 30000 // Extended timeout for batch processing
+                timeout: 30000
             });
 
-            return response.data; // Backend now returns { BTCUSDT: [...], ... } map
+            const data = response.data;
+
+            // Validate: If backend returns empty object or all empty arrays
+            const hasData = Object.values(data).some(arr => arr && arr.length > 0);
+            if (!hasData) {
+                throw new Error("Backend returned empty candle data");
+            }
+
+            return data;
         }
 
         // SINGULAR REQUEST
-        // JITTER: Random delay (300ms - 800ms) to avoid synchronized bursts hitting rate limits
         const delay = Math.floor(Math.random() * 500) + 300;
         await wait(delay);
 
-        // Use backend proxy to bypass browser geo-blocks
         const response = await axios.get(`/api/candles`, {
             params: { symbol, interval, limit },
-            timeout: 20000 // Extended timeout for Global/GCP failover loops
+            timeout: 20000
         });
 
-        return response.data; // Already formatted by backend
+        if (!response.data || response.data.length === 0) {
+            throw new Error("Backend returned empty candle data");
+        }
+
+        return response.data;
+
     } catch (error) {
-        console.error(`Error fetching candles for ${symbol}:`, error.message);
-        // If batch failed (unlikely here as we map), return empty. 
-        // If singular failed, return empty array.
-        return Array.isArray(symbol) ? {} : [];
+        console.warn(`Backend Candle Proxy Failed (${error.message}). Switching to Direct Browser Fetch...`);
+        return await fetchCandlesDirect(symbol, interval, limit);
     }
 };
 
