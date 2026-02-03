@@ -174,8 +174,8 @@ function App() {
   </div>
       </footer >
 
-  <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
-  <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} mode={tradingMode} />
+      <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
+      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} mode={tradingMode} />
     </div >
   );
 }
