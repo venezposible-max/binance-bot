@@ -22,6 +22,7 @@ import traderOracle from './api/wallet/trader-oracle.js';
 import marketWorker from './api/stream/market-worker.js';
 import debug from './api/debug.js';
 import cleanup from './api/cleanup.js';
+import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 
 // --- LOG CAPTURE HOOK ---
 // Capture logs for the frontend console
@@ -82,6 +83,7 @@ app.get('/api/wallet/active-mode', vercelAdapter(activeMode));
 app.post('/api/wallet/active-mode', vercelAdapter(activeMode));
 app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle));
 
+app.post('/api/lockdown', vercelAdapter(lockdown)); // NEW: Emergency
 app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
 app.post('/api/telegram-proxy', vercelAdapter(telegramProxy)); // Telegram Proxy
 

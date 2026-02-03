@@ -18,6 +18,13 @@ export default async function handler(req, res) {
         const globalMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
         const activeMode = req.body.mode || globalMode;
 
+        // --- EMERGENCY LOCKDOWN CHECK ---
+        const isLocked = await redis.get('sentinel_lockdown') === 'true';
+        if (isLocked && action === 'OPEN') {
+            console.warn('⛔ TRADING BLOCKED BY EMERGENCY LOCKDOWN');
+            return res.status(403).json({ error: '⛔ SISTEMA BLOQUEADO POR EMERGENCIA' });
+        }
+
         const suffix = activeMode === 'LIVE' ? '_real' : '_sim';
         const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
         const activeKey = `sentinel_active_trades${suffix}`;

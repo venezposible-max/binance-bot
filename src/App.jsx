@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+
 // import ParticlesBackground from './components/ParticlesBackground';
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
@@ -33,6 +33,8 @@ function App() {
 
   const [isDocsOpen, setIsDocsOpen] = useState(false); // NEW: Documentation State
   const [isLogOpen, setIsLogOpen] = useState(false); // NEW: Log Console State
+  const [lockdown, setLockdown] = useState(false); // NEW: Emergency State
+  const [apiConfigured, setApiConfigured] = useState(false); // NEW: API Check
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
@@ -108,6 +110,8 @@ function App() {
       if (res.ok) {
         const data = await res.json();
         setCloudStatus({ active: data.active || [], history: data.history || [] });
+        setLockdown(data.lockdown || false); // Sync Lockdown
+        setApiConfigured(data.isApiConfigured || false); // Sync API Status
       }
     } catch (err) {
       console.error('Cloud Status Sync Error:', err);
@@ -141,6 +145,21 @@ function App() {
     } catch (e) {
       console.error("Toggle Mode Error:", e);
     }
+  };
+
+  const toggleLockdown = async () => {
+    if (!confirm(lockdown ? '¿Desbloquear sistema y permitir operaciones?' : '⛔ ¿PARADA DE EMERGENCIA?\n\nEsto bloqueará todas las nuevas operaciones.')) return;
+    try {
+      const res = await fetch('/api/lockdown', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !lockdown })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLockdown(data.lockdown);
+      }
+    } catch (e) { console.error('Lockdown failed', e); }
   };
 
   // --- WALLET REF for mobile config ---
