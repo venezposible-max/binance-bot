@@ -76,7 +76,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, walletConfig, current
                 <div className={styles.priceValue} style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>
                     <NumberTicker
                         value={parseFloat(price)}
-                        decimals={parseFloat(price) < 0.0001 ? 8 : parseFloat(price) < 1 ? 6 : 2}
+                        decimals={parseFloat(price) < 0.005 ? 8 : parseFloat(price) < 1.0 ? 4 : 2}
                         prefix="$"
                     />
                 </div>

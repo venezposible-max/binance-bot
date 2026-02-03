@@ -1,20 +1,43 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import axios from 'axios';
 
+// --- MODULE IMPORTS (Consolidated) ---
+import { LogStore } from './api/utils/logger.js';
+import { scanTopTraders } from './api/utils/trader-oracle-scanner.js';
+import logsHandler from './api/logs.js';
+import telegramProxy from './api/telegram-proxy.js';
+import checkPrices from './api/check-prices.js';
+import manualTrade from './api/manual-trade.js';
+import getStatus from './api/get-status.js';
+import walletConfig from './api/wallet/config.js';
+import candles from './api/candles.js';
+import ticker from './api/ticker.js';
+import walletBalance from './api/wallet/balance.js';
+import activeMode from './api/wallet/active-mode.js';
+import traderOracle from './api/wallet/trader-oracle.js';
+import marketWorker from './api/stream/market-worker.js';
+import debug from './api/debug.js';
+import cleanup from './api/cleanup.js';
 
 // --- LOG CAPTURE HOOK ---
+// Capture logs for the frontend console
 const originalLog = console.log;
 const originalError = console.error;
 const originalWarn = console.warn;
 
-console.log = (...args) => { originalLog(...args); LogStore.add('INFO', ...args); };
-console.error = (...args) => { originalError(...args); LogStore.add('ERROR', ...args); };
-console.warn = (...args) => { originalWarn(...args); LogStore.add('WARN', ...args); };
+// Initialize overrides safely
+console.log = (...args) => { originalLog(...args); try { LogStore.add('INFO', ...args); } catch (e) { } };
+console.error = (...args) => { originalError(...args); try { LogStore.add('ERROR', ...args); } catch (e) { } };
+console.warn = (...args) => { originalWarn(...args); try { LogStore.add('WARN', ...args); } catch (e) { } };
 
 // --- CRASH PREVENTION & LOGGING ---
 console.log('========================================');
 console.log('🔥 SERVER STARTING...');
 console.log('Node Version:', process.version);
-console.log('Platform:', process.platform);
-console.log('CWD:', process.cwd());
 console.log('========================================');
 
 process.on('uncaughtException', (err) => {
@@ -24,23 +47,6 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, promise) => {
     console.error('💥 CRITICAL ERROR (Unhandled Rejection):', reason);
 });
-
-// Import handlers 
-import { fileURLToPath } from 'url';
-import axios from 'axios';
-import { scanTopTraders } from './api/utils/trader-oracle-scanner.js';
-import logsHandler from './api/logs.js';
-import telegramProxy from './api/telegram-proxy.js'; // NEW
-import { LogStore } from './api/utils/logger.js';
-import checkPrices from './api/check-prices.js';
-import manualTrade from './api/manual-trade.js';
-import getStatus from './api/get-status.js';
-import walletConfig from './api/wallet/config.js';
-import candles from './api/candles.js'; // Chart Data Proxy
-import ticker from './api/ticker.js'; // Real-time Price Proxy
-import walletBalance from './api/wallet/balance.js';
-import activeMode from './api/wallet/active-mode.js'; // New
-import traderOracle from './api/wallet/trader-oracle.js'; // New
 
 // Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -64,47 +70,31 @@ const vercelAdapter = (handler) => async (req, res) => {
     }
 };
 
-// ... (middleware setup)
-
+// Registered Routes
 app.post('/api/check-prices', vercelAdapter(checkPrices));
 app.get('/api/check-prices', vercelAdapter(checkPrices));
 app.post('/api/manual-trade', vercelAdapter(manualTrade));
 app.get('/api/get-status', vercelAdapter(getStatus));
 app.get('/api/wallet/config', vercelAdapter(walletConfig));
 app.post('/api/wallet/config', vercelAdapter(walletConfig));
-app.get('/api/wallet/config', vercelAdapter(walletConfig));
-app.post('/api/wallet/config', vercelAdapter(walletConfig));
 app.get('/api/wallet/balance', vercelAdapter(walletBalance));
-app.get('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
-app.post('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
-app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle)); // New
-app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
-app.post('/api/telegram-proxy', vercelAdapter(telegramProxy)); // CORS Fix
+app.get('/api/wallet/active-mode', vercelAdapter(activeMode));
+app.post('/api/wallet/active-mode', vercelAdapter(activeMode));
+app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle));
 
-// CVD SNIPER SERVICE REMOVED (Legacy)
-import marketWorker from './api/stream/market-worker.js'; // Phase 1
+app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
+app.post('/api/telegram-proxy', vercelAdapter(telegramProxy)); // Telegram Proxy
+
+app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
+app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 
 // Phase 1: High-Speed Market Cache
 app.get('/api/market-cache', (req, res) => {
     res.json(marketWorker.getAllMarketData());
 });
 
-// DEBUG ENDPOINT
-import debug from './api/debug.js';
 app.get('/api/debug', vercelAdapter(debug));
-
-// CLEAR SNIPER TRADES REMOVED (Legacy)
-
-// SESSION CLEANUP (One-time utility)
-import cleanup from './api/cleanup.js';
 app.get('/api/cleanup', vercelAdapter(cleanup));
-
-
-
-// ... (existing code)
-
-app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
-app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 
 // --- SERVE FRONTEND (VITE BUILD) ---
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -117,7 +107,6 @@ app.get('*', (req, res) => {
     res.setHeader('Surrogate-Control', 'no-store');
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
-
 
 // --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
 let isScanRunning = false;
@@ -138,10 +127,13 @@ const runInternalScan = async (source = 'TIMER') => {
         const alerts = response.data.newAlerts?.length || 0;
         console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts`);
 
-        // Keep heartbeat alive in Redis
-        import('./src/utils/redisClient.js').then(m => {
-            m.default.set('sentinel_last_heartbeat', new Date().toISOString());
-        }).catch(() => { });
+        // Keep heartbeat alive in Redis (if available)
+        try {
+            const redis = await import('./src/utils/redisClient.js');
+            if (redis.default) {
+                redis.default.set('sentinel_last_heartbeat', new Date().toISOString());
+            }
+        } catch (e) { }
 
         // --- TRADER ORACLE SCAN ---
         try {
@@ -163,7 +155,6 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 SENTINEL BOT SYSTEMS ONLINE & STABLE | PORT', PORT);
     console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
     console.log('🔐 VIP DATA MODE:', process.env.BINANCE_API_KEY ? 'ENABLED' : 'DISABLED');
-    console.log('💓 Heartbeat: ENABLED (Direct Internal Execution)');
     console.log('='.repeat(60));
 
     // START REAL-TIME MARKET WORKER
@@ -176,7 +167,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Loop every 30 seconds (High Frequency Patrol)
 setInterval(() => runInternalScan('HEARTBEAT'), 30000);
 
-// --- KEEPALIVE LOG (Every 2 minutes to reduce noise but show life) ---
+// --- KEEPALIVE LOG (Every 2 minutes) ---
 setInterval(() => {
     const memUsage = process.memoryUsage();
     console.log(`🟢 [${new Date().toISOString()}] SYSTEM HEARTBEAT | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB | Uptime: ${process.uptime().toFixed(0)}s`);
@@ -190,6 +181,3 @@ server.on('error', (error) => {
         process.exit(1);
     }
 });
-
-console.log('✅ Server initialization complete');
-
