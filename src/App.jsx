@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import MobileNavbar from './components/MobileNavbar';
 import styles from './App.module.css';
 import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices, fetchDepth } from './api/binance';
-import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB, analyzeHybrid, getStrategyRecommendation, calculateForecast } from './utils/analysis';
+import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB, analyzeHybrid, calculateForecast } from './utils/analysis';
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';

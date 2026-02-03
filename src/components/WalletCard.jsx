@@ -238,31 +238,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     return (
         <div className={styles.card}>
-            {/* Header with Execution Control */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>💼 BILLETERA</span>
-                    {wallet?.tradingMode === 'LIVE' && (
-                        <span style={{
-                            fontSize: '0.6rem',
-                            background: '#EF4444',
-                            color: 'white',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            animation: 'pulse 2s infinite'
-                        }}>LIVE MONEY 💸</span>
-                    )}
-                </div>
-
-                {(function () {
-                    const isActive = (wallet.strategyConfig || {})[currentStrategy]?.active;
-                    return isActive ? (
-                        <button onClick={handleToggleBot} className={styles.pauseBtn}>⏸️ PAUSE</button>
-                    ) : (
-                        <button onClick={handleToggleBot} className={styles.startBtn}>▶️ START</button>
-                    );
-                })()}
-            </div>
+            {/* Header Removed for Sentinel Blitz Clean UI */}
 
             {/* --- BLITZ STATUS PANEL --- */}
             <div style={{ marginBottom: '15px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
