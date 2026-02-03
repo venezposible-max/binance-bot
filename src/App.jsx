@@ -362,6 +362,42 @@ function App() {
             </div>
           </div>
           <div className={styles.headerRight}>
+
+            {/* API STATUS */}
+            <div style={{
+              marginRight: '15px',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              fontSize: '0.65rem', fontWeight: 'bold',
+              color: apiConfigured ? '#10B981' : '#64748B',
+              border: apiConfigured ? '1px solid rgba(16, 185, 129, 0.2)' : '1px dashed #64748B',
+              padding: '4px 8px', borderRadius: '4px',
+              background: apiConfigured ? 'rgba(16, 185, 129, 0.05)' : 'transparent'
+            }} title={apiConfigured ? "Conectado a Binance" : "Sin API Key Configurada"}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: apiConfigured ? '#10B981' : '#64748B', boxShadow: apiConfigured ? '0 0 5px #10B981' : 'none' }}></div>
+              {apiConfigured ? 'API: LIVE' : 'NO API'}
+            </div>
+
+            {/* EMERGENCY BUTTON */}
+            <button
+              onClick={toggleLockdown}
+              style={{
+                background: lockdown ? '#EF4444' : 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid #EF4444',
+                color: lockdown ? '#fff' : '#EF4444',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                marginRight: '10px',
+                boxShadow: lockdown ? '0 0 15px rgba(239, 68, 68, 0.5)' : 'none',
+                animation: lockdown ? 'pulse 2s infinite' : 'none'
+              }}
+            >
+              {lockdown ? '⛔ SISTEMA BLOQUEADO' : '🛑 STOP'}
+            </button>
+
             <button
               onClick={() => setIsLogOpen(true)}
               style={{
