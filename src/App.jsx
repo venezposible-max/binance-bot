@@ -326,7 +326,7 @@ function App() {
         {/* --- Active Trades Section --- */}
         <section className={styles.portfolioSection}>
           {
-            activeTrades.length > 0 && (
+            cloudStatus.active.length > 0 && (
               <>
                 <h2 className={styles.sectionTitle}>🚀 OPERACIONES ACTIVAS ({cloudStatus.active.length})</h2>
                 <div style={{
@@ -351,7 +351,7 @@ function App() {
           }
 
           {/* Fallback Message */}
-          {activeTrades.length === 0 && (
+          {cloudStatus.active.length === 0 && (
             <div style={{
               textAlign: 'center',
               padding: '40px',
