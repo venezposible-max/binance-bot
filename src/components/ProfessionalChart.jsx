@@ -117,7 +117,7 @@ const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice, forecas
     };
 
     return (
-        <div style={{ width: '100%', height: '140px', marginTop: '10px', position: 'relative' }}>
+        <div style={{ width: '100%', height: '140px', marginTop: '40px', position: 'relative' }}>
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.03)" vertical={false} />
