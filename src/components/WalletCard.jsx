@@ -1,7 +1,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styles from './WalletCard.module.css';
 
-const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance }, ref) => {
+const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode }, ref) => {
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -262,18 +262,35 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         <div className={styles.card}>
             {/* Header with Execution Control - RESTORED */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>💼 BILLETERA</span>
-                    {wallet?.tradingMode === 'LIVE' && (
-                        <span style={{
-                            fontSize: '0.6rem',
-                            background: '#EF4444',
-                            color: 'white',
-                            padding: '2px 6px',
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>💼 BILLETERA</span>
+                        {wallet?.tradingMode === 'LIVE' && (
+                            <span style={{
+                                fontSize: '0.6rem',
+                                background: '#EF4444',
+                                color: 'white',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                animation: 'pulse 2s infinite'
+                            }}>LIVE MONEY 💸</span>
+                        )}
+                    </div>
+                    <button
+                        onClick={onToggleMode}
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: tradingMode === 'LIVE' ? '#EF4444' : '#10B981',
                             borderRadius: '4px',
-                            animation: 'pulse 2s infinite'
-                        }}>LIVE MONEY 💸</span>
-                    )}
+                            padding: '4px 8px',
+                            fontSize: '0.65rem',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        {tradingMode === 'LIVE' ? '🔴 LIVE (CAMBIAR)' : '🟢 SIM (CAMBIAR)'}
+                    </button>
                 </div>
 
                 {/* START / STOP CONTROL */}
@@ -335,18 +352,6 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 </div>
             </div>
 
-            {/* --- HYBRID ENGINE CONTROLS --- */}
-            {currentStrategy.startsWith('HYBRID') && (
-                <div className={styles.riskPanel}>
-                    <div className={styles.riskItem}>
-                        <div className={styles.label}>MODE: {currentStrategy === 'HYBRID_SWING' ? '🏛️ SWING' : '⚡ BLITZ'}</div>
-                        <div style={{ fontSize: '0.7rem', color: '#fff' }}>
-                            {currentStrategy === 'HYBRID_SWING' ? 'Análisis Velas 1H/4H' : 'Análisis Velas 1m/5m'}
-                        </div>
-                    </div>
-
-                </div>
-            )}
 
             <div className={styles.configGroup}>
                 <div className={styles.statItem}>

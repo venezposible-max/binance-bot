@@ -325,6 +325,7 @@ function App() {
             activeStrategy={activeStrategy}
             tradingMode={tradingMode}
             binanceBalance={binanceBalance}
+            onToggleMode={toggleTradingMode}
           />
         </section>
 
