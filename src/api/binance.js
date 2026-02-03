@@ -256,7 +256,8 @@ const fetchTickerDirect = async (symbols) => {
 export const fetchTickerPrices = async (symbols) => {
     try {
         const symbolParam = symbols.join(',');
-        const response = await axios.get(`/api/ticker?symbols=${symbolParam}`, { timeout: 5000 });
+        // Add timestamp to bust Vercel/Browser Cache
+        const response = await axios.get(`/api/ticker?symbols=${symbolParam}&_t=${Date.now()}`, { timeout: 5000 });
 
         // Validation: If backend returns empty, throw to trigger fallback
         if (!response.data || Object.keys(response.data).length === 0) {
