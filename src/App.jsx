@@ -9,8 +9,9 @@ import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
 
 import DocumentationModal from './components/DocumentationModal'; // NEW: Docs
+import LogConsole from './components/LogConsole'; // NEW: Logs
 import { sendTelegramAlert } from './utils/telegram';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Terminal } from 'lucide-react';
 import ActiveTradeCard from './components/ActiveTradeCard';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
   const [walletConfig, setWalletConfig] = useState({}); // bot logic and risk settings
 
   const [isDocsOpen, setIsDocsOpen] = useState(false); // NEW: Documentation State
+  const [isLogOpen, setIsLogOpen] = useState(false); // NEW: Log Console State
 
   // --- CLOUD AUTONOMY STATE ---
   const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
@@ -338,6 +340,22 @@ function App() {
             </div>
           </div>
           <div className={styles.headerRight}>
+            <button
+              onClick={() => setIsLogOpen(true)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#94A3B8',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                marginRight: '15px'
+              }}
+            >
+              <Terminal size={14} /> LOG
+            </button>
             <div className={styles.clock}>{new Date().toLocaleTimeString()} UTC</div>
           </div>
         </header>
@@ -567,6 +585,7 @@ function App() {
       </main>
 
       <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
+      {isLogOpen && <LogConsole onClose={() => setIsLogOpen(false)} />}
 
       <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
     </div>

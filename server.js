@@ -5,6 +5,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
 import { scanTopTraders } from './api/utils/trader-oracle-scanner.js';
+import logsHandler from './api/logs.js';
+import { LogStore } from './api/utils/logger.js';
+
+// --- LOG CAPTURE HOOK ---
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = (...args) => { originalLog(...args); LogStore.add('INFO', ...args); };
+console.error = (...args) => { originalError(...args); LogStore.add('ERROR', ...args); };
+console.warn = (...args) => { originalWarn(...args); LogStore.add('WARN', ...args); };
 
 // --- CRASH PREVENTION & LOGGING ---
 console.log('========================================');
@@ -69,6 +80,7 @@ app.get('/api/wallet/balance', vercelAdapter(walletBalance));
 app.get('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 app.post('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle)); // New
+app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
 
 // CVD SNIPER SERVICE REMOVED (Legacy)
 import marketWorker from './api/stream/market-worker.js'; // Phase 1
