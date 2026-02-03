@@ -278,7 +278,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             const symbol = trade.symbol;
 
             // 🚫 BLACKLIST PURGE: Explicitly remove bans from Redis
-            const PURGE_LIST = ['ZAMA', 'ZEC', '币安人生'];
+            const PURGE_LIST = ['ZAMA', 'ZEC', '币安人生', 'PUMP', 'ASTER', 'PUMPUSDT', 'ASTERUSDT'];
             const isInvalid = !/^[A-Z0-9]+$/.test(symbol) || PURGE_LIST.some(p => symbol.includes(p));
 
             if (isInvalid) {

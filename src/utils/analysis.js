@@ -327,8 +327,10 @@ export const analyzeOB = (candles, config = {}) => {
                 mid: obMid,
                 impulse: impulse,
                 // Phase 3: ATR-Based Dynamic Targets
-                tp: lastPrice + (currentATR * 2.5), // 2.5x ATR for target
-                sl: lastPrice - (currentATR * 1.5)  // 1.5x ATR for safety
+                // BLITZ FIX: Disable Tight Stop Loss (User Request: "No Negative Closes")
+                // We set SL to null for Blitz, relying on Global/Manual SL only.
+                tp: lastPrice + (currentATR * 2.5),
+                sl: isBlitz ? null : (lastPrice - (currentATR * 1.5))
             };
 
             // 2. Expert Logic: Check Trend + Precision Entry
