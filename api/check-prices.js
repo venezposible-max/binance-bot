@@ -333,12 +333,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 }
                 effectiveSL = Math.abs(effectiveSL);
 
-            } else if (globalSL_Enabled && trade.stopLoss === undefined) {
-                // FALLBACK TO GLOBAL DEFAULT (Only if Global SL is Enabled AND trade didn't mistakenly set SL to null)
-                // (Null explicit check handled above by not entering first block)
-                effectiveSL = wallet.stopLoss || 3.0;
-            } else if (trade.stopLoss === null) {
-                effectiveSL = null; // Explicit "NO SL"
+            } else {
+                // USER REQUEST: GLOBAL STOP LOSS REMOVED.
+                effectiveSL = null;
             }
 
             // --- TAKE PROFIT LOGIC ---

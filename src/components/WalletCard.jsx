@@ -101,8 +101,11 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         tradingMode: tradingMode, // Always sync with current mode
                         riskPercentage: parseFloat(newRisk),
                         maxTrades: parseInt(maxTrades),
-                        useStopLoss: newUseSL,
-                        stopLoss: parseFloat(newSL),
+                        tradingMode: tradingMode, // Always sync with current mode
+                        riskPercentage: parseFloat(newRisk),
+                        maxTrades: parseInt(maxTrades),
+                        // useStopLoss: REMOVED
+                        // stopLoss: REMOVED 
                         strategy: activeStrategy || wallet.strategy || 'HYBRID_SWING',
                         reset: !isLive // Only full reset simulation balance
                     })
