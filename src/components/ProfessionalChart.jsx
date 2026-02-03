@@ -4,7 +4,13 @@ import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, C
 
 
 const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice, forecast }) => {
-    if (!candles || candles.length === 0) return null;
+    if (!candles || candles.length === 0) {
+        return (
+            <div style={{ width: '100%', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+                <p style={{ fontSize: '0.8rem', color: '#64748B' }}>Esperando velas...</p>
+            </div>
+        );
+    }
 
     // MEMOIZED: Transform candle data for recharts
     const chartData = useMemo(() => {
@@ -57,20 +63,23 @@ const ProfessionalChart = ({ candles, emaData, color, obZone, wallPrice, forecas
     }, [candles, emaData, forecast]);
 
     const { minPrice, maxPrice, padding } = useMemo(() => {
-        // Safe min/max calculation ignoring nulls
+        // Safe min/max calculation ignoring nulls and zeros
         const allValues = chartData.flatMap(d => [
             d.high, d.low, d.price, d.upper2, d.lower2
-        ]).filter(v => v !== null && v !== undefined && !isNaN(v));
+        ]).filter(v => v !== null && v !== undefined && !isNaN(v) && v > 0);
 
         if (obZone) {
-            allValues.push(obZone.sl, obZone.tp);
+            if (obZone.sl > 0) allValues.push(obZone.sl);
+            if (obZone.tp > 0) allValues.push(obZone.tp);
         }
 
         if (allValues.length === 0) return { minPrice: 0, maxPrice: 100, padding: 10 };
 
         const min = Math.min(...allValues);
         const max = Math.max(...allValues);
-        const pad = (max - min) * 0.1;
+        const range = max - min;
+        const pad = range === 0 ? min * 0.05 : range * 0.1;
+
         return { minPrice: min, maxPrice: max, padding: pad };
     }, [chartData, obZone]);
 
