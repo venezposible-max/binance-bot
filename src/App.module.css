@@ -99,6 +99,19 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.dashboardGrid {
+    position: sticky;
+    top: 73px;
+    z-index: 90;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    padding: 15px 40px;
+    margin: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    margin-bottom: 20px;
+}
+
 .portfolioSection {
     margin-bottom: 50px;
     width: 100%;
