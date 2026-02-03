@@ -117,102 +117,105 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
     // --- CRITICAL: Live Position Sync (Auto Discovery) ---
     if (mode === 'LIVE' && activeTrades.length === 0) {
-        try {
-            // Attempt to fetch open balances/positions from Binance if local state is empty
-            const balanceData = await authenticatedRequest('/api/v3/account', 'GET');
-            if (balanceData && balanceData.balances) {
-                const heldAssets = balanceData.balances.filter(b => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0);
-                const positions = heldAssets.filter(a => a.asset !== 'USDT' && a.asset !== 'BNB'); // Filter base assets
+        if (wallet.isBotActive) {
+            try {
+                // Attempt to fetch open balances/positions from Binance if local state is empty
+                const balanceData = await authenticatedRequest('/api/v3/account', 'GET');
+                if (balanceData && balanceData.balances) {
+                    const heldAssets = balanceData.balances.filter(b => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0);
+                    const positions = heldAssets.filter(a => a.asset !== 'USDT' && a.asset !== 'BNB'); // Filter base assets
 
-                if (positions.length > 0) {
-                    console.log(`[LIVE] ⚠️ Discovered ${positions.length} held assets on Binance not in Redis. Syncing...`);
+                    if (positions.length > 0) {
+                        console.log(`[LIVE] ⚠️ Discovered ${positions.length} held assets on Binance not in Redis. Syncing...`);
 
-                    // FETCH SNIPER TRADES TO AVOID DOUBLE MANAGEMENT
-                    // If the Sniper is managing a trade (e.g. BTC), the Scanner must NOT adopt it.
-                    let activeSniperTrades = [];
-                    try {
-                        const sStr = await redis.get('sentinel_sniper_trades');
-                        activeSniperTrades = sStr ? JSON.parse(sStr) : [];
-                    } catch (e) {
-                        console.warn('⚠️ Failed to fetch sniper trades during sync check');
-                    }
-
-                    // Convert to trade objects so the bot can Manage them (SL/TP)
-                    const syncedTrades = (await Promise.all(positions.map(async (pos) => {
-                        const symbol = `${pos.asset}USDT`;
-
-                        // 🔍 CHECK 1: IS THIS A SNIPER TRADE?
-                        // We only care about LIVE sniper trades matching this symbol
-                        const isSniperManaged = activeSniperTrades.find(t => t.symbol === symbol && t.mode === 'LIVE');
-                        if (isSniperManaged) {
-                            console.log(`[LIVE] 🔫 Ignoring ${symbol} (Managed by SNIPER Worker).`);
-                            return null;
+                        // FETCH SNIPER TRADES TO AVOID DOUBLE MANAGEMENT
+                        // If the Sniper is managing a trade (e.g. BTC), the Scanner must NOT adopt it.
+                        let activeSniperTrades = [];
+                        try {
+                            const sStr = await redis.get('sentinel_sniper_trades');
+                            activeSniperTrades = sStr ? JSON.parse(sStr) : [];
+                        } catch (e) {
+                            console.warn('⚠️ Failed to fetch sniper trades during sync check');
                         }
 
-                        // 🛡️ CHECK 2: ZOMBIE PROTECTION (Enhanced)
-                        // If we recently closed it, we usually ignore it to avoid "Ghost Reappearance" of dust.
-                        // BUT, if the balance is significant (>$10), it means the Sell failed or was partial.
-                        // We must Re-Adopt it so the user can see it and close it again.
-                        const lastClose = winHistory.find(h => h.symbol === symbol && new Date(h.timestamp) > new Date(Date.now() - 300000)); // 5 mins lookback
+                        // Convert to trade objects so the bot can Manage them (SL/TP)
+                        const syncedTrades = (await Promise.all(positions.map(async (pos) => {
+                            const symbol = `${pos.asset}USDT`;
 
-                        if (lastClose) {
-                            if (valueUsd > 10) {
-                                console.warn(`[LIVE] 🧟 ZOMBIE RESURRECTION: Found ${symbol} ($${valueUsd.toFixed(2)}) despite recent close history. Re-adopting for safety.`);
-                                // Allow it to proceed (don't return null)
-                            } else {
-                                console.warn(`[LIVE] 🧟 ZOMBIE BLOCKED: Found ${symbol} dust ($${valueUsd.toFixed(2)}) closed recently. Ignoring.`);
+                            // 🔍 CHECK 1: IS THIS A SNIPER TRADE?
+                            // We only care about LIVE sniper trades matching this symbol
+                            const isSniperManaged = activeSniperTrades.find(t => t.symbol === symbol && t.mode === 'LIVE');
+                            if (isSniperManaged) {
+                                console.log(`[LIVE] 🔫 Ignoring ${symbol} (Managed by SNIPER Worker).`);
                                 return null;
                             }
+
+                            // 🛡️ CHECK 2: ZOMBIE PROTECTION (Enhanced)
+                            // If we recently closed it, we usually ignore it to avoid "Ghost Reappearance" of dust.
+                            // BUT, if the balance is significant (>$10), it means the Sell failed or was partial.
+                            // We must Re-Adopt it so the user can see it and close it again.
+                            const lastClose = winHistory.find(h => h.symbol === symbol && new Date(h.timestamp) > new Date(Date.now() - 300000)); // 5 mins lookback
+
+                            if (lastClose) {
+                                const priceData = await fetchGlobalPrice(symbol); // Move up for zombie check
+                                const qty = parseFloat(pos.free) + parseFloat(pos.locked);
+                                const valUsd = qty * (priceData?.price || 0);
+
+                                if (valUsd > 10) {
+                                    console.warn(`[LIVE] 🧟 ZOMBIE RESURRECTION: Found ${symbol} ($${valUsd.toFixed(2)}) despite recent close history. Re-adopting for safety.`);
+                                    // Allow it to proceed (don't return null)
+                                } else {
+                                    console.warn(`[LIVE] 🧟 ZOMBIE BLOCKED: Found ${symbol} dust ($${valUsd.toFixed(2)}) closed recently. Ignoring.`);
+                                    return null;
+                                }
+                            }
+
+                            const priceData = await fetchGlobalPrice(symbol);
+                            const currentPrice = priceData?.price || 0;
+                            const qty = parseFloat(pos.free) + parseFloat(pos.locked);
+                            const valueUsd = qty * currentPrice;
+
+                            // FILTER DUST: Ignore assets worth less than $5
+                            if (valueUsd < 5) return null;
+
+                            return {
+                                id: uuidv4(),
+                                symbol: symbol,
+                                entryPrice: currentPrice, // Approximate
+                                investedAmount: valueUsd,
+                                quantity: qty,
+                                type: 'LONG',
+                                timestamp: new Date().toISOString(),
+                                strategy: 'MANUAL_SYNC',
+                                mode: 'LIVE',
+                                isManual: true
+                            };
+                        }))).filter(t => t !== null); // Remove nulls (dust or sniper)
+
+                        if (syncedTrades.length > 0) {
+                            activeTrades = syncedTrades;
+                            await redis.set(activeKey, JSON.stringify(activeTrades));
+                            console.log(`[LIVE] ✅ Application State Synced: ${activeTrades.length} trades adopted (Dust filtered).`);
+                        } else {
+                            console.log(`[LIVE] 🧹 Only dust found. No trades adopted.`);
                         }
-
-                        const priceData = await fetchGlobalPrice(symbol);
-                        const currentPrice = priceData?.price || 0;
-                        const qty = parseFloat(pos.free) + parseFloat(pos.locked);
-                        const valueUsd = qty * currentPrice;
-
-                        // FILTER DUST: Ignore assets worth less than $5
-                        if (valueUsd < 5) return null;
-
-                        return {
-                            id: uuidv4(),
-                            symbol: symbol,
-                            entryPrice: currentPrice, // Approximate
-                            investedAmount: valueUsd,
-                            quantity: qty,
-                            type: 'LONG',
-                            timestamp: new Date().toISOString(),
-                            strategy: 'MANUAL_SYNC',
-                            mode: 'LIVE',
-                            isManual: true
-                        };
-                    }))).filter(t => t !== null); // Remove nulls (dust or sniper)
-
-                    if (syncedTrades.length > 0) {
-                        activeTrades = syncedTrades;
-                        await redis.set(activeKey, JSON.stringify(activeTrades));
-                        console.log(`[LIVE] ✅ Application State Synced: ${activeTrades.length} trades adopted (Dust filtered).`);
-                    } else {
-                        console.log(`[LIVE] 🧹 Only dust found. No trades adopted.`);
                     }
 
-                    activeTrades = syncedTrades;
-                    await redis.set(activeKey, JSON.stringify(activeTrades));
-                    await redis.set(activeKey, JSON.stringify(activeTrades));
-                    console.log(`[LIVE] ✅ Application State Synced: ${activeTrades.length} trades adopted.`);
-                }
-
-                // SYNC CASH BALANCE (USDT)
-                const usdtAsset = balanceData.balances.find(b => b.asset === 'USDT');
-                if (usdtAsset) {
-                    const realUsdt = parseFloat(usdtAsset.free);
-                    if (Math.abs(wallet.currentBalance - realUsdt) > 1) { // Only sync if meaningful diff
-                        console.log(`[LIVE] 💰 Syncing Balance: Redis ($${wallet.currentBalance}) -> Binance ($${realUsdt})`);
-                        wallet.currentBalance = realUsdt;
+                    // SYNC CASH BALANCE (USDT)
+                    const usdtAsset = balanceData.balances.find(b => b.asset === 'USDT');
+                    if (usdtAsset) {
+                        const realUsdt = parseFloat(usdtAsset.free);
+                        if (Math.abs(wallet.currentBalance - realUsdt) > 1) { // Only sync if meaningful diff
+                            console.log(`[LIVE] 💰 Syncing Balance: Redis ($${wallet.currentBalance}) -> Binance ($${realUsdt})`);
+                            wallet.currentBalance = realUsdt;
+                        }
                     }
                 }
+            } catch (e) {
+                console.error(`[LIVE] ⚠️ Sync Failed: ${e.message}`);
             }
-        } catch (e) {
-            console.error(`[LIVE] ⚠️ Sync Failed: ${e.message}`);
+        } else {
+            console.log(`[LIVE] ⏸️ PAUSED: Skipping Position Sync.`);
         }
     }
 
@@ -220,7 +223,11 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     const newWins = [];
 
     // --- Process Manual Injected Opportunities ---
-    if (manualOpportunities && Array.isArray(manualOpportunities)) {
+    // ALLOW MANUAL EVEN IF PAUSED? Usually yes, but user said "Ningun trading". 
+    // Let's allow manual if the user explicitly requested it via API, but here we are processing a queue passed by argument?
+    // 'manualOpportunities' arg comes from where? It's passed as null in handler (line 653/656).
+    // So this block is likely dead code or reserved for future.
+    if (manualOpportunities && Array.isArray(manualOpportunities) && wallet.isBotActive) {
         for (const opp of manualOpportunities) {
             if (!newActiveTrades.find(t => t.symbol === opp.symbol)) {
                 const invested = mode === 'LIVE' ? 20 : (wallet.currentBalance * ((wallet.riskPercentage || 10) / 100));
