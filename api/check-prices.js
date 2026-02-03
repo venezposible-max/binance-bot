@@ -385,245 +385,247 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     // FIX: Ensure finalList is available regardless of the branch
     let finalList = [...keptTrades, ...manualAddedTrades];
 
+    // Identify Candidates (Symbols in marketPairs NOT in keptTrades OR manualAdded)
+    const occupiedSymbols = [...keptTrades, ...manualAddedTrades].map(t => t.symbol);
+    const candidates = marketPairs.filter(s => !occupiedSymbols.includes(s));
+
     if (!wallet.isBotActive) {
         console.log(`[${mode}] ⏸️ BOT PAUSED: Skipping new trade scan (Active: ${activeTrades.length} trades managed)`);
-    } else if (currentTotal < maxTrades) {
-        // Identify Candidates (Symbols in marketPairs NOT in keptTrades OR manualAdded)
-        const occupiedSymbols = [...keptTrades, ...manualAddedTrades].map(t => t.symbol);
-        const candidates = marketPairs.filter(s => !occupiedSymbols.includes(s));
-
+    } else {
         console.log(`🔍 [${mode}] Scanning [${candidates.join(', ')}] for BLITZ signals...`);
 
-        const scanPromises = candidates.map(async (symbol) => {
-            try {
-                // 🛡️ COOLDOWN CHECK: Prevent re-entry if closed < 5 mins ago
-                const lastClose = winHistory.find(h => h.symbol === symbol);
-                if (lastClose) {
-                    const closeTime = new Date(lastClose.timestamp).getTime();
-                    // 5 minutes * 60 * 1000
-                    if (Date.now() - closeTime < 300000) {
-                        console.log(`⏳ [${mode}] COOLDOWN: ${symbol} closed recently. Skipping re-entry.`);
-                        return null;
+        if (currentTotal < maxTrades) {
+
+            const scanPromises = candidates.map(async (symbol) => {
+                try {
+                    // 🛡️ COOLDOWN CHECK: Prevent re-entry if closed < 5 mins ago
+                    const lastClose = winHistory.find(h => h.symbol === symbol);
+                    if (lastClose) {
+                        const closeTime = new Date(lastClose.timestamp).getTime();
+                        // 5 minutes * 60 * 1000
+                        if (Date.now() - closeTime < 300000) {
+                            console.log(`⏳ [${mode}] COOLDOWN: ${symbol} closed recently. Skipping re-entry.`);
+                            return null;
+                        }
                     }
-                }
 
-                // FORCE BLITZ MODE
-                const interval = '5m';
-                const analysisMode = 'BLITZ';
+                    // FORCE BLITZ MODE
+                    const interval = '5m';
+                    const analysisMode = 'BLITZ';
 
-                const candles = await fetchGlobalKlines(symbol, interval, 60);
-                if (!candles || candles.length < 30) return null;
+                    const candles = await fetchGlobalKlines(symbol, interval, 60);
+                    if (!candles || candles.length < 30) return null;
 
-                // Hybrid analysis tailored for Blitz
-                const result = analysis.analyzeOB(candles, { mode: analysisMode });
+                    // Hybrid analysis tailored for Blitz
+                    const result = analysis.analyzeOB(candles, { mode: analysisMode });
 
-                const signal = result.prediction?.signal;
-                const intensity = result.prediction?.intensity || 0;
+                    const signal = result.prediction?.signal;
+                    const intensity = result.prediction?.intensity || 0;
 
-                if (intensity > 30) {
-                    const emoji = signal.includes('BUY') ? '🟢' : '🔴';
-                    console.log(`   [${mode}] ${symbol} [BLITZ]: ${emoji} ${signal} (${intensity}%)`);
-                }
+                    if (intensity > 30) {
+                        const emoji = signal.includes('BUY') ? '🟢' : '🔴';
+                        console.log(`   [${mode}] ${symbol} [BLITZ]: ${emoji} ${signal} (${intensity}%)`);
+                    }
 
-                let enter = false;
-                if (signal === 'BUY' || signal === 'STRONG_BUY') enter = true;
+                    let enter = false;
+                    if (signal === 'BUY' || signal === 'STRONG_BUY') enter = true;
 
-                if (enter) {
-                    console.log(`🚀 [${mode}] AUTO-SIGNAL: ${symbol} (${signal} - ${intensity}%)`);
+                    if (enter) {
+                        console.log(`🚀 [${mode}] AUTO-SIGNAL: ${symbol} (${signal} - ${intensity}%)`);
 
+                        const risk = wallet.riskPercentage || 10;
+                        const balance = wallet.currentBalance || 0;
+                        const amountToInvest = (balance * (risk / 100));
+
+                        if (amountToInvest > 10) {
+                            const pd = await fetchGlobalPrice(symbol, marketCache);
+                            const buyPrice = pd?.price;
+                            if (!buyPrice) return null;
+
+                            return {
+                                symbol: symbol,
+                                signal: signal,
+                                intensity: intensity,
+                                price: buyPrice,
+                                strategy: 'HYBRID_BLITZ',
+                                obZone: result.obZone
+                            };
+                        }
+                    }
+                } catch (scanErr) { }
+                return null;
+            });
+
+            const found = await Promise.all(scanPromises);
+            const validCandidates = found.filter(c => c !== null);
+
+            // Sort by intensity (Prioritize best signals)
+            validCandidates.sort((a, b) => b.intensity - a.intensity);
+
+            for (const cand of validCandidates) {
+                // DOUBLE CHECK LIMIT (The critical fix)
+                // We re-calculate current count including the ones we JUST added in this loop.
+                if (finalList.length < maxTrades) {
                     const risk = wallet.riskPercentage || 10;
                     const balance = wallet.currentBalance || 0;
                     const amountToInvest = (balance * (risk / 100));
 
-                    if (amountToInvest > 10) {
-                        const pd = await fetchGlobalPrice(symbol, marketCache);
-                        const buyPrice = pd?.price;
-                        if (!buyPrice) return null;
+                    // Re-verify Price (Micro-slippage check)
+                    const buyPrice = cand.price;
 
-                        return {
-                            symbol: symbol,
-                            signal: signal,
-                            intensity: intensity,
-                            price: buyPrice,
-                            strategy: 'HYBRID_BLITZ',
-                            obZone: result.obZone
+                    let executionPrice = buyPrice;
+                    let executedQty = amountToInvest / buyPrice;
+                    let actualSpent = amountToInvest;
+
+                    try {
+                        if (mode === 'LIVE') {
+                            const order = await binanceClient.executeOrder(cand.symbol, 'BUY', amountToInvest, buyPrice, 'MARKET', true);
+                            executedQty = parseFloat(order.executedQty);
+                            actualSpent = parseFloat(order.cummulativeQuoteQty);
+                            executionPrice = actualSpent / executedQty;
+                        } else {
+                            wallet.currentBalance -= (amountToInvest * 1.001);
+                        }
+
+                        const newTrade = {
+                            id: uuidv4(),
+                            symbol: cand.symbol,
+                            entryPrice: executionPrice,
+                            investedAmount: actualSpent,
+                            quantity: executedQty,
+                            type: 'LONG',
+                            timestamp: new Date().toISOString(),
+                            strategy: cand.strategy,
+                            mode: mode,
+                            isManual: false,
+                            takeProfit: cand.obZone?.tp || null,
+                            stopLoss: cand.obZone?.sl || null
                         };
+
+                        finalList.push(newTrade);
+                        await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 **${cand.symbol}**\n🔧 Strat: ${cand.strategy}\n💰 Entry: $${executionPrice.toFixed(4)}`);
+                        console.log(`[${mode}] ✅ Executed ${cand.symbol} (${cand.intensity}%)`);
+
+                    } catch (execErr) {
+                        console.error(`[${mode}] ❌ Execution Failed for ${cand.symbol}:`, execErr.message);
                     }
+                } else {
+                    console.log(`[${mode}] ⏸️ Quota Full (${maxTrades}). Skipped ${cand.symbol}.`);
                 }
-            } catch (scanErr) { }
-            return null;
+            }
+        } // End of if (currentTotal < maxTrades)
+
+        // Mutate the const array in place
+        newActiveTrades.splice(0, newActiveTrades.length, ...finalList);
+
+        // --- STATE INTEGRITY GUARD (Merge-Before-Commit) ---
+        // Prevent overwriting manual actions that happened during the scan (Race Condition Fix)
+        // GOD-MODE FIX: "Ghost Trade Resurrection"
+        // If a trade vanishes from Redis but wasn't Closed (no History entry), we MUST Put it back.
+
+        // 1. Fetch Fresh State (Active & History) to verify external actions
+        const [finalFreshStateStr, finalHistoryStr] = await redis.mget([activeKey, historyKey]);
+        const finalFreshState = finalFreshStateStr ? JSON.parse(finalFreshStateStr) : [];
+        const finalHistory = finalHistoryStr ? JSON.parse(finalHistoryStr) : [];
+
+        // 2. Detect External Adds (Manual Buys or Sniper Triggers while we were scanning)
+        const externallyAdded = finalFreshState.filter(freshT => !activeTrades.find(localT => localT.id === freshT.id));
+
+        // 3. Detect External Deletes vs Ghosts
+        // A. Identify IDs that existed at start of this cycle
+        const snapshotIds = activeTrades.map(t => t.id);
+
+        // B. Filter our proposed state
+        const mergedActiveTrades = newActiveTrades.filter(proposedT => {
+            // Condition 1: It's a brand new trade we just made (ID not in snapshot) -> KEEP IT
+            if (!snapshotIds.includes(proposedT.id)) return true;
+
+            // Condition 2: It's an old trade. Does it still exist in Redis?
+            const stillExisteInRedis = finalFreshState.find(f => f.id === proposedT.id);
+
+            if (stillExisteInRedis) return true; // It's there, keep it.
+
+            // Condition 3: It's GONE from Redis. Was it officially closed?
+            // Check History for this ID (or approximately by symbol/timestamp if ID not in history)
+            // Note: Our history items don't strictly have IDs in previous versions, but let's check Symbol + Timestamp > start time?
+            // Actually, safer: Logic - If it thinks it's a delete, trust it ONLY if we see a win/loss recorded?
+            // Or simpler: If we are in Simulation, Resurrection is safer than data loss.
+
+            // Let's check if a trade for this symbol appears in the *fresh* history that wasn't there before?
+            // Too complex. 
+            // Simplest Resurrection: If it's missing, log it. if it wasn't manual, Resurrect it.
+            // We assume 'manual-trade.js' is the only deleter.
+            // If 'manual-trade.js' runs, it updates History.
+
+            // FIX: Verify if Symbol is in the recent history entries (top 5) OR if we just closed it in this cycle.
+            const justClosedLocally = closedIds.includes(proposedT.id);
+            const wasRecentlyClosed = justClosedLocally || finalHistory.slice(0, 10).find(h => h.symbol === proposedT.symbol && new Date(h.timestamp) > new Date(Date.now() - 60000));
+
+            if (wasRecentlyClosed) {
+                // It was truly closed. Honor the delete.
+                return false;
+            } else {
+                // DATA INTEGRITY CHECK: Do not resurrect corrupt trades (NaN or $0 price)
+                // This fixes the "ZAMA" zombie issue where price is 0 and it keeps coming back.
+                if (!proposedT.entryPrice || proposedT.entryPrice <= 0 || isNaN(proposedT.entryPrice)) {
+                    console.warn(`💀 [INTEGRITY GUARD] Buried Corrupt Zombie: ${proposedT.symbol} (Invalid Price: ${proposedT.entryPrice}). NOT Resurrecting.`);
+                    return false;
+                }
+
+                // 👻 GHOST DETECTED! Use Resurrection Protocol.
+                console.warn(`👻 [INTEGRITY GUARD] Resurrected Ghost Trade: ${proposedT.symbol} (Missing from Redis but NO Close found in History)`);
+                return true; // KEEP IT (Write it back to Redis)
+            }
         });
 
-        const found = await Promise.all(scanPromises);
-        const validCandidates = found.filter(c => c !== null);
+        // C. Add the external additions
+        const finalState = [...mergedActiveTrades, ...externallyAdded];
 
-        // Sort by intensity (Prioritize best signals)
-        validCandidates.sort((a, b) => b.intensity - a.intensity);
-
-        for (const cand of validCandidates) {
-            // DOUBLE CHECK LIMIT (The critical fix)
-            // We re-calculate current count including the ones we JUST added in this loop.
-            if (finalList.length < maxTrades) {
-                const risk = wallet.riskPercentage || 10;
-                const balance = wallet.currentBalance || 0;
-                const amountToInvest = (balance * (risk / 100));
-
-                // Re-verify Price (Micro-slippage check)
-                const buyPrice = cand.price;
-
-                let executionPrice = buyPrice;
-                let executedQty = amountToInvest / buyPrice;
-                let actualSpent = amountToInvest;
-
-                try {
-                    if (mode === 'LIVE') {
-                        const order = await binanceClient.executeOrder(cand.symbol, 'BUY', amountToInvest, buyPrice, 'MARKET', true);
-                        executedQty = parseFloat(order.executedQty);
-                        actualSpent = parseFloat(order.cummulativeQuoteQty);
-                        executionPrice = actualSpent / executedQty;
-                    } else {
-                        wallet.currentBalance -= (amountToInvest * 1.001);
-                    }
-
-                    const newTrade = {
-                        id: uuidv4(),
-                        symbol: cand.symbol,
-                        entryPrice: executionPrice,
-                        investedAmount: actualSpent,
-                        quantity: executedQty,
-                        type: 'LONG',
-                        timestamp: new Date().toISOString(),
-                        strategy: cand.strategy,
-                        mode: mode,
-                        isManual: false,
-                        takeProfit: cand.obZone?.tp || null,
-                        stopLoss: cand.obZone?.sl || null
-                    };
-
-                    finalList.push(newTrade);
-                    await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 **${cand.symbol}**\n🔧 Strat: ${cand.strategy}\n💰 Entry: $${executionPrice.toFixed(4)}`);
-                    console.log(`[${mode}] ✅ Executed ${cand.symbol} (${cand.intensity}%)`);
-
-                } catch (execErr) {
-                    console.error(`[${mode}] ❌ Execution Failed for ${cand.symbol}:`, execErr.message);
-                }
-            } else {
-                console.log(`[${mode}] ⏸️ Quota Full (${maxTrades}). Skipped ${cand.symbol}.`);
-            }
+        // Log if intervention occurred
+        if (finalState.length !== newActiveTrades.length) {
+            // This log logic needs update, but acceptable for now
         }
-    } // End of if (currentTotal < maxTrades)
 
-    // Mutate the const array in place
-    newActiveTrades.splice(0, newActiveTrades.length, ...finalList);
+        // GOD-MODE OPTIMIZATION: Pipeline Writes (Atomic & Fast)
+        const pipeline = redis.pipeline();
+        pipeline.set(activeKey, JSON.stringify(finalState));
+        pipeline.set(configKey, JSON.stringify(wallet));
 
-    // --- STATE INTEGRITY GUARD (Merge-Before-Commit) ---
-    // Prevent overwriting manual actions that happened during the scan (Race Condition Fix)
-    // GOD-MODE FIX: "Ghost Trade Resurrection"
-    // If a trade vanishes from Redis but wasn't Closed (no History entry), we MUST Put it back.
+        if (newWins.length > 0) {
+            // Optimization: Use 'winHistory' fetched at start (via mget) instead of fetching again
+            const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
+            pipeline.set(historyKey, JSON.stringify(updatedHistory));
+        }
 
-    // 1. Fetch Fresh State (Active & History) to verify external actions
-    const [finalFreshStateStr, finalHistoryStr] = await redis.mget([activeKey, historyKey]);
-    const finalFreshState = finalFreshStateStr ? JSON.parse(finalFreshStateStr) : [];
-    const finalHistory = finalHistoryStr ? JSON.parse(finalHistoryStr) : [];
+        await pipeline.exec();
+        return { mode, activeCount: finalState.length, alerts: [] };
+    }
 
-    // 2. Detect External Adds (Manual Buys or Sniper Triggers while we were scanning)
-    const externallyAdded = finalFreshState.filter(freshT => !activeTrades.find(localT => localT.id === freshT.id));
+    export default async function handler(req, res) {
+        console.log('🚀 [DUAL ENGINE] check-prices START');
+        try {
+            const marketCache = {};
+            const marketPairs = await getDynamicTopPairs();
 
-    // 3. Detect External Deletes vs Ghosts
-    // A. Identify IDs that existed at start of this cycle
-    const snapshotIds = activeTrades.map(t => t.id);
+            // Parallel Processing
+            // Parallel Processing
+            const activeModeUI = await redis.get('sentinel_active_mode') || 'SIMULATION';
+            const tasks = [];
 
-    // B. Filter our proposed state
-    const mergedActiveTrades = newActiveTrades.filter(proposedT => {
-        // Condition 1: It's a brand new trade we just made (ID not in snapshot) -> KEEP IT
-        if (!snapshotIds.includes(proposedT.id)) return true;
+            // Only run SIMULATION if users wants it or we are NOT in LIVE prioritized mode
+            // User requested "Quita los trades falsos", so if KEY exists, we focus on LIVE.
+            // ALWAYS RUN BOTH MODES (User Request: "Los dos a la vez")
+            // This ensures he can test strategies in SIM while earning money in LIVE.
+            tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
 
-        // Condition 2: It's an old trade. Does it still exist in Redis?
-        const stillExisteInRedis = finalFreshState.find(f => f.id === proposedT.id);
-
-        if (stillExisteInRedis) return true; // It's there, keep it.
-
-        // Condition 3: It's GONE from Redis. Was it officially closed?
-        // Check History for this ID (or approximately by symbol/timestamp if ID not in history)
-        // Note: Our history items don't strictly have IDs in previous versions, but let's check Symbol + Timestamp > start time?
-        // Actually, safer: Logic - If it thinks it's a delete, trust it ONLY if we see a win/loss recorded?
-        // Or simpler: If we are in Simulation, Resurrection is safer than data loss.
-
-        // Let's check if a trade for this symbol appears in the *fresh* history that wasn't there before?
-        // Too complex. 
-        // Simplest Resurrection: If it's missing, log it. if it wasn't manual, Resurrect it.
-        // We assume 'manual-trade.js' is the only deleter.
-        // If 'manual-trade.js' runs, it updates History.
-
-        // FIX: Verify if Symbol is in the recent history entries (top 5) OR if we just closed it in this cycle.
-        const justClosedLocally = closedIds.includes(proposedT.id);
-        const wasRecentlyClosed = justClosedLocally || finalHistory.slice(0, 10).find(h => h.symbol === proposedT.symbol && new Date(h.timestamp) > new Date(Date.now() - 60000));
-
-        if (wasRecentlyClosed) {
-            // It was truly closed. Honor the delete.
-            return false;
-        } else {
-            // DATA INTEGRITY CHECK: Do not resurrect corrupt trades (NaN or $0 price)
-            // This fixes the "ZAMA" zombie issue where price is 0 and it keeps coming back.
-            if (!proposedT.entryPrice || proposedT.entryPrice <= 0 || isNaN(proposedT.entryPrice)) {
-                console.warn(`💀 [INTEGRITY GUARD] Buried Corrupt Zombie: ${proposedT.symbol} (Invalid Price: ${proposedT.entryPrice}). NOT Resurrecting.`);
-                return false;
+            if (process.env.BINANCE_API_KEY) {
+                tasks.push(processMode('LIVE', marketPairs, marketCache, null, null));
             }
 
-            // 👻 GHOST DETECTED! Use Resurrection Protocol.
-            console.warn(`👻 [INTEGRITY GUARD] Resurrected Ghost Trade: ${proposedT.symbol} (Missing from Redis but NO Close found in History)`);
-            return true; // KEEP IT (Write it back to Redis)
+            await Promise.all(tasks);
+            res.status(200).json({ status: 'OK' });
+        } catch (error) {
+            console.error('❌ CRITICAL ERROR:', error.message);
+            res.status(500).json({ error: error.message });
         }
-    });
-
-    // C. Add the external additions
-    const finalState = [...mergedActiveTrades, ...externallyAdded];
-
-    // Log if intervention occurred
-    if (finalState.length !== newActiveTrades.length) {
-        // This log logic needs update, but acceptable for now
     }
-
-    // GOD-MODE OPTIMIZATION: Pipeline Writes (Atomic & Fast)
-    const pipeline = redis.pipeline();
-    pipeline.set(activeKey, JSON.stringify(finalState));
-    pipeline.set(configKey, JSON.stringify(wallet));
-
-    if (newWins.length > 0) {
-        // Optimization: Use 'winHistory' fetched at start (via mget) instead of fetching again
-        const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
-        pipeline.set(historyKey, JSON.stringify(updatedHistory));
-    }
-
-    await pipeline.exec();
-    return { mode, activeCount: finalState.length, alerts: [] };
-}
-
-export default async function handler(req, res) {
-    console.log('🚀 [DUAL ENGINE] check-prices START');
-    try {
-        const marketCache = {};
-        const marketPairs = await getDynamicTopPairs();
-
-        // Parallel Processing
-        // Parallel Processing
-        const activeModeUI = await redis.get('sentinel_active_mode') || 'SIMULATION';
-        const tasks = [];
-
-        // Only run SIMULATION if users wants it or we are NOT in LIVE prioritized mode
-        // User requested "Quita los trades falsos", so if KEY exists, we focus on LIVE.
-        // ALWAYS RUN BOTH MODES (User Request: "Los dos a la vez")
-        // This ensures he can test strategies in SIM while earning money in LIVE.
-        tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
-
-        if (process.env.BINANCE_API_KEY) {
-            tasks.push(processMode('LIVE', marketPairs, marketCache, null, null));
-        }
-
-        await Promise.all(tasks);
-        res.status(200).json({ status: 'OK' });
-    } catch (error) {
-        console.error('❌ CRITICAL ERROR:', error.message);
-        res.status(500).json({ error: error.message });
-    }
-}
