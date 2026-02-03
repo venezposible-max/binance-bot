@@ -112,6 +112,17 @@
     margin-bottom: 20px;
 }
 
+@media (max-width: 768px) {
+    .dashboardGrid {
+        padding: 15px 15px;
+        top: 60px;
+    }
+
+    .header {
+        padding: 15px 20px;
+    }
+}
+
 .portfolioSection {
     margin-bottom: 50px;
     width: 100%;

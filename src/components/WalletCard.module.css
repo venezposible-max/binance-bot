@@ -193,6 +193,8 @@
     display: flex;
     gap: 20px;
     align-items: center;
+    flex-wrap: wrap;
+    /* Prevent overflow on small screens */
 }
 
 .statItem {
