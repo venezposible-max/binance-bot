@@ -244,6 +244,28 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     const monitorPromises = activeTrades.map(async (trade) => {
         try {
             const symbol = trade.symbol;
+
+            // 🚫 BLACKLIST PURGE: Explicitly remove bans from Redis
+            const PURGE_LIST = ['ZAMA', 'ZEC', '币安人生'];
+            const isInvalid = !/^[A-Z0-9]+$/.test(symbol) || PURGE_LIST.some(p => symbol.includes(p));
+
+            if (isInvalid) {
+                console.warn(`🗑️ [PURGE] Automatically Removing Blacklisted/Invalid Trade: ${symbol}`);
+                const win = {
+                    symbol,
+                    pnl: 0,
+                    profitUsd: 0,
+                    timestamp: new Date().toISOString(),
+                    strategy: 'PURGE',
+                    mode: mode,
+                    type: trade.type || 'LONG',
+                    entryPrice: trade.entryPrice,
+                    exitPrice: trade.entryPrice,
+                    investedAmount: trade.investedAmount || 0
+                };
+                return { status: 'CLOSED', win, id: trade.id };
+            }
+
             const marketData = await fetchGlobalPrice(symbol, marketCache);
             if (!marketData || !marketData.price) return { status: 'KEEP', trade };
 

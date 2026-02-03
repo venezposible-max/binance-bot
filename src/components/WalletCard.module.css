@@ -5,8 +5,12 @@
     padding: 20px;
     margin-bottom: 20px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    /* FIX: Stack children vertically */
+    gap: 15px;
+    /* Add gap between sections */
+    /* justify-content: space-between; REMOVED as it acts differently in column */
+    /* align-items: center; REMOVED to stretch children full width usually */
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
