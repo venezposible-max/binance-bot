@@ -299,8 +299,13 @@ function App() {
       <main className={styles.mainContent}>
         <header className={styles.header}>
           <div className={styles.headerLeft}>
-            {/* <div className={styles.logo}>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></div> */}
-            <div className={styles.statusBadge}>
+            <div className={styles.logo}>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></div>
+            <div
+              className={styles.statusBadge}
+              onClick={toggleTradingMode}
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+              title="Click to Switch Mode (Live/Sim)"
+            >
               <span className={styles.statusDot} style={{ background: tradingMode === 'LIVE' ? '#EF4444' : '#10B981', boxShadow: tradingMode === 'LIVE' ? '0 0 10px #EF4444' : '0 0 10px #10B981' }}></span>
               {tradingMode} MODE
             </div>
