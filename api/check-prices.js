@@ -389,6 +389,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         const occupiedSymbols = [...keptTrades, ...manualAddedTrades].map(t => t.symbol);
         const candidates = marketPairs.filter(s => !occupiedSymbols.includes(s));
 
+        console.log(`🔍 [${mode}] Scanning ${candidates.length} pairs for Blitz signals...`);
+
         const scanPromises = candidates.map(async (symbol) => {
             try {
                 // 🛡️ COOLDOWN CHECK: Prevent re-entry if closed < 5 mins ago
@@ -415,7 +417,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 const signal = result.prediction?.signal;
                 const intensity = result.prediction?.intensity || 0;
 
-                if (intensity > 60) {
+                if (intensity > 30) {
                     const emoji = signal.includes('BUY') ? '🟢' : '🔴';
                     console.log(`   [${mode}] ${symbol} [BLITZ]: ${emoji} ${signal} (${intensity}%)`);
                 }
