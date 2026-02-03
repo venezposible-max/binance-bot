@@ -135,7 +135,7 @@ const fetchCandlesDirect = async (symbolOrArray, interval, limit) => {
     return results;
 };
 
-export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
+export const fetchCandles = async (symbol, interval = '4h', limit = 300) => {
     try {
         // HANDLE BATCH (ARRAY) REQUEST
         if (Array.isArray(symbol)) {
