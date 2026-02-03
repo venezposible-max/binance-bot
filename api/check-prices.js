@@ -196,6 +196,13 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                             // FILTER DUST: Ignore assets worth less than $5
                             if (valueUsd < 5) return null;
 
+                            // 🔒 STRICT RULE: Only adopt trades if they are in the TOP 10 Strategy List
+                            // User Request: "No escanear monedas fuera del Top 10"
+                            if (!marketPairs.includes(symbol)) {
+                                console.log(`[LIVE] 🚫 Ignoring ${symbol} (Not in Top 10 Strategy List).`);
+                                return null;
+                            }
+
                             return {
                                 id: uuidv4(),
                                 symbol: symbol,
