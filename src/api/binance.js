@@ -75,19 +75,16 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 100) => {
     try {
         // HANDLE BATCH (ARRAY) REQUEST
         if (Array.isArray(symbol)) {
-            // Parallel Fetch with Map Return
-            const promises = symbol.map(async (s) => {
-                const klines = await fetchCandles(s, interval, limit);
-                return { symbol: s, data: klines };
+            // OPTIMIZATION: Send single batch request to backend (Server-side parallelization)
+            // This prevents browser request congestion and 400 errors
+            const symbolsParam = symbol.join(',');
+
+            const response = await axios.get(`/api/candles`, {
+                params: { symbol: symbolsParam, interval, limit },
+                timeout: 30000 // Extended timeout for batch processing
             });
 
-            const results = await Promise.all(promises);
-
-            // Convert to Object Map: { BTCUSDT: [...], ETHUSDT: [...] }
-            return results.reduce((acc, item) => {
-                acc[item.symbol] = item.data;
-                return acc;
-            }, {});
+            return response.data; // Backend now returns { BTCUSDT: [...], ... } map
         }
 
         // SINGULAR REQUEST
