@@ -77,64 +77,72 @@ export const getAccountBalance = async (asset = null) => {
 
 // --- HELPERS ---
 
-// Helper to round quantity based on symbol (Simulates LOT_SIZE filter)
-const formatQuantity = (symbol, qty) => {
-    // Standard LOT_SIZE approximations for common Binance pairs
-    let decimals = 5; // Default for many alts
-    if (symbol.startsWith('BTC')) decimals = 5;
-    if (symbol.startsWith('ETH')) decimals = 4;
-    if (symbol.startsWith('SOL')) decimals = 3;
-    if (symbol.startsWith('XRP')) decimals = 1;
-    if (symbol.startsWith('DOGE')) decimals = 0;
-    if (symbol.startsWith('ZAMA')) decimals = 0; // Fix: ZAMA requires integer lot size
+// Cache for Symbol Rules (Step Size, Tick Size)
+const exchangeInfoCache = {};
 
-    const factor = Math.pow(10, decimals);
-    return Math.floor(qty * factor) / factor;
+const getSymbolRules = async (symbol) => {
+    if (exchangeInfoCache[symbol]) return exchangeInfoCache[symbol];
+
+    try {
+        const data = await axios.get(`${getBaseUrl()}/api/v3/exchangeInfo`, { params: { symbol } });
+        const info = data.data.symbols[0];
+
+        // Extract Filters
+        const lotFilter = info.filters.find(f => f.filterType === 'LOT_SIZE');
+        const priceFilter = info.filters.find(f => f.filterType === 'PRICE_FILTER');
+        const notionalFilter = info.filters.find(f => f.filterType === 'NOTIONAL' || f.filterType === 'MIN_NOTIONAL');
+
+        const rules = {
+            stepSize: lotFilter ? parseFloat(lotFilter.stepSize) : 1,
+            tickSize: priceFilter ? parseFloat(priceFilter.tickSize) : 0.01,
+            minNotional: notionalFilter ? parseFloat(notionalFilter.minNotional) : 10
+        };
+
+        exchangeInfoCache[symbol] = rules;
+        return rules;
+    } catch (e) {
+        console.warn(`⚠️ Failed to fetch exchange rules for ${symbol}, using defaults.`, e.message);
+        // Fallback Defaults
+        return { stepSize: 0.1, tickSize: 0.01, minNotional: 10 };
+    }
 };
 
-// Helper for price precision (Simulates TICK_SIZE filter)
-const formatPrice = (symbol, price) => {
-    let decimals = 2; // Default for most USDT pairs
-    if (price < 1) decimals = 5;
-    if (price < 0.01) decimals = 8;
+// Precise Math Rounding (Avoid Float Errors)
+const roundStep = (qty, stepSize) => {
+    // 1. Calculate precision (decimals) from stepSize
+    // e.g. 0.001 -> 3 decimals
+    const precision = stepSize.toString().split('.')[1]?.length || 0;
 
-    return price.toFixed(decimals);
+    // 2. Round DOWN to nearest step (floor)
+    // Formula: floor(qty / step) * step
+    const factor = 1 / stepSize;
+    const rounded = Math.floor(qty * factor) / factor;
+    return rounded.toFixed(precision);
 };
 
 export const executeOrder = async (symbol, side, quantity, currentPrice = 0, type = 'MARKET', isLiveOverride = null) => {
     const formattedSymbol = symbol.toUpperCase();
-    // Priority: 1. Argument Override (from UI/Wallet) | 2. ENV Variable
     const isLive = isLiveOverride !== null ? isLiveOverride : (process.env.TRADING_MODE === 'LIVE');
 
-    // 1. MIN NOTIONAL SAFETY ($10 Minimum)
-    const investmentInUsd = (side === 'BUY') ? quantity : (quantity * (currentPrice || 1));
-    if (isLive && investmentInUsd < 10.1) { // 10.1 to be safe
-        throw new Error(`SAFETY: Investment $${investmentInUsd.toFixed(2)} is below Binance minimum (~$10)`);
-    }
-
     if (!isLive) {
-        const simQty = (side === 'BUY')
-            ? (currentPrice > 0 ? formatQuantity(formattedSymbol, quantity / currentPrice) : 0)
-            : formatQuantity(formattedSymbol, quantity);
-
-        console.log(`🧪 SIMULATED ORDER: ${side} ${simQty} ${formattedSymbol} @ $${currentPrice}`);
-
+        // Simulation Logic (Simplified)
+        console.log(`🧪 SIMULATED ORDER: ${side} ${quantity} ${formattedSymbol} @ $${currentPrice}`);
         return {
             status: 'FILLED',
             orderId: 'SIM_' + Date.now(),
-            executedQty: simQty,
-            cummulativeQuoteQty: (side === 'BUY') ? quantity : (simQty * (currentPrice || 1)),
+            executedQty: quantity, // Just echo back
+            cummulativeQuoteQty: (side === 'BUY') ? quantity : (quantity * (currentPrice || 1)),
             avgPrice: currentPrice || 0
         };
     }
 
     // REAL EXECUTION 💸
-    console.log(`💸 REAL ORDER EXECUTING: ${side} ${quantity} ${formattedSymbol}`);
+    console.log(`💸 REAL ORDER PREP: ${side} ${quantity} ${formattedSymbol}`);
 
-    // Validaciones de Seguridad
-    if (side === 'BUY' && quantity > 10000) throw new Error('SAFETY: Quantity too high for auto-bot');
+    // 1. Fetch Precise Rules
+    const rules = await getSymbolRules(formattedSymbol);
 
-    // Params para Binance
+    // 2. Format Quantity/Amount according to Binance Filters
     const params = {
         symbol: formattedSymbol,
         side: side,
@@ -142,11 +150,32 @@ export const executeOrder = async (symbol, side, quantity, currentPrice = 0, typ
     };
 
     if (side === 'BUY') {
-        params.quoteOrderQty = quantity.toFixed(2); // USDT precision
+        // For MARKET BUY, we usually send quoteOrderQty (USDT Amount)
+        // Check Min Notional
+        if (quantity < rules.minNotional) {
+            throw new Error(`SAFETY: Buy amount $${quantity} is below Binance minimum ($${rules.minNotional})`);
+        }
+
+        // Round USDT amount (usually 2 decimals for USDT pairs, dependent on tickSize of quote asset technically, but 2 is standard safe for USDT)
+        params.quoteOrderQty = quantity.toFixed(2);
+
     } else {
-        // For SELL, we must round to LOT_SIZE
-        params.quantity = formatQuantity(formattedSymbol, quantity);
+        // For SELL, we must send quantity (Crypto Amount) rounded to LOT_SIZE
+        const adjustedQty = roundStep(quantity, rules.stepSize);
+
+        // Check Min Notional (approximate)
+        if ((parseFloat(adjustedQty) * currentPrice) < (rules.minNotional * 0.9)) {
+            // *0.9 tolerance because price fluctuation might make it slightly less, but Binance is strict.
+            // If it's dust, we might just fail here.
+            console.warn(`⚠️ Warning: Sell value might be below min notional.`);
+        }
+
+        params.quantity = adjustedQty;
+        console.log(`   🔸 Adjusted Quantity: ${quantity} -> ${adjustedQty} (Step: ${rules.stepSize})`);
     }
+
+    // 3. Security
+    if (side === 'BUY' && parseFloat(params.quoteOrderQty) > 5000) throw new Error('SAFETY: Quantity too high for auto-bot');
 
     return await privateRequest('/api/v3/order', 'POST', params);
 };
