@@ -364,15 +364,13 @@ function App() {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '10px 20px',
-        background: 'rgba(30, 35, 41, 0.95)', // Solid background
+        background: '#1E2329', // SOLID BACKGROUND (No transparency) to prevent see-through
         borderBottom: '1px solid #333',
         marginBottom: '15px',
-        borderRadius: '4px',
-        position: 'sticky', // Make it sticky so it's always visible
+        position: 'sticky',
         top: 0,
-        zIndex: 99999, // NUCLEAR Z-INDEX
-        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(10px)'
+        zIndex: 1000000, // SUPER NUCLEAR Z-INDEX
+        boxShadow: '0 4px 20px rgba(0,0,0,0.8)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-1px', color: 'var(--neon-cyan)' }}>
@@ -401,16 +399,24 @@ function App() {
       {/* 2. MAIN GRID (Wallet + Market Scanner) */}
       <main style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(300px, 1fr) 3fr',
-        gap: '15px',
+        gridTemplateColumns: 'minmax(320px, 1fr) 3fr', // Widened sidebar slightly
+        gap: '20px',
         maxWidth: '1800px',
         margin: '0 auto',
-        paddingBottom: '250px', // EXTRA PADDING to clear the Fixed Footer
+        paddingBottom: '250px',
         position: 'relative',
-        zIndex: 1
+        zIndex: 1, // Base Layer
+        alignItems: 'start' // Prevent stretching
       }}>
-        {/* Left Panel: Wallet & Control */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        {/* Left Panel: Wallet & Control - STICKY SIDEBAR */}
+        <aside style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px',
+          position: 'sticky',
+          top: '90px', // Below the sticky header
+          zIndex: 50 // Above base content, below header
+        }}>
           <WalletCard
             ref={walletRef}
             activeTrades={cloudStatus.active}
@@ -422,7 +428,7 @@ function App() {
           />
 
           {/* Mode Switcher Mini-Panel */}
-          <div className="glass-card" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="glass-card" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(30,35,41,0.8)', border: '1px solid rgba(255,255,255,0.05)' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#666' }}>ENVIRONMENT</span>
             <div style={{ display: 'flex', gap: '5px' }}>
               <button
@@ -458,7 +464,7 @@ function App() {
         </aside>
 
         {/* Right Panel: Market Scanner Grid */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '15px', alignContent: 'start' }}>
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '15px', alignContent: 'start', zIndex: 1 }}>
           {pairs.map((symbol) => (
             <SentinelCard
               key={symbol}
@@ -479,12 +485,11 @@ function App() {
         bottom: 0,
         left: 0,
         width: '100%',
-        background: 'rgba(30, 35, 41, 0.95)', // Solid background
+        background: '#1E2329', // SOLID BACKGROUND
         borderTop: '1px solid var(--neon-cyan)',
         padding: '10px 20px',
-        zIndex: 99999, // NUCLEAR Z-INDEX
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(10px)'
+        zIndex: 1000000, // SUPER NUCLEAR Z-INDEX
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.8)'
       }}>
         <div style={{ maxWidth: '1800px', margin: '0 auto', display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '5px' }}>
           {activeTrades.length === 0 ? (
