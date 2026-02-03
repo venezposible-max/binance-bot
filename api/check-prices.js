@@ -513,119 +513,122 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     console.log(`[${mode}] ⏸️ Quota Full (${maxTrades}). Skipped ${cand.symbol}.`);
                 }
             }
-        } // End of if (currentTotal < maxTrades)
+        } else {
+            console.log(`[${mode}] ⏸️ Quota Full (${currentTotal}/${maxTrades}). Scanning paused.`);
+        }
+    } // End of if (!wallet.isBotActive) else ...
 
-        // Mutate the const array in place
-        newActiveTrades.splice(0, newActiveTrades.length, ...finalList);
+    // Mutate the const array in place
+    newActiveTrades.splice(0, newActiveTrades.length, ...finalList);
 
-        // --- STATE INTEGRITY GUARD (Merge-Before-Commit) ---
-        // Prevent overwriting manual actions that happened during the scan (Race Condition Fix)
-        // GOD-MODE FIX: "Ghost Trade Resurrection"
-        // If a trade vanishes from Redis but wasn't Closed (no History entry), we MUST Put it back.
+    // --- STATE INTEGRITY GUARD (Merge-Before-Commit) ---
+    // Prevent overwriting manual actions that happened during the scan (Race Condition Fix)
+    // GOD-MODE FIX: "Ghost Trade Resurrection"
+    // If a trade vanishes from Redis but wasn't Closed (no History entry), we MUST Put it back.
 
-        // 1. Fetch Fresh State (Active & History) to verify external actions
-        const [finalFreshStateStr, finalHistoryStr] = await redis.mget([activeKey, historyKey]);
-        const finalFreshState = finalFreshStateStr ? JSON.parse(finalFreshStateStr) : [];
-        const finalHistory = finalHistoryStr ? JSON.parse(finalHistoryStr) : [];
+    // 1. Fetch Fresh State (Active & History) to verify external actions
+    const [finalFreshStateStr, finalHistoryStr] = await redis.mget([activeKey, historyKey]);
+    const finalFreshState = finalFreshStateStr ? JSON.parse(finalFreshStateStr) : [];
+    const finalHistory = finalHistoryStr ? JSON.parse(finalHistoryStr) : [];
 
-        // 2. Detect External Adds (Manual Buys or Sniper Triggers while we were scanning)
-        const externallyAdded = finalFreshState.filter(freshT => !activeTrades.find(localT => localT.id === freshT.id));
+    // 2. Detect External Adds (Manual Buys or Sniper Triggers while we were scanning)
+    const externallyAdded = finalFreshState.filter(freshT => !activeTrades.find(localT => localT.id === freshT.id));
 
-        // 3. Detect External Deletes vs Ghosts
-        // A. Identify IDs that existed at start of this cycle
-        const snapshotIds = activeTrades.map(t => t.id);
+    // 3. Detect External Deletes vs Ghosts
+    // A. Identify IDs that existed at start of this cycle
+    const snapshotIds = activeTrades.map(t => t.id);
 
-        // B. Filter our proposed state
-        const mergedActiveTrades = newActiveTrades.filter(proposedT => {
-            // Condition 1: It's a brand new trade we just made (ID not in snapshot) -> KEEP IT
-            if (!snapshotIds.includes(proposedT.id)) return true;
+    // B. Filter our proposed state
+    const mergedActiveTrades = newActiveTrades.filter(proposedT => {
+        // Condition 1: It's a brand new trade we just made (ID not in snapshot) -> KEEP IT
+        if (!snapshotIds.includes(proposedT.id)) return true;
 
-            // Condition 2: It's an old trade. Does it still exist in Redis?
-            const stillExisteInRedis = finalFreshState.find(f => f.id === proposedT.id);
+        // Condition 2: It's an old trade. Does it still exist in Redis?
+        const stillExisteInRedis = finalFreshState.find(f => f.id === proposedT.id);
 
-            if (stillExisteInRedis) return true; // It's there, keep it.
+        if (stillExisteInRedis) return true; // It's there, keep it.
 
-            // Condition 3: It's GONE from Redis. Was it officially closed?
-            // Check History for this ID (or approximately by symbol/timestamp if ID not in history)
-            // Note: Our history items don't strictly have IDs in previous versions, but let's check Symbol + Timestamp > start time?
-            // Actually, safer: Logic - If it thinks it's a delete, trust it ONLY if we see a win/loss recorded?
-            // Or simpler: If we are in Simulation, Resurrection is safer than data loss.
+        // Condition 3: It's GONE from Redis. Was it officially closed?
+        // Check History for this ID (or approximately by symbol/timestamp if ID not in history)
+        // Note: Our history items don't strictly have IDs in previous versions, but let's check Symbol + Timestamp > start time?
+        // Actually, safer: Logic - If it thinks it's a delete, trust it ONLY if we see a win/loss recorded?
+        // Or simpler: If we are in Simulation, Resurrection is safer than data loss.
 
-            // Let's check if a trade for this symbol appears in the *fresh* history that wasn't there before?
-            // Too complex. 
-            // Simplest Resurrection: If it's missing, log it. if it wasn't manual, Resurrect it.
-            // We assume 'manual-trade.js' is the only deleter.
-            // If 'manual-trade.js' runs, it updates History.
+        // Let's check if a trade for this symbol appears in the *fresh* history that wasn't there before?
+        // Too complex. 
+        // Simplest Resurrection: If it's missing, log it. if it wasn't manual, Resurrect it.
+        // We assume 'manual-trade.js' is the only deleter.
+        // If 'manual-trade.js' runs, it updates History.
 
-            // FIX: Verify if Symbol is in the recent history entries (top 5) OR if we just closed it in this cycle.
-            const justClosedLocally = closedIds.includes(proposedT.id);
-            const wasRecentlyClosed = justClosedLocally || finalHistory.slice(0, 10).find(h => h.symbol === proposedT.symbol && new Date(h.timestamp) > new Date(Date.now() - 60000));
+        // FIX: Verify if Symbol is in the recent history entries (top 5) OR if we just closed it in this cycle.
+        const justClosedLocally = closedIds.includes(proposedT.id);
+        const wasRecentlyClosed = justClosedLocally || finalHistory.slice(0, 10).find(h => h.symbol === proposedT.symbol && new Date(h.timestamp) > new Date(Date.now() - 60000));
 
-            if (wasRecentlyClosed) {
-                // It was truly closed. Honor the delete.
+        if (wasRecentlyClosed) {
+            // It was truly closed. Honor the delete.
+            return false;
+        } else {
+            // DATA INTEGRITY CHECK: Do not resurrect corrupt trades (NaN or $0 price)
+            // This fixes the "ZAMA" zombie issue where price is 0 and it keeps coming back.
+            if (!proposedT.entryPrice || proposedT.entryPrice <= 0 || isNaN(proposedT.entryPrice)) {
+                console.warn(`💀 [INTEGRITY GUARD] Buried Corrupt Zombie: ${proposedT.symbol} (Invalid Price: ${proposedT.entryPrice}). NOT Resurrecting.`);
                 return false;
-            } else {
-                // DATA INTEGRITY CHECK: Do not resurrect corrupt trades (NaN or $0 price)
-                // This fixes the "ZAMA" zombie issue where price is 0 and it keeps coming back.
-                if (!proposedT.entryPrice || proposedT.entryPrice <= 0 || isNaN(proposedT.entryPrice)) {
-                    console.warn(`💀 [INTEGRITY GUARD] Buried Corrupt Zombie: ${proposedT.symbol} (Invalid Price: ${proposedT.entryPrice}). NOT Resurrecting.`);
-                    return false;
-                }
-
-                // 👻 GHOST DETECTED! Use Resurrection Protocol.
-                console.warn(`👻 [INTEGRITY GUARD] Resurrected Ghost Trade: ${proposedT.symbol} (Missing from Redis but NO Close found in History)`);
-                return true; // KEEP IT (Write it back to Redis)
-            }
-        });
-
-        // C. Add the external additions
-        const finalState = [...mergedActiveTrades, ...externallyAdded];
-
-        // Log if intervention occurred
-        if (finalState.length !== newActiveTrades.length) {
-            // This log logic needs update, but acceptable for now
-        }
-
-        // GOD-MODE OPTIMIZATION: Pipeline Writes (Atomic & Fast)
-        const pipeline = redis.pipeline();
-        pipeline.set(activeKey, JSON.stringify(finalState));
-        pipeline.set(configKey, JSON.stringify(wallet));
-
-        if (newWins.length > 0) {
-            // Optimization: Use 'winHistory' fetched at start (via mget) instead of fetching again
-            const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
-            pipeline.set(historyKey, JSON.stringify(updatedHistory));
-        }
-
-        await pipeline.exec();
-        return { mode, activeCount: finalState.length, alerts: [] };
-    }
-
-    export default async function handler(req, res) {
-        console.log('🚀 [DUAL ENGINE] check-prices START');
-        try {
-            const marketCache = {};
-            const marketPairs = await getDynamicTopPairs();
-
-            // Parallel Processing
-            // Parallel Processing
-            const activeModeUI = await redis.get('sentinel_active_mode') || 'SIMULATION';
-            const tasks = [];
-
-            // Only run SIMULATION if users wants it or we are NOT in LIVE prioritized mode
-            // User requested "Quita los trades falsos", so if KEY exists, we focus on LIVE.
-            // ALWAYS RUN BOTH MODES (User Request: "Los dos a la vez")
-            // This ensures he can test strategies in SIM while earning money in LIVE.
-            tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
-
-            if (process.env.BINANCE_API_KEY) {
-                tasks.push(processMode('LIVE', marketPairs, marketCache, null, null));
             }
 
-            await Promise.all(tasks);
-            res.status(200).json({ status: 'OK' });
-        } catch (error) {
-            console.error('❌ CRITICAL ERROR:', error.message);
-            res.status(500).json({ error: error.message });
+            // 👻 GHOST DETECTED! Use Resurrection Protocol.
+            console.warn(`👻 [INTEGRITY GUARD] Resurrected Ghost Trade: ${proposedT.symbol} (Missing from Redis but NO Close found in History)`);
+            return true; // KEEP IT (Write it back to Redis)
         }
+    });
+
+    // C. Add the external additions
+    const finalState = [...mergedActiveTrades, ...externallyAdded];
+
+    // Log if intervention occurred
+    if (finalState.length !== newActiveTrades.length) {
+        // This log logic needs update, but acceptable for now
     }
+
+    // GOD-MODE OPTIMIZATION: Pipeline Writes (Atomic & Fast)
+    const pipeline = redis.pipeline();
+    pipeline.set(activeKey, JSON.stringify(finalState));
+    pipeline.set(configKey, JSON.stringify(wallet));
+
+    if (newWins.length > 0) {
+        // Optimization: Use 'winHistory' fetched at start (via mget) instead of fetching again
+        const updatedHistory = [...newWins, ...winHistory].slice(0, 50);
+        pipeline.set(historyKey, JSON.stringify(updatedHistory));
+    }
+
+    await pipeline.exec();
+    return { mode, activeCount: finalState.length, alerts: [] };
+}
+
+export default async function handler(req, res) {
+    console.log('🚀 [DUAL ENGINE] check-prices START');
+    try {
+        const marketCache = {};
+        const marketPairs = await getDynamicTopPairs();
+
+        // Parallel Processing
+        // Parallel Processing
+        const activeModeUI = await redis.get('sentinel_active_mode') || 'SIMULATION';
+        const tasks = [];
+
+        // Only run SIMULATION if users wants it or we are NOT in LIVE prioritized mode
+        // User requested "Quita los trades falsos", so if KEY exists, we focus on LIVE.
+        // ALWAYS RUN BOTH MODES (User Request: "Los dos a la vez")
+        // This ensures he can test strategies in SIM while earning money in LIVE.
+        tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
+
+        if (process.env.BINANCE_API_KEY) {
+            tasks.push(processMode('LIVE', marketPairs, marketCache, null, null));
+        }
+
+        await Promise.all(tasks);
+        res.status(200).json({ status: 'OK' });
+    } catch (error) {
+        console.error('❌ CRITICAL ERROR:', error.message);
+        res.status(500).json({ error: error.message });
+    }
+}
