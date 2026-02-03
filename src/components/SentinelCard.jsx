@@ -32,24 +32,29 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, walletConfig, current
 
 
     // DETERMINE SIGNAL LABEL & COLOR
-    let label = 'ESPERANDO';
-    let color = '#94A3B8'; // Neutral Grey
+    let label = 'ESCANEANDO...';
+    let color = '#475569'; // Neutral Slate
     let glow = 'none';
+    let isSignal = false;
+    let bgGradient = 'linear-gradient(180deg, #0F172A 0%, #0F172A 100%)';
 
-    // PRIORITY 1: HYBRID SIGNAL (The new brain)
-    if (signal === 'BUY_SIGNAL_HYBRID' || signal === 'BUY') { // Fallback to standard buy
-        label = '🟢 BUY DETECTED';
+    // PRIORITY: SIGNAL DETECTED
+    if (signal?.includes('BUY')) {
+        label = '🚀 SEÑAL PARA OPERAR';
         color = '#10B981';
-        glow = '0 0 20px rgba(16, 185, 129, 0.4)';
-    } else if (signal === 'SELL_SIGNAL_HYBRID' || signal === 'SELL') {
-        label = '🔴 SELL DETECTED';
+        glow = '0 0 25px rgba(16, 185, 129, 0.5)';
+        isSignal = true;
+        bgGradient = 'linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, #0F172A 100%)';
+    } else if (signal?.includes('SELL')) {
+        label = '🔻 SEÑAL PARA OPERAR';
         color = '#EF4444';
-        glow = '0 0 20px rgba(239, 68, 68, 0.4)';
-    } else if (signal === 'WAIT') {
-        label = 'ESPERANDO...';
-        color = '#94A3B8';
+        glow = '0 0 25px rgba(239, 68, 68, 0.5)';
+        isSignal = true;
+        bgGradient = 'linear-gradient(180deg, rgba(239, 68, 68, 0.1) 0%, #0F172A 100%)';
     }
 
+    // Check if data is just default/placeholder
+    const isDefault = (!indicators.rsi || indicators.rsi === 50) && (!indicators.ema || indicators.ema === 0);
 
     return (
         <motion.div
@@ -57,93 +62,51 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, walletConfig, current
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            style={{ borderTop: `4px solid ${color}`, boxShadow: glow }}
+            style={{
+                borderTop: `4px solid ${color}`,
+                boxShadow: glow,
+                background: bgGradient
+            }}
         >
             <div className={styles.header}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className={styles.symbol}>{symbol.replace('USDT', '')}</span>
                     <span className={styles.subSymbol}>PERPETUAL</span>
                 </div>
-                {/* Real-Time Price with Ticker Animation */}
                 <div className={styles.priceValue} style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>
                     <NumberTicker value={parseFloat(price)} decimals={price < 1 ? 4 : 2} prefix="$" />
                 </div>
             </div>
 
-
-            <div className={styles.indicatorsGrid} style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '10px',
-                marginTop: '10px',
-                position: 'relative',
-                zIndex: 2
-            }}>
-                {(indicators.flow || indicators.mode) ? (
-                    /* FLOW / HYBRID STRATEGY VISUALIZATION */
-                    <>
-                        <div className={styles.indicator}>
-                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>BID PRESSURE</span>
-                            <div className={styles.indValue} style={{
-                                fontSize: '1.1rem', fontWeight: 'bold',
-                                color: parseFloat(indicators.flow?.ratio || 1) > 1.5 ? '#10B981' : parseFloat(indicators.flow?.ratio || 1) < 0.7 ? '#EF4444' : '#94A3B8',
-                                transition: 'color 0.5s ease'
-                            }}>
-                                <NumberTicker value={parseFloat(indicators.flow?.ratio || 0)} decimals={2} suffix="x" />
-                            </div>
+            {/* Only show indicators if they are VALID (non-default) OR if we have a signal */}
+            {!isDefault && (
+                <div className={styles.indicatorsGrid} style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '15px'
+                }}>
+                    <div className={styles.indicator} style={{ background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
+                        <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#94A3B8' }}>RSI (14)</span>
+                        <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#E2E8F0' }}>
+                            {parseFloat(indicators.rsi).toFixed(1)}
                         </div>
-                        <div className={styles.indicator}>
-                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>RSI (CONFLUENCE)</span>
-                            <div className={styles.indValue} style={{
-                                fontSize: '1.1rem',
-                                fontWeight: 'bold',
-                                color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#F59E0B'
-                            }}>
-                                <NumberTicker value={parseFloat(indicators.rsi)} decimals={1} />
-                            </div>
+                    </div>
+                    <div className={styles.indicator} style={{ background: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
+                        <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#94A3B8' }}>EMA (200)</span>
+                        <div className={styles.indValue} style={{ fontSize: '1rem', fontWeight: 'bold', color: '#F59E0B' }}>
+                            ${parseFloat(indicators.ema).toFixed(price < 1 ? 4 : 2)}
                         </div>
-                    </>
-                ) : (
-                    /* STANDARD TECHNICALS */
-                    <>
-                        <div className={styles.indicator}>
-                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>
-                                {indicators.rsi1h ? 'RSI (4h|1h|15m)' : 'RSI (14)'}
-                            </span>
-                            <div className={styles.indValue} style={{
-                                fontSize: indicators.rsi1h ? '0.9rem' : '1.1rem',
-                                fontWeight: 'bold',
-                                color: parseFloat(indicators.rsi) < 30 ? '#10B981' : parseFloat(indicators.rsi) > 70 ? '#EF4444' : '#94A3B8',
-                                display: 'flex',
-                                gap: '4px'
-                            }}>
-                                <NumberTicker value={parseFloat(indicators.rsi)} decimals={1} />
-                                {indicators.rsi1h && (
-                                    <>
-                                        <span style={{ opacity: 0.3 }}>|</span>
-                                        <NumberTicker value={parseFloat(indicators.rsi1h)} decimals={1} style={{ color: parseFloat(indicators.rsi1h) < 30 ? '#10B981' : '#888' }} />
-                                        <span style={{ opacity: 0.3 }}>|</span>
-                                        <NumberTicker value={parseFloat(indicators.rsi15m)} decimals={1} style={{ color: parseFloat(indicators.rsi15m) < 30 ? '#10B981' : '#888' }} />
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                        <div className={styles.indicator}>
-                            <span className={styles.indLabel} style={{ fontSize: '0.7rem', color: '#888' }}>EMA (200)</span>
-                            <div className={styles.indValue} style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#F59E0B' }}>
-                                {indicators.ema !== '---' && !isNaN(indicators.ema) ?
-                                    <NumberTicker value={parseFloat(indicators.ema)} decimals={price < 1 ? 4 : 2} prefix="$" />
-                                    : '---'}
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-
+                    </div>
+                </div>
+            )}
 
             <div className={styles.signalBadge} style={{
-                background: color, color: '#000', boxShadow: `0 0 15px ${color}`,
-                textAlign: 'center', padding: '5px', borderRadius: '4px', marginTop: '15px', fontWeight: 'bold', fontSize: '0.8rem'
+                background: isSignal ? color : 'rgba(255,255,255,0.03)',
+                color: isSignal ? '#000' : '#64748B',
+                boxShadow: isSignal ? `0 0 15px ${color}` : 'none',
+                textAlign: 'center', padding: '10px', borderRadius: '6px', marginTop: '15px',
+                fontWeight: 'bold', fontSize: isSignal ? '1rem' : '0.8rem',
+                border: isSignal ? 'none' : '1px dashed #334155',
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
             }}>
                 {label}
             </div>
