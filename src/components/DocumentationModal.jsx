@@ -6,44 +6,22 @@ import styles from './DocumentationModal.module.css';
 const DocumentationModal = ({ isOpen, onClose }) => {
     const modes = [
         {
-            id: 'hybrid-swing',
-            title: 'HYBRID ENGINE: SWING (Institucional)',
-            icon: <ShieldCheck className={styles.modeIcon} style={{ color: '#00D9FF' }} size={28} />,
-            description: 'Motor de confluencia avanzado que fusiona Order Blocks, Presión de Flujo y Tendencia Macro. Optimizado para capturar giros de mercado en temporalidades de 1H/4H.',
-            indicators: ['Order Blocks', 'Buy/Sell Flow', 'EMA 200', 'RSI Confluence'],
-            logic: 'Exige confluencia triple: 1. Precio en zona OB. 2. Presión de compra > 1.5x. 3. Tendencia confirmada. Es el modo de mayor precisión.'
-        },
-        {
-            id: 'hybrid-blitz',
-            title: 'HYBRID ENGINE: BLITZ (Alta Frecuencia)',
-            icon: <Zap className={styles.modeIcon} style={{ color: '#F59E0B' }} size={28} />,
-            description: 'Versión ultrasensible del motor Híbrido. Diseñado para detectar micro-desequilibrios en el libro de órdenes y atrapar rebotes rápidos en 1m.',
-            indicators: ['Order Book Skew', 'Momentum de 1m', 'Turbo Impulse (1.0%)'],
-            logic: 'Usa umbrales reducidos (Impulso 1.0% y Flow 1.2x) para disparar con mayor frecuencia. Ideal para capturar micro-tendencias.'
-        },
-        {
-            id: 'ai-brain',
-            title: 'AI BRAIN: REGIME & KELLY (Fase 5)',
-            icon: <Layers className={styles.modeIcon} style={{ color: '#FFA500' }} size={28} />,
-            description: 'El cerebro del sistema. Analiza el clima global del mercado y ajusta el comportamiento del bot de forma autónoma.',
-            indicators: ['ADX (Regime)', 'Kelly Criterion (Risk)', 'Streak Analysis'],
-            logic: 'Detecta si el mercado es TENDENCIAL o LATERAL. Ajusta el multiplicador de riesgo (Kelly) según tu racha de acierto para proteger el capital.'
-        },
-        {
-            id: 'sniper',
-            title: 'CVD SNIPER (Rastreo de Ballenas)',
-            icon: <Target className={styles.modeIcon} style={{ color: '#D946EF' }} size={28} />,
-            description: 'Monitoreo vía WebSockets de transacciones individuales de gran capital (Ballenas) en tiempo real.',
-            indicators: ['CVD (Cumulative Volume Delta)', 'Whale Cluster Detection'],
-            logic: 'Rastrea el delta de volumen acumulado. Dispara cuando detecta una orden única o un clúster que supera el umbral de ballenas configurado.'
-        },
-        {
-            id: 'atr-risk',
-            title: 'ATR PRECISION (Gestión de Riesgo)',
-            icon: <ShieldCheck className={styles.modeIcon} style={{ color: '#10B981' }} size={28} />,
-            description: 'Sistema de salidas dinámicas basadas en la volatilidad real del mercado (Average True Range). No usa stops fijos.',
-            indicators: ['ATR (14)', 'Dynamic TP/SL', 'Volatility Multipliers'],
-            logic: 'Calcula el Stop Loss y el Take Profit basándose en la "respiración" del activo. Evita que el ruido del mercado te saque de una buena posición.'
+            id: 'blitz-spot',
+            title: 'ESTRATEGIA BLITZ: SPOT ALPHA (Alta Frecuencia)',
+            icon: <Zap className={styles.modeIcon} style={{ color: '#00D9FF' }} size={28} />,
+            description: 'Estrategia propietaria de ejecución rápida diseñada para mercados Spot. Busca ineficiencias de precio en temporalidades cortas (1m/5m) para capturar rebotes técnicos con precisión quirúrgica, sin riesgo de liquidación por apalancamiento.',
+            indicators: ['RSI Estocástico', 'Price Action Concepts (SMC)', 'Order Block Detection'],
+            logic: 'Detección de sobreventa extrema en zonas de demanda institucional. El sistema no "adivina", reacciona a la liquidez.',
+            examples: [
+                {
+                    title: 'Escenario de Compra Ideal',
+                    text: 'El precio de BTC cae bruscamente un 2% en 5 minutos. El RSI toca 25 (Sobreventa) y el precio entra en un "Order Block" (zona de compras anteriores). BLITZ detecta la confluencia y ejecuta una compra de mercado.'
+                },
+                {
+                    title: 'Gestión de Salida (Take Profit)',
+                    text: 'Una vez dentro, el bot coloca órdenes de venta escalonadas. Si el precio sube un 1.5%, asegura ganancias. Si baja más, espera (HODL) ya que en Spot no hay liquidación, aprovechando la recuperación natural del activo.'
+                }
+            ]
         }
     ];
 
@@ -91,9 +69,20 @@ const DocumentationModal = ({ isOpen, onClose }) => {
                                 <div className={styles.logicInfo}>
                                     <div className={styles.logicText}>
                                         <Info size={16} />
-                                        <strong>LÓGICA DE ENTRADA:</strong> {mode.logic}
+                                        <strong>LÓGICA OPERATIVA:</strong> {mode.logic}
                                     </div>
                                 </div>
+
+                                {mode.examples && (
+                                    <div style={{ marginTop: '15px', display: 'grid', gap: '10px' }}>
+                                        {mode.examples.map((ex, idx) => (
+                                            <div key={idx} style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #00D9FF' }}>
+                                                <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#fff', marginBottom: '4px' }}>📌 {ex.title}</div>
+                                                <div style={{ fontSize: '0.8rem', color: '#cbd5e1', lineHeight: '1.4' }}>{ex.text}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
 
