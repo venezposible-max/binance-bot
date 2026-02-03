@@ -4,6 +4,10 @@ export default async function handler(req, res) {
     try {
         const activeMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
         const suffix = activeMode === 'LIVE' ? '_real' : '_sim';
+        const lockdownStr = await redis.get('sentinel_lockdown');
+
+        // Check API Keys env vars (Masked for security)
+        const isApiConfigured = !!(process.env.BINANCE_API_KEY && process.env.BINANCE_API_SECRET);
 
         const activeKey = `sentinel_active_trades${suffix}`;
         const historyKey = `sentinel_win_history${suffix}`;
@@ -23,7 +27,10 @@ export default async function handler(req, res) {
         res.status(200).json({
             active: allActiveTrades,
             history: winHistory,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            lockdown: lockdownStr === 'true', // NEW
+            isApiConfigured, // NEW
+            mode: activeMode
         });
     } catch (error) {
         console.error('Error fetching cloud status:', error);
