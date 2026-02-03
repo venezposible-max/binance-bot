@@ -7,15 +7,39 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
     const fetchWallet = async () => {
         try {
-            // Using tradingMode from props to fetch the correct profile
-            const res = await fetch(`/api/wallet/config?mode=${tradingMode || 'SIMULATION'}`);
-            if (res.ok) {
-                const data = await res.json();
-                setWallet(data);
-                if (onConfigChange) onConfigChange(data);
+            const modeParam = tradingMode || 'SIMULATION';
+
+            // 1. Parallel Fetch of Critical Data
+            const promises = [
+                fetch(`/api/wallet/config?mode=${modeParam}`).then(r => r.json()),
+                fetch(`/api/get-status`).then(r => r.json())
+            ];
+
+            // 2. Conditional Fetch for Real Balance
+            if (tradingMode === 'LIVE') {
+                promises.push(fetch(`/api/wallet/balance`).then(r => r.json()));
+            } else {
+                promises.push(Promise.resolve({ available: 0, total: 0 })); // Dummy for Sim
+            }
+
+            const [configData, statusData, balanceData] = await Promise.all(promises);
+
+            if (configData) {
+                setWallet(configData);
+
+                // 3. Sync Upstream to App.jsx (Signature: status, balance, config)
+                // Ensure statusData has the expected structure { active: [], history: [] }
+                // Ensure balanceData has { available, total }
+                if (onConfigChange) {
+                    onConfigChange(
+                        { active: statusData.active || [], history: statusData.history || [] },
+                        balanceData,
+                        configData
+                    );
+                }
             }
         } catch (error) {
-            console.error('Error fetching wallet:', error);
+            console.error('Error fetching wallet/status:', error);
         } finally {
             setLoading(false);
         }
