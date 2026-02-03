@@ -284,14 +284,31 @@ function App() {
     setTimeout(() => fetchData(newStrategy.includes('BLITZ') ? '5m' : '4h'), 100);
   };
 
-  const handleConfigChange = (newConfig) => {
-    setWalletConfig(newConfig);
-    if (newConfig.strategy && newConfig.strategy !== activeStrategy) {
-      setActiveStrategy(newConfig.strategy);
+  const handleConfigChange = (status, balance, config) => {
+    // 1. Sync Active Trades & History (Real-time polling)
+    if (status) {
+      setCloudStatus(prev => ({
+        active: status.active || [],
+        history: status.history || []
+      }));
     }
-    // Also sync trading mode if changed from wallet
-    if (newConfig.tradingMode && newConfig.tradingMode !== tradingMode) {
-      setTradingMode(newConfig.tradingMode);
+
+    // 2. Sync Binace Balance
+    if (balance) {
+      setBinanceBalance(balance);
+    }
+
+    // 3. Sync Wallet Config
+    if (config) {
+      setWalletConfig(config);
+
+      if (config.strategy && config.strategy !== activeStrategy) {
+        setActiveStrategy(config.strategy);
+      }
+      // Also sync trading mode if changed from wallet
+      if (config.tradingMode && config.tradingMode !== tradingMode) {
+        setTradingMode(config.tradingMode);
+      }
     }
   };
 
