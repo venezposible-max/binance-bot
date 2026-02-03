@@ -7,35 +7,40 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Symbol is required' });
     }
 
-    const REGION = process.env.REGION || 'US';
-
     try {
-        let response;
+        const sources = [
+            { url: 'https://api.binance.com/api/v3/klines', label: 'Global' },
+            { url: 'https://api-gcp.binance.com/api/v3/klines', label: 'GCP' },
+            { url: 'https://api1.binance.com/api/v3/klines', label: 'API1' }
+        ];
 
-        if (REGION === 'EU') {
-            // Priority: Binance Global
-            const config = {
-                params: { symbol, interval, limit },
-                timeout: 8000
-            };
-            if (process.env.BINANCE_API_KEY) {
-                config.headers = { 'X-MBX-APIKEY': process.env.BINANCE_API_KEY };
-            }
-            response = await axios.get('https://api.binance.com/api/v3/klines', config);
-        } else {
-            // US Mode: Try Binance US first
+        let response = null;
+        let lastError = null;
+
+        for (const src of sources) {
             try {
-                response = await axios.get('https://api.binance.us/api/v3/klines', {
-                    params: { symbol, interval, limit },
-                    timeout: 5000
-                });
-            } catch (e) {
-                console.warn(`Binance US failed for ${symbol}, trying Global...`);
-                response = await axios.get('https://api.binance.com/api/v3/klines', {
+                const config = {
                     params: { symbol, interval, limit },
                     timeout: 8000
-                });
+                };
+                if (process.env.BINANCE_API_KEY) {
+                    config.headers = { 'X-MBX-APIKEY': process.env.BINANCE_API_KEY };
+                }
+
+                // console.log(`Candles: Trying ${src.label} for ${symbol}...`);
+                response = await axios.get(src.url, config);
+
+                if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                    break; // Success
+                }
+            } catch (e) {
+                lastError = e.message;
+                // console.warn(`Candles: ${src.label} failed for ${symbol}: ${e.message}`);
             }
+        }
+
+        if (!response || !response.data) {
+            throw new Error(lastError || 'All candle sources failed');
         }
 
         // Transform to frontend format

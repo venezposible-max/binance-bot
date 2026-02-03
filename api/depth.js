@@ -10,41 +10,31 @@ export default async function handler(req, res) {
     const REGION = process.env.REGION || 'US';
 
     try {
-        let response;
         // Prioritize Binance US for typical Vercel/Railway regions, Fallback to Global
         // The endpoint is /api/v3/depth
 
-        const config = {
-            params: { symbol, limit },
-            timeout: 5000
-        };
+        const sources = [
+            { url: 'https://api.binance.com/api/v3/depth', label: 'Global' },
+            { url: 'https://api-gcp.binance.com/api/v3/depth', label: 'GCP' },
+            { url: 'https://api1.binance.com/api/v3/depth', label: 'API1' }
+        ];
 
-        // If VIP Keys are present, use them for higher rate limits (on Global)
-        if (process.env.BINANCE_API_KEY) {
-            config.headers = { 'X-MBX-APIKEY': process.env.BINANCE_API_KEY };
-        }
+        let response = null;
 
-        if (REGION === 'EU') {
-            // EU Mode: Direct Global
-            response = await axios.get('https://api.binance.com/api/v3/depth', config);
-        } else {
-            // US Mode: Try US first
+        for (const src of sources) {
             try {
-                // Note: Binance US might not accept standard API Keys if they are Global keys?
-                // Usually keys are specific. But user likely has Global keys if they ask for "Binance".
-                // Safest bet: Try US without keys first (public), or Global WITH keys if fallback.
-
-                // Let's try US Public first for speed/safety
-                response = await axios.get('https://api.binance.us/api/v3/depth', {
+                // console.log(`Depth: Trying ${src.label} for ${symbol}...`);
+                response = await axios.get(src.url, {
                     params: { symbol, limit },
                     timeout: 4000
                 });
+                if (response.data && response.data.bids) break;
             } catch (e) {
-                console.warn(`Binance US Depth failed for ${symbol}, trying Global Proxy...`);
-                // Fallback to Global (Works via backend even if browser blocked)
-                response = await axios.get('https://api.binance.com/api/v3/depth', config);
+                // console.warn(`Depth: ${src.label} failed for ${symbol}`);
             }
         }
+
+        if (!response || !response.data) throw new Error('All depth sources failed');
 
         // Return raw Bids/Asks
         // Format: { lastUpdateId: 123, bids: [ [price, qty], ... ], asks: [ ... ] }
