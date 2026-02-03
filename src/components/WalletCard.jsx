@@ -294,52 +294,49 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 </div>
             </div>
 
-            {/* --- BLITZ STATUS PANEL --- */}
-            <div style={{ marginBottom: '15px', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#00D9FF', fontWeight: 'bold' }}>⚡ BLITZ ENGINE ACTIVE</div>
-                    <span style={{ fontSize: '0.6rem', color: '#64748B' }}>(5m High Frequency)</span>
-                </div>
-            </div>
-
-            {/* --- PORTFOLIO HEALTH (Phase 3) --- */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '15px' }}>
-                <div className={styles.statMini}>
-                    <div className={styles.label}><span>TRADES</span></div>
-                    <div style={{ color: (activeTrades?.length || 0) >= (wallet.maxTrades || 3) ? '#EF4444' : '#10B981', fontWeight: 'bold' }}>
-                        <span>{activeTrades?.length || 0} / {wallet.maxTrades || 3}</span>
+            {/* --- DESKTOP SPLIT CONTAINER --- */}
+            <div className={styles.desktopSplit}>
+                {/* LEFT: FINANCIALS (Big Numbers) */}
+                <div className={styles.leftPanel}>
+                    <div className={styles.mainStats}>
+                        <div className={styles.balanceGroup}>
+                            <div className={styles.label}><span>CASH</span></div>
+                            <div className={styles.value}><span>${currentBalance.toFixed(2)}</span></div>
+                        </div>
+                        <div className={styles.balanceGroup} style={{ borderLeft: '1px solid #333', paddingLeft: '20px' }}>
+                            <div className={styles.label}><span>EQUITY</span></div>
+                            <div className={styles.value} style={{ color: equity >= initialBalance ? '#10B981' : '#EF4444' }}>
+                                <span>${equity.toFixed(2)}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div className={styles.statMini}>
-                    <div className={styles.label}><span>ATR MODE</span></div>
-                    <div style={{ color: '#F59E0B', fontWeight: 'bold' }}><span>AUTO ✅</span></div>
-                </div>
-            </div>
 
-            <div className={styles.mainStats}>
-                <div className={styles.balanceGroup}>
-                    <div className={styles.label}><span>CASH</span></div>
-                    <div className={styles.value}><span>${currentBalance.toFixed(2)}</span></div>
-                </div>
-                <div className={styles.balanceGroup} style={{ borderLeft: '1px solid #333', paddingLeft: '20px' }}>
-                    <div className={styles.label}><span>EQUITY</span></div>
-                    <div className={styles.value} style={{ color: equity >= initialBalance ? '#10B981' : '#EF4444' }}>
-                        <span>${equity.toFixed(2)}</span>
+                {/* RIGHT: OPERATIONS (Strategy & Status) */}
+                <div className={styles.rightPanel}>
+                    {/* BLITZ STATUS */}
+                    <div className={styles.blitzBadge}>
+                        <div style={{ fontSize: '0.8rem', color: '#00D9FF', fontWeight: 'bold' }}>⚡ BLITZ ENGINE ACTIVE</div>
+                        <span style={{ fontSize: '0.6rem', color: '#64748B' }}>(5m High Frequency)</span>
+                    </div>
+
+                    {/* STATS MINI */}
+                    <div className={styles.miniStatsRow}>
+                        <div className={styles.statMini}>
+                            <div className={styles.label}><span>TRADES</span></div>
+                            <div style={{ color: (activeTrades?.length || 0) >= (wallet.maxTrades || 3) ? '#EF4444' : '#10B981', fontWeight: 'bold' }}>
+                                <span>{activeTrades?.length || 0} / {wallet.maxTrades || 3}</span>
+                            </div>
+                        </div>
+                        <div className={styles.statMini}>
+                            <div className={styles.label}><span>RIESGO</span></div>
+                            <div style={{ fontWeight: 'bold' }}><span>{wallet.riskPercentage}%</span></div>
+                        </div>
+                        <div className={styles.configGroup}>
+                            <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-
-            <div className={styles.configGroup}>
-                <div className={styles.statItem}>
-                    <div className={styles.label}><span>RIESGO</span></div>
-                    <div style={{ fontWeight: 'bold' }}><span>{wallet.riskPercentage}%</span></div>
-                </div>
-                <div className={styles.statItem}>
-                    <div className={styles.label}><span>ESTRATEGIA</span></div>
-                    <div style={{ fontWeight: 'bold', color: '#00D9FF' }}><span>BLITZ</span></div>
-                </div>
-                <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>
             </div>
         </div>
     );

@@ -281,21 +281,73 @@
 @media (max-width: 450px) {
     .headerRow {
         flex-direction: column;
-        /* Stack Title and Controls vertically */
         align-items: flex-start;
     }
 
     .controlsGroup {
         width: 100%;
         justify-content: space-between;
-        /* Spread buttons */
     }
 
     .modeToggleBtn,
     .startBtn,
     .pauseBtn {
         flex: 1;
-        /* Make buttons verify full width/half width */
         text-align: center;
+    }
+}
+
+/* --- DESKTOP SPLIT LAYOUT (User Optimization) --- */
+.desktopSplit {
+    display: flex;
+    flex-direction: column;
+    /* Default Mobile: Stacked */
+    gap: 20px;
+}
+
+.leftPanel,
+.rightPanel {
+    width: 100%;
+}
+
+.blitzBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 15px;
+}
+
+.miniStatsRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+@media (min-width: 1024px) {
+    .desktopSplit {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        /* Split in two */
+        gap: 30px;
+        align-items: center;
+    }
+
+    .leftPanel {
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        padding-right: 30px;
+    }
+
+    .rightPanel {
+        padding-left: 10px;
+    }
+
+    .blitzBadge {
+        margin-bottom: 10px;
     }
 }
