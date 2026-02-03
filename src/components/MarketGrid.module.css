@@ -9,10 +9,12 @@
     padding-bottom: 60px;
 }
 
-.grid {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 100%;
-    box-sizing: border-box;
+@media (max-width: 768px) {
+    .grid {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        box-sizing: border-box;
+    }
 }
