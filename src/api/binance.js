@@ -261,3 +261,60 @@ export const fetchDepth = async (symbol, limit = 50) => {
         return null;
     }
 };
+
+// Helper for Direct Ticker Fetch
+const fetchTickerDirect = async (symbols) => {
+    const prices = {};
+    const MIRRORS = [
+        'https://api.binance.com',
+        'https://api1.binance.com', 'https://api2.binance.com', 'https://api3.binance.com',
+        'https://api-gcp.binance.com'
+    ];
+
+    // We can fetch all prices in one go usually, but mirrors require one request.
+    // Ticker endpoint: /api/v3/ticker/price?symbol=... or /api/v3/ticker/price for all.
+    // Fetching ALL is heavy but reliable.
+    // Fetching specific symbols individually is safer for rate limits if list is small (10 pairs).
+
+    // Let's try fetching individual symbols in parallel for robustness.
+    const promises = symbols.map(async (s) => {
+        for (const host of MIRRORS) {
+            try {
+                const res = await axios.get(`${host}/api/v3/ticker/price`, {
+                    params: { symbol: s },
+                    timeout: 2000
+                });
+                if (res.data && res.data.price) {
+                    return { s, p: parseFloat(res.data.price) };
+                }
+            } catch (e) {
+                // Next mirror
+            }
+        }
+        return { s, p: 0 };
+    });
+
+    const results = await Promise.all(promises);
+    results.forEach(item => {
+        if (item.p > 0) prices[item.s] = item.p;
+    });
+
+    return prices;
+};
+
+export const fetchTickerPrices = async (symbols) => {
+    try {
+        const symbolParam = symbols.join(',');
+        const response = await axios.get(`/api/ticker?symbols=${symbolParam}`, { timeout: 5000 });
+
+        // Validation: If backend returns empty, throw to trigger fallback
+        if (!response.data || Object.keys(response.data).length === 0) {
+            throw new Error("Backend Ticker Empty");
+        }
+
+        return response.data;
+    } catch (error) {
+        console.warn("Backend Ticker Failed, using Direct Fallback...", error.message);
+        return await fetchTickerDirect(symbols);
+    }
+};
