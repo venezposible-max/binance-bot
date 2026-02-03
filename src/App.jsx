@@ -225,13 +225,17 @@ function App() {
 
       // 3. Process each pair
       for (const symbol of currentPairs) {
-        // [FIX] Use Price from Ticker Map
-        const price = pricesMap[symbol];
-        if (!price) continue;
-
-        // [FIX] Robust Candle Check
         const klines = candlesMap[symbol];
         if (!klines || klines.length < 50) continue; // Need history for RSI/EMA
+
+        // [FIX] Use Price from Ticker Map OR Fallback to Candle Close
+        let price = pricesMap[symbol];
+
+        if (!price && klines.length > 0) {
+          price = klines[klines.length - 1].close;
+        }
+
+        if (!price) continue;
 
         const analysis = {
           ...analyzePair(klines),
