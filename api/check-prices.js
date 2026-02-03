@@ -19,14 +19,16 @@ async function getDynamicTopPairs() {
         try {
             const res = await axios.get(src.url, { timeout: 5000 });
             if (res.data && Array.isArray(res.data)) {
-                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD'];
+                // BLACKLIST: Added ZAMA and ZEC as requested by User
+                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC'];
                 const relevant = res.data.filter(p => {
                     if (!p.symbol.endsWith('USDT')) return false;
                     if (BLACKLIST.some(blocked => p.symbol.includes(blocked))) return false;
                     return parseFloat(p.quoteVolume) > 5000000;
                 });
                 relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-                return relevant.slice(0, 10).map(p => p.symbol);
+                // Increased Search Depth to 20 to find alternatives
+                return relevant.slice(0, 20).map(p => p.symbol);
             }
         } catch (e) {
             console.warn(`⚠️ Dynamic Pairs [${src.label}] Fail: ${e.response?.status === 403 ? '403 Blocked' : e.message}`);
