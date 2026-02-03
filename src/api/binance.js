@@ -110,8 +110,24 @@ const fetchCandlesDirect = async (symbolOrArray, interval, limit) => {
                 }));
                 return { s, data: formatted };
             } catch (e2) {
-                console.warn(`Direct fetch failed for ${s}:`, e.message);
-                return { s, data: [] };
+                // Try Binance US fallback (Last resort for US users)
+                try {
+                    const res = await axios.get('https://api.binance.us/api/v3/klines', {
+                        params: { symbol: s, interval, limit }
+                    });
+                    const formatted = res.data.map(c => ({
+                        time: c[0],
+                        open: parseFloat(c[1]),
+                        high: parseFloat(c[2]),
+                        low: parseFloat(c[3]),
+                        close: parseFloat(c[4]),
+                        volume: parseFloat(c[5])
+                    }));
+                    return { s, data: formatted };
+                } catch (e3) {
+                    console.warn(`Direct fetch failed for ${s}:`, e3.message);
+                    return { s, data: [] };
+                }
             }
         }
     });
