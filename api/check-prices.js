@@ -560,6 +560,13 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             // It was truly closed. Honor the delete.
             return false;
         } else {
+            // DATA INTEGRITY CHECK: Do not resurrect corrupt trades (NaN or $0 price)
+            // This fixes the "ZAMA" zombie issue where price is 0 and it keeps coming back.
+            if (!proposedT.entryPrice || proposedT.entryPrice <= 0 || isNaN(proposedT.entryPrice)) {
+                console.warn(`💀 [INTEGRITY GUARD] Buried Corrupt Zombie: ${proposedT.symbol} (Invalid Price: ${proposedT.entryPrice}). NOT Resurrecting.`);
+                return false;
+            }
+
             // 👻 GHOST DETECTED! Use Resurrection Protocol.
             console.warn(`👻 [INTEGRITY GUARD] Resurrected Ghost Trade: ${proposedT.symbol} (Missing from Redis but NO Close found in History)`);
             return true; // KEEP IT (Write it back to Redis)
