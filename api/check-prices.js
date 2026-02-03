@@ -100,12 +100,11 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
         initialBalance: 1000, currentBalance: 1000, riskPercentage: 10, allocatedCapital: 500,
         tradingMode: mode, isBotActive: true, maxTrades: 3, dailyLossLimit: 50, cooldownMinutes: 30,
-        strategyConfig: { SNIPER: { active: true }, HYBRID_SWING: { active: true } }
+        strategyConfig: { HYBRID_BLITZ: { active: true } }
     };
 
-    const strategiesRaw = wallet.strategyConfig || { SNIPER: { active: true } };
-    const activeStrategies = Object.keys(strategiesRaw).filter(k => strategiesRaw[k].active);
-    const strategiesStr = activeStrategies.length > 0 ? activeStrategies.join(' + ') : (wallet.strategy || 'SWING');
+    // FORCE CLEAN DISPLAY: Ignore stale Redis strategy configs
+    const strategiesStr = 'HYBRID_BLITZ';
 
     const activeColor = mode === 'LIVE' ? '🔴' : '🔵';
     console.log(`${activeColor} [${mode}] STRATEGY: ${strategiesStr} | Active: ${activeTrades.length} | Balance: $${wallet.currentBalance.toFixed(0)}`);

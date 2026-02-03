@@ -70,13 +70,8 @@ app.get('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 app.post('/api/wallet/active-mode', vercelAdapter(activeMode)); // New
 app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle)); // New
 
-// CVD SNIPER SERVICE (Singleton)
-import cvdSniper from './api/stream/cvd-worker.js';
+// CVD SNIPER SERVICE REMOVED (Legacy)
 import marketWorker from './api/stream/market-worker.js'; // Phase 1
-
-app.get('/api/cvd', (req, res) => {
-    res.json(cvdSniper.getData());
-});
 
 // Phase 1: High-Speed Market Cache
 app.get('/api/market-cache', (req, res) => {
@@ -87,9 +82,7 @@ app.get('/api/market-cache', (req, res) => {
 import debug from './api/debug.js';
 app.get('/api/debug', vercelAdapter(debug));
 
-// CLEAR SNIPER TRADES (for testing)
-import clearSniper from './api/clear-sniper.js';
-app.post('/api/clear-sniper', vercelAdapter(clearSniper));
+// CLEAR SNIPER TRADES REMOVED (Legacy)
 
 // SESSION CLEANUP (One-time utility)
 import cleanup from './api/cleanup.js';
