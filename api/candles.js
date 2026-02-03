@@ -23,9 +23,8 @@ export default async function handler(req, res) {
                     params: { symbol, interval, limit },
                     timeout: 8000
                 };
-                if (process.env.BINANCE_API_KEY) {
-                    config.headers = { 'X-MBX-APIKEY': process.env.BINANCE_API_KEY };
-                }
+                // REMOVED: API Key for public klines. sending a US Key to Global API causes 401/403 errors.
+                // config.headers = { 'X-MBX-APIKEY': process.env.BINANCE_API_KEY };
 
                 // console.log(`Candles: Trying ${src.label} for ${symbol}...`);
                 response = await axios.get(src.url, config);
@@ -34,8 +33,9 @@ export default async function handler(req, res) {
                     break; // Success
                 }
             } catch (e) {
-                lastError = e.message;
-                // console.warn(`Candles: ${src.label} failed for ${symbol}: ${e.message}`);
+                const status = e.response?.status || 'NoStatus';
+                console.warn(`[CandleProxy] ${src.label} failed for ${symbol} (${status}): ${e.message}`);
+                lastError = `${src.label}: ${e.message}`;
             }
         }
 
