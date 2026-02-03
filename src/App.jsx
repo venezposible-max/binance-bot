@@ -521,6 +521,18 @@ function App() {
         {activeStrategy !== 'SNIPER' && (
           <section style={{ width: '100%', marginTop: '20px' }}>
             <h2 className={styles.sectionTitle}>📊 ANÁLISIS DE MERCADO (TOP 10 VOLUMEN)</h2>
+
+            {Object.keys(marketData).length === 0 && (
+              <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📡</div>
+                <p style={{ fontWeight: 'bold' }}>Esperando Datos de Mercado...</p>
+                <div style={{ fontSize: '0.75rem', marginTop: '10px', color: '#64748B' }}>
+                  PARES: {pairs.length} | ESTRATEGIA: {activeStrategy}<br />
+                  INTENTANDO CONECTAR CON BINANCE...
+                </div>
+              </div>
+            )}
+
             <MarketGrid>
               {Object.keys(marketData).map(symbol => (
                 <SentinelCard

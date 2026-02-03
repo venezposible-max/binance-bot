@@ -322,16 +322,12 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             </div>
 
             {/* --- PORTFOLIO HEALTH (Phase 3) --- */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '15px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '15px' }}>
                 <div className={styles.statMini}>
                     <div className={styles.label}><span>TRADES</span></div>
                     <div style={{ color: (activeTrades?.length || 0) >= (wallet.maxTrades || 3) ? '#EF4444' : '#10B981', fontWeight: 'bold' }}>
                         <span>{activeTrades?.length || 0} / {wallet.maxTrades || 3}</span>
                     </div>
-                </div>
-                <div className={styles.statMini}>
-                    <div className={styles.label}><span>LOSS LIMIT</span></div>
-                    <div style={{ color: '#E2E8F0', fontWeight: 'bold' }}><span>${wallet.dailyLossLimit || 50}</span></div>
                 </div>
                 <div className={styles.statMini}>
                     <div className={styles.label}><span>ATR MODE</span></div>
