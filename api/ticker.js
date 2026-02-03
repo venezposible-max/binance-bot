@@ -38,16 +38,26 @@ export default async function handler(req, res) {
 
     try {
         const promises = symbolList.map(async (s) => {
-            // STRATEGY: Try Preferred Region First -> Then Failover
-            const preferredUrl = getBaseUrl();
-            const backupUrl = preferredUrl.includes('.us') ? BINANCE_GLOBAL : BINANCE_US;
+            // STRATEGY: Robust Multi-Source Fetch (Global -> GCP -> API1)
+            // Removed Binance US to prevent "Symbol Not Found" for global pairs like ZAMA
+            const sources = [
+                { url: `https://api.binance.com/api/v3/ticker/price?symbol=${s}`, label: 'Global' },
+                { url: `https://api-gcp.binance.com/api/v3/ticker/price?symbol=${s}`, label: 'GCP' },
+                { url: `https://api1.binance.com/api/v3/ticker/price?symbol=${s}`, label: 'API1' }
+            ];
 
-            let price = await fetchPriceFromSource(preferredUrl, s);
+            let price = null;
 
-            if (!price) {
-                // Failover attempt
-                // console.log(`Price failover for ${s}`);
-                price = await fetchPriceFromSource(backupUrl, s);
+            for (const src of sources) {
+                try {
+                    const res = await axios.get(src.url, { timeout: 3000 });
+                    if (res.data && res.data.price) {
+                        price = parseFloat(res.data.price);
+                        break; // Found it!
+                    }
+                } catch (e) {
+                    // Continue to next source
+                }
             }
 
             return { symbol: s, price };

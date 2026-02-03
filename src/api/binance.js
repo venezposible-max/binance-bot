@@ -130,19 +130,9 @@ export const fetchTickerPrices = async (symbols) => {
             });
             return processTickerData(globalResponse.data, symbols);
         } catch (globalError) {
-            console.warn("Global Fetch failed, trying US...", globalError.message);
-
-            // 3. Fallback B: Direct Browser Fetch (US - api.binance.us)
-            try {
-                console.log("Fallback B: Trying Binance US...");
-                const usResponse = await axios.get('https://api.binance.us/api/v3/ticker/price', {
-                    timeout: 3000
-                });
-                return processTickerData(usResponse.data, symbols);
-            } catch (usError) {
-                console.error("All Fetch Methods Failed:", usError.message);
-                return {};
-            }
+            console.error("Global Fetch failed:", globalError.message);
+            // Removed Binance US fallback to prevent false $0 prices for Global-only assets (ZAMA)
+            return {};
         }
     }
 };
