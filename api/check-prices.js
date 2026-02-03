@@ -23,6 +23,9 @@ async function getDynamicTopPairs() {
                 const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC'];
                 const relevant = res.data.filter(p => {
                     if (!p.symbol.endsWith('USDT')) return false;
+                    // REGEX: Filter out non-alphanumeric symbols (e.g. Chinese chars)
+                    if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;
+
                     if (BLACKLIST.some(blocked => p.symbol.includes(blocked))) return false;
                     return parseFloat(p.quoteVolume) > 5000000;
                 });

@@ -19,12 +19,16 @@ export const fetchTopPairs = async () => {
         // Explicit Blacklist of Stablecoins & Non-Volatile Assets
         const BLACKLIST = [
             'USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP',
-            'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD'
+            'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD',
+            'ZAMA', 'ZEC' // User Requested Blacklist
         ];
 
         // Filter valid USDT pairs (exclude stablecoins & non-volatile assets)
         const relevant = allPairs.filter(p => {
             if (!p.symbol.endsWith('USDT')) return false;
+
+            // REGEX: Filter out non-alphanumeric symbols (e.g. Chinese chars like 币安人生USDT)
+            if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;
 
             // Check against Blacklist
             const isBlacklisted = BLACKLIST.some(blocked => p.symbol.includes(blocked));
