@@ -1,123 +1,67 @@
-import React, { useEffect, useRef } from 'react';
-import { TrendingUp, TrendingDown, Activity, Minus } from 'lucide-react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import React from 'react';
+import styles from './SentinelCard.module.css';
+import { motion } from 'framer-motion';
+import NumberTicker from './NumberTicker';
+
 import ProfessionalChart from './ProfessionalChart';
 
-import styles from './SentinelCard.module.css';
-
-// Animated Number Component
-const NumberTicker = ({ value, decimals = 2, prefix = '', suffix = '', style }) => {
-    const ref = useRef(null);
-    // Safety check: if value is null, undefined, or NaN, treat as 0 or handle display
-    const safeValue = (value !== null && value !== undefined && !isNaN(value)) ? value : 0;
-    const motionValue = useMotionValue(safeValue);
-    const springValue = useSpring(motionValue, { stiffness: 50, damping: 15 });
-
-    useEffect(() => {
-        motionValue.set(safeValue);
-    }, [safeValue]);
-
-    useEffect(() => {
-        const unsubscribe = springValue.on("change", (latest) => {
-            if (ref.current) {
-                ref.current.textContent = prefix + latest.toFixed(decimals) + suffix;
-            }
-        });
-        return () => unsubscribe();
-    }, [springValue, decimals, prefix, suffix]);
-
-    if (value === null || value === undefined || isNaN(value)) return <span style={style}>---</span>;
-
-    return <span ref={ref} style={style}>{prefix + safeValue.toFixed(decimals) + suffix}</span>;
-};
-
-const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
-    // ONLY show skeleton if we have NO data at all
-    if (!data) {
+const SentinelCard = ({ symbol, data, loading, onSimulate, walletConfig, currentPrice }) => {
+    // Phase 1: Skeleton Loading
+    if (loading || !data) {
         return (
-            <motion.div
-                className={`${styles.card} ${styles.loading}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-            >
-                ⏳ Cargando Radar...
-            </motion.div>
+            <div className={styles.card} style={{ height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className={styles.loadingPulse}>⌛ Cargando Radar...</span>
+            </div>
         );
     }
 
-    const { price, prediction, indicators } = data;
+    const {
+        price,
+        forecast,
+        indicators,
+        signal,
+        score,
+        obZone,
+        triple, // { confirmed: true/false, direction: 'UP'/'DOWN' }
+        flow,    // Volume Flow
+        hybrid   // Hybrid Logic
+    } = data;
 
-    // Optimization: Subtle opacity during background refresh
-    const cardOpacity = loading ? 0.7 : 1;
 
+    // DETERMINE SIGNAL LABEL & COLOR
+    let label = 'ESPERANDO';
+    let color = '#94A3B8'; // Neutral Grey
+    let glow = 'none';
 
-    // Override SELL to NEUTRAL for Long-Only visual clarity
-    let { signal, label, color, intensity } = prediction;
-    if (signal.includes('SELL')) {
-        signal = 'NEUTRAL';
-        label = 'NEUTRAL (WAIT)';
-        color = '#94A3B8'; // Slate Gray
-        intensity = 1; // Low intensity
+    // PRIORITY 1: HYBRID SIGNAL (The new brain)
+    if (signal === 'BUY_SIGNAL_HYBRID' || signal === 'BUY') { // Fallback to standard buy
+        label = '🟢 BUY DETECTED';
+        color = '#10B981';
+        glow = '0 0 20px rgba(16, 185, 129, 0.4)';
+    } else if (signal === 'SELL_SIGNAL_HYBRID' || signal === 'SELL') {
+        label = '🔴 SELL DETECTED';
+        color = '#EF4444';
+        glow = '0 0 20px rgba(239, 68, 68, 0.4)';
+    } else if (signal === 'WAIT') {
+        label = 'ESPERANDO...';
+        color = '#94A3B8';
     }
 
-    // Dynamic Neon Style
-    const glowStyle = {
-        borderColor: color,
-        boxShadow: `0 0 ${intensity / 3}px ${color}40`, // softer glow
-        '--card-accent': color
-    };
-
-    const getIcon = () => {
-        if (signal.includes('BUY')) return <TrendingUp size={24} />;
-        if (signal.includes('SELL')) return <TrendingDown size={24} />;
-        return <Minus size={24} />;
-    };
-
-    const isSniper = signal.includes('STRONG');
-
-    // Advanced Animation Variants
-    const cardVariants = {
-        hidden: { opacity: 0, scale: 0.9, y: 20 },
-        visible: {
-            opacity: 1,
-            scale: 1,
-            y: 0,
-            transition: { type: "spring", stiffness: 260, damping: 20 }
-        },
-        hover: {
-            scale: 1.03,
-            boxShadow: `0 0 40px ${color}60`,
-            zIndex: 10
-        }
-    };
 
     return (
         <motion.div
-            className={`${styles.card} ${isSniper ? styles.sniperPulse : ''}`}
-            style={{ ...glowStyle, opacity: cardOpacity }}
-            variants={cardVariants}
-            initial="hidden"
-            animate="visible"
-            whileHover="hover"
-
+            className={styles.card}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ borderTop: `4px solid ${color}`, boxShadow: glow }}
         >
-            {/* TIMEFRAME BADGE (New) */}
-            <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.65rem', color: '#64748B', border: '1px solid rgba(100,116,139,0.3)', padding: '2px 4px', borderRadius: '4px' }}>
-                {indicators.mode && (indicators.mode.includes('BLITZ') || indicators.mode === 'SCALP') ? '5m' : (indicators.mode === 'TRIPLE' ? '15m' : '4h')}
-            </div>
-
             <div className={styles.header}>
-                <div className={styles.symbolWrapper}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className={styles.symbol}>{symbol.replace('USDT', '')}</span>
-                    <span className={styles.pair}>/USDT</span>
+                    <span className={styles.subSymbol}>PERPETUAL</span>
                 </div>
-                <div className={styles.iconWrapper} style={{ color }}>
-                    {getIcon()}
-                </div>
-            </div>
-
-            <div className={styles.priceSection}>
-                <div className={styles.priceLabel}><span>PRECIO ACTUAL</span></div>
+                {/* Real-Time Price with Ticker Animation */}
                 <div className={styles.priceValue} style={{ color: '#fff', fontSize: '1.5rem', fontWeight: 'bold' }}>
                     <NumberTicker value={parseFloat(price)} decimals={price < 1 ? 4 : 2} prefix="$" />
                 </div>

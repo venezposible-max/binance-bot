@@ -28,8 +28,6 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 setWallet(configData);
 
                 // 3. Sync Upstream to App.jsx (Signature: status, balance, config)
-                // Ensure statusData has the expected structure { active: [], history: [] }
-                // Ensure balanceData has { available, total }
                 if (onConfigChange) {
                     onConfigChange(
                         { active: statusData.active || [], history: statusData.history || [] },

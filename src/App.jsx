@@ -13,8 +13,6 @@ import { sendTelegramAlert } from './utils/telegram';
 import { BookOpen } from 'lucide-react';
 import ActiveTradeCard from './components/ActiveTradeCard';
 
-import HistoryModal from './components/HistoryModal'; // NEW
-
 function App() {
   const [pairs, setPairs] = useState(INITIAL_PAIRS); // Dynamic Top 10 Pairs
   const [marketData, setMarketData] = useState({});
@@ -32,315 +30,500 @@ function App() {
   const [tradingMode, setTradingMode] = useState('SIMULATION'); // Default safe
   const [walletConfig, setWalletConfig] = useState({}); // bot logic and risk settings
 
-  const [isDocsOpen, setIsDocsOpen] = useState(false); // Documentation State
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // NEW: History State
+  const [isDocsOpen, setIsDocsOpen] = useState(false); // NEW: Documentation State
 
-  // -------------------------------------------------------------------------
-  // 1. DATA STREAM (Optimized Polling)
-  // -------------------------------------------------------------------------
-  const fetchData = useCallback(async () => {
-    if (isFetchingBus.current) return;
-    isFetchingBus.current = true;
+  // --- CLOUD AUTONOMY STATE ---
+  const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
 
+  // --- BINANCE REAL BALANCE ---
+  const [binanceBalance, setBinanceBalance] = useState(null);
+
+  const fetchBinanceBalance = async () => {
     try {
-      // 1. Refresh Dynamic Pairs (Only if in global mode)
-      const currentPairs = await fetchTopPairs();
+      const res = await fetch('/api/wallet/balance');
+      if (res.ok) {
+        const data = await res.json();
+        setBinanceBalance(data);
+      }
+    } catch (e) {
+      console.error("Balance fetch failed", e);
+    }
+  };
 
-      // Update pairs only if changed to avoid unnecessary re-renders
-      setPairs(prev => {
-        const isSame = prev.length === currentPairs.length && prev.every((p, i) => p === currentPairs[i]);
-        return isSame ? prev : currentPairs;
+  useEffect(() => {
+    fetchBinanceBalance();
+    const interval = setInterval(fetchBinanceBalance, 20000); // Check every 20s
+    return () => clearInterval(interval);
+  }, []);
+
+  // --- MOBILE NAV STATE ---
+  const [mobileTab, setMobileTab] = useState('dashboard');
+
+  const handleMobileNav = (tab) => {
+    setMobileTab(tab);
+    if (tab === 'dashboard') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tab === 'wallet') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
+    if (tab === 'settings') walletRef.current?.configure(); // Open config modal
+  };
+
+  // --- MODE & CONFIG SYNC ---
+  const loadModeAndConfig = useCallback(async () => {
+    try {
+      // 1. Fetch Global Mode
+      const modeRes = await fetch('/api/wallet/active-mode');
+      const { mode } = modeRes.ok ? await modeRes.json() : { mode: 'SIMULATION' };
+      setTradingMode(mode);
+
+      // 2. Fetch Config for that mode
+      const configRes = await fetch(`/api/wallet/config?mode=${mode}`);
+      const data = configRes.ok ? await configRes.json() : null;
+
+      if (data) {
+        setWalletConfig(data);
+        // SYNC: Ensure frontend activeStrategy matches database on startup
+        if (data.strategy && data.strategy !== activeStrategy) {
+          setActiveStrategy(data.strategy);
+          localStorage.setItem('sentinel_strategy', data.strategy);
+          if (data.strategy.includes('BLITZ') || data.strategy === 'SCALP') setTimeframe('5m');
+          else if (data.strategy === 'TRIPLE') setTimeframe('15m');
+        } else {
+          if (data.strategy && data.strategy.includes('BLITZ') && timeframe !== '5m') setTimeframe('5m');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync mode/config:', err);
+    }
+  }, [activeStrategy, timeframe]);
+
+  useEffect(() => {
+    loadModeAndConfig();
+  }, []);
+
+  const fetchCloudStatus = async (explicitMode = null) => {
+    try {
+      const modeToFetch = explicitMode || tradingMode;
+      const res = await fetch(`/api/get-status?mode=${modeToFetch}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCloudStatus({ active: data.active || [], history: data.history || [] });
+      }
+    } catch (err) {
+      console.error('Cloud Status Sync Error:', err);
+    }
+  };
+
+  const toggleTradingMode = async () => {
+    try {
+      const newMode = tradingMode === 'SIMULATION' ? 'LIVE' : 'SIMULATION';
+      const res = await fetch('/api/wallet/active-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: newMode })
       });
 
-      // 2. Fetch Market Data for these pairs
-      const [prices, candles] = await Promise.all([
-        fetchTickerPrices(),
-        fetchCandles(currentPairs, timeframe) // Fetch candles for ALL pairs
-      ]);
+      if (res.ok) {
+        setTradingMode(newMode);
 
-      const newData = {};
+        // Reload config for the new mode
+        const configRes = await fetch(`/api/wallet/config?mode=${newMode}`);
+        if (configRes.ok) {
+          const configData = await configRes.json();
+          setWalletConfig(configData);
+        }
 
+        // Reload Cloud Status (Trades/History) for the new mode
+        await fetchCloudStatus(newMode);
+
+        console.log(`🌓 Mode toggled to: ${newMode}`);
+      }
+    } catch (e) {
+      console.error("Toggle Mode Error:", e);
+    }
+  };
+
+  // --- WALLET REF for mobile config ---
+  const walletRef = useRef(null);
+
+  const handleManualAction = async (action, data) => {
+    try {
+      const res = await fetch('/api/manual-trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...data })
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setCloudStatus(prev => ({ ...prev, active: result.active }));
+      }
+    } catch (e) {
+      console.error("Manual Action Error:", e);
+    }
+  };
+
+  const handleSimulate = useCallback((symbol, price, type, amount = null) => {
+    // [NEW] Capture ATR-based targets from analysis if available (BLITZ mode)
+    let takeProfit = null;
+    let stopLoss = null;
+
+    if (activeStrategy.includes('BLITZ') && marketData[symbol]?.obZone) {
+      takeProfit = marketData[symbol].obZone.tp;
+      stopLoss = marketData[symbol].obZone.sl;
+      console.log(`🚀 Capturing ATR Targets for ${symbol}: TP ${takeProfit}, SL ${stopLoss}`);
+    }
+
+    handleManualAction('OPEN', { symbol, price, type, strategy: activeStrategy, takeProfit, stopLoss, amount });
+  }, [activeStrategy, marketData]);
+
+  const handleCloseManual = useCallback((id) => {
+    // Find the trade to get the symbol and current price
+    const trade = cloudStatus.active.find(t => t.id === id);
+    const currentPrice = trade ? marketData[trade.symbol]?.price : null;
+
+    handleManualAction('CLOSE', { id, exitPrice: currentPrice });
+  }, [cloudStatus.active, marketData]);
+
+
+
+  const fetchData = async (overrideTimeframe) => {
+    if (isFetchingBus.current) return; // PREVENT OVERLAP
+    isFetchingBus.current = true;
+
+    const currentTf = overrideTimeframe || timeframe;
+    const results = {};
+
+
+    try {
+
+      // 1. Fetch Market Context (Binance)
+      // 0. Dynamic Pair Selection (Top Volume + Active Trades)
+      let currentPairs = pairs;
+      if (loading) { // Only fetch new list on initial load or manual refresh
+        try {
+          // Fetch Top Pairs
+          const topPairs = await fetchTopPairs();
+
+          // Also include any active trade symbols if they are not in the top list
+          // This ensures we keep tracking price/logic for open positions even if volume drops
+          const activeSymbols = cloudStatus.active.map(t => t.symbol);
+          const combined = [...new Set([...topPairs, ...activeSymbols])];
+
+          if (JSON.stringify(combined) !== JSON.stringify(pairs)) {
+            setPairs(combined);
+            currentPairs = combined;
+          }
+        } catch (e) {
+          console.warn("Using fallback pairs", e);
+        }
+      }
+
+      // 1. Fetch Prices (Real-Time Ticker for speed)
+      // [FIX] Use fetchTickerPrices instead of loop
+      const pricesMap = await fetchTickerPrices(currentPairs);
+
+      // 2. Fetch Candles (Simultaneously for all pairs)
+      const candlesMap = await fetchCandles(currentPairs, currentTf); // [NEW] Batch Fetch Support
+
+      // 3. Process each pair
       for (const symbol of currentPairs) {
-        if (!candles[symbol] || candles[symbol].length < 20) continue;
+        // [FIX] Use Price from Ticker Map
+        const price = pricesMap[symbol];
+        if (!price) continue;
 
-        const klines = candles[symbol];
-        const price = prices[symbol];
+        // [FIX] Robust Candle Check
+        const klines = candlesMap[symbol];
+        if (!klines || klines.length < 50) continue; // Need history for RSI/EMA
 
-        // RUN ALL STRATEGIES & COMBINE
         const analysis = {
-          ...analyzePair(klines), // Swing/Scalp
-          ...analyzeFlow(klines), // Volume Flow
-          ...analyzeTriple(klines), // Triple Confirmation
-          ...analyzeOB(klines), // Order Blocks
-          ...analyzeHybrid(klines), // Hybrid Logic
-          forecast: calculateForecast(klines) // Linear Regression
-          // ...calculateFibonacci(klines) // Support/Resistance
+          ...analyzePair(klines),
+          ...analyzeFlow(klines),
+          ...analyzeTriple(klines),
+          ...analyzeOB(klines),
+          ...analyzeHybrid(klines),
+          forecast: calculateForecast(klines)
         };
 
-        newData[symbol] = {
+        results[symbol] = {
           symbol,
           price,
           ...analysis
         };
       }
 
-      setMarketData(newData);
+      setMarketData(results);
       setLoading(false);
 
-    } catch (err) {
-      console.error("Critical Data Bus Failure:", err);
+      // Status Sync (Trades)
+      await fetchCloudStatus();
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
     } finally {
       isFetchingBus.current = false;
     }
-  }, [timeframe]);
+  };
 
-  // Initial & Loop
   useEffect(() => {
-    fetchData(); // Boot
-    const interval = setInterval(fetchData, 4000); // 4s Heartbeat
+    fetchData();
+    const interval = setInterval(() => fetchData(), 4000); // 4s Loop
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [timeframe, pairs.length]); // Re-init if timeframe changes
 
+  // Auto-Sync Strategy Mode
+  const handleStrategyChange = (newStrategy) => {
+    setActiveStrategy(newStrategy);
+    localStorage.setItem('sentinel_strategy', newStrategy);
+    if (newStrategy.includes('BLITZ') || newStrategy === 'SCALP') setTimeframe('5m');
+    else if (newStrategy === 'TRIPLE') setTimeframe('15m');
+    else setTimeframe('4h');
 
-  // -------------------------------------------------------------------------
-  // 2. ACTIVE WALLET & POSITIONS SYNC
-  // -------------------------------------------------------------------------
-  const walletRef = useRef();
+    // Trigger instant reload
+    setTimeout(() => fetchData(newStrategy.includes('BLITZ') ? '5m' : '4h'), 100);
+  };
 
-  // Expose methods to child
-  const handleSimulate = (symbol, side) => {
-    if (walletRef.current) {
-      walletRef.current.executeTrade(symbol, side, marketData[symbol]?.price);
+  const handleConfigChange = (newConfig) => {
+    setWalletConfig(newConfig);
+    if (newConfig.strategy && newConfig.strategy !== activeStrategy) {
+      setActiveStrategy(newConfig.strategy);
+    }
+    // Also sync trading mode if changed from wallet
+    if (newConfig.tradingMode && newConfig.tradingMode !== tradingMode) {
+      setTradingMode(newConfig.tradingMode);
     }
   };
 
-  // Sync State from WalletCard (It manages the logic)
-  const isClosingRef = useRef(false);
-
-  const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
-  const [binanceBalance, setBinanceBalance] = useState({ available: 0, total: 0 });
-
-  // Hoist state up from WalletCard logic
-  const handleConfigChange = useCallback((status, balance, config) => {
-    setCloudStatus(status);
-    setBinanceBalance(balance);
-    setWalletConfig(config);
-    // Also sync strategy mode if changed externally
-    if (config.mode) setTradingMode(config.mode);
-  }, []);
-
-  const handleCloseManual = async (symbol) => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    if (walletRef.current) await walletRef.current.closeTrade(symbol);
-    isClosingRef.current = false;
-  };
-
-  const toggleTradingMode = () => {
-    const newMode = tradingMode === 'SIMULATION' ? 'LIVE' : 'SIMULATION';
-    setTradingMode(newMode);
-    // Trigger config save in WalletCard effectively
-    if (walletRef.current) walletRef.current.forceMode(newMode);
-  };
-
-
-  // -------------------------------------------------------------------------
-  // 3. RENDER (Cyber-Minimal)
-  // -------------------------------------------------------------------------
-  const activeTrades = cloudStatus.active || [];
-
-  // Calculate PnL for Header
-  const totalUnrealizedPnL = activeTrades.reduce((acc, t) => {
-    const currentPrice = marketData[t.symbol]?.price || t.entryPrice;
-    const pnl = t.side === 'BUY'
-      ? ((currentPrice - t.entryPrice) / t.entryPrice) * 100
-      : ((t.entryPrice - currentPrice) / t.entryPrice) * 100;
-    return acc + pnl;
-  }, 0);
-
-
   return (
-    <div className={styles.appContainer} style={{ background: '#0a0e14', minHeight: '100vh', color: '#e0e0e0', fontFamily: "'Inter', sans-serif" }}>
+    <div className={styles.appContainer}>
       {/* <ParticlesBackground /> */}
-      <MobileNavbar />
+      <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
 
-      {/* 1. HEADER (Glassmorphism) */}
-      <header style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '15px 30px',
-        background: 'rgba(20,20,25,0.95)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid #333',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.5)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', letterSpacing: '-1px', background: 'linear-gradient(45deg, #00f2ff, #00ff9d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            QUANT·PRO
-          </h1>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 600 }}>TERMINAL v3.1</span>
-            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: tradingMode === 'LIVE' ? '#ff0055' : '#00f2ff', boxShadow: tradingMode === 'LIVE' ? '0 0 8px #ff0055' : '0 0 8px #00f2ff' }}></div>
-              <span style={{ fontSize: '0.75rem', color: tradingMode === 'LIVE' ? '#ff0055' : '#00f2ff', fontWeight: 'bold' }}>
-                {tradingMode}
-              </span>
+      <main className={styles.mainContent}>
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            {/* <div className={styles.logo}>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></div> */}
+            <div className={styles.statusBadge}>
+              <span className={styles.statusDot} style={{ background: tradingMode === 'LIVE' ? '#EF4444' : '#10B981', boxShadow: tradingMode === 'LIVE' ? '0 0 10px #EF4444' : '0 0 10px #10B981' }}></span>
+              {tradingMode} MODE
             </div>
           </div>
-        </div>
-
-        {/* Global PnL Ticker */}
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.7rem', color: '#888' }}>ACTIVE PNL</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: totalUnrealizedPnL >= 0 ? '#00ff9d' : '#ff0055' }}>
-              {totalUnrealizedPnL > 0 ? '+' : ''}{totalUnrealizedPnL.toFixed(2)}%
-            </div>
+          <div className={styles.headerRight}>
+            <div className={styles.clock}>{new Date().toLocaleTimeString()} UTC</div>
           </div>
-        </div>
+        </header>
 
-        {/* Header Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button
-            onClick={() => setIsHistoryOpen(true)}
-            style={{ background: 'var(--neon-cyan)', border: 'none', color: '#000', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', padding: '4px 10px', borderRadius: '4px' }}
-          >
-            📜 HISTORIAL
-          </button>
-          <button
-            onClick={() => setIsDocsOpen(true)}
-            style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: '0.8rem' }}
-          >
-            [MANUAL]
-          </button>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--text-bright)' }}>
-            {new Date().toLocaleTimeString()} UTC
-          </div>
-        </div>
-      </header>
-
-      {/* 2. MAIN GRID (Wallet + Market Scanner) */}
-      <main style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(350px, 350px) 1fr', // FIXED WIDTH SIDEBAR (Prevent collapse/overlap)
-        gap: '20px',
-        maxWidth: '1800px',
-        margin: '0 auto', // Center
-        paddingBottom: '250px',
-        position: 'relative',
-        zIndex: 1, // Base Layer
-        alignItems: 'start' // Prevent stretching
-      }}>
-        {/* Left Panel: Wallet & Control - STICKY SIDEBAR */}
-        <aside style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '15px',
-          position: 'sticky',
-          top: '90px', // Below the sticky header
-          zIndex: 50 // Above base content, below header
-        }}>
+        <section id="wallet-section" className={styles.dashboardGrid}>
+          {/* Wallet Card - Control Center */}
           <WalletCard
             ref={walletRef}
+            onConfigChange={handleConfigChange}
             activeTrades={cloudStatus.active}
-            marketData={marketData} // Use full marketData object
+            marketData={marketData}
             activeStrategy={activeStrategy}
             tradingMode={tradingMode}
             binanceBalance={binanceBalance}
-            onConfigChange={handleConfigChange}
           />
-
-          {/* Mode Switcher Mini-Panel */}
-          <div className="glass-card" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(30,35,41,0.8)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#666' }}>ENVIRONMENT</span>
-            <div style={{ display: 'flex', gap: '5px' }}>
-              <button
-                onClick={() => tradingMode !== 'SIMULATION' && toggleTradingMode()}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '0.7rem',
-                  background: tradingMode === 'SIMULATION' ? 'var(--neon-cyan)' : 'transparent',
-                  color: tradingMode === 'SIMULATION' ? '#000' : '#666',
-                  border: '1px solid #333',
-                  borderRadius: '2px',
-                  cursor: 'pointer'
-                }}
-              >
-                SIM
-              </button>
-              <button
-                onClick={() => tradingMode !== 'LIVE' && toggleTradingMode()}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '0.7rem',
-                  background: tradingMode === 'LIVE' ? 'var(--neon-red)' : 'transparent',
-                  color: tradingMode === 'LIVE' ? '#fff' : '#666',
-                  border: '1px solid #333',
-                  borderRadius: '2px',
-                  cursor: 'pointer'
-                }}
-              >
-                LIVE
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Right Panel: Market Scanner Grid */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '15px', alignContent: 'start', zIndex: 1 }}>
-          {
-            pairs.map((symbol) => (
-              <SentinelCard
-                key={symbol}
-                symbol={symbol}
-                data={marketData[symbol]} // Candle & Indicator Data
-                loading={!marketData[symbol]}
-                onSimulate={handleSimulate}
-                walletConfig={walletConfig} // Pass config for logic
-                currentPrice={marketData[symbol]?.price} // Real-time Price
-              />
-            ))
-          }
         </section>
+
+        {/* --- Active Trades Section --- */}
+        <section className={styles.portfolioSection}>
+          {
+            activeTrades.length > 0 && (
+              <>
+                <h2 className={styles.sectionTitle}>🚀 OPERACIONES ACTIVAS ({cloudStatus.active.length})</h2>
+                <div style={{
+                  display: 'flex',
+                  gap: '15px',
+                  overflowX: 'auto',
+                  paddingBottom: '10px',
+                  marginBottom: '30px'
+                }}>
+                  {cloudStatus.active.map((trade) => (
+                    <ActiveTradeCard
+                      key={trade.id}
+                      trade={trade}
+                      currentPrice={marketData[trade.symbol]?.price || trade.entryPrice}
+                      walletConfig={walletConfig}
+                      onClose={() => handleCloseManual(trade.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )
+          }
+
+          {/* Fallback Message */}
+          {activeTrades.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px',
+              border: '1px dashed rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+              color: '#64748B',
+              marginBottom: '30px'
+            }}>
+              <div>🌑 SISTEMA EN ESCANEO (IDLE)</div>
+              <div style={{ fontSize: '0.8rem', marginTop: '5px' }}>Esperando señales de alta probabilidad...</div>
+            </div>
+          )
+          }
+        </section >
+
+        {/* --- Historial de Victorias NUBE --- */}
+        {
+          cloudStatus.history.length > 0 && (
+            <section className={styles.portfolioSection} style={{ marginTop: '-20px', marginBottom: '40px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h2 className={styles.sectionTitle} style={{ color: '#10B981', opacity: 1, margin: 0 }}>🏆 HISTORIAL DE OPERACIONES</h2>
+                <button
+                  onClick={async () => {
+                    if (confirm('¿Borrar todo el historial de victorias?')) {
+                      try {
+                        await fetch('/api/manual-trade', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'CLEAR_HISTORY' })
+                        });
+                        setCloudStatus(prev => ({ ...prev, history: [] }));
+                      } catch (e) {
+                        alert('Error al borrar historial');
+                      }
+                    }
+                  }}
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#EF4444',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.7rem'
+                  }}
+                >
+                  🗑️ BORRAR HISTORIAL
+                </button>
+              </div>
+              <div className={styles.tradeGrid}>
+                {cloudStatus.history.map((h, i) => {
+                  const isWin = h.pnl >= 0;
+                  const statusColor = isWin ? '#10B981' : '#EF4444';
+                  const bgStyle = isWin ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+                  const borderStyle = isWin ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)';
+
+                  return (
+                    <div key={i} className={styles.tradeCard} style={{
+                      border: borderStyle,
+                      background: bgStyle,
+                      padding: '12px'
+                    }}>
+                      {/* Header: Status, Type, Strategy, Pair */}
+                      <div className={styles.tradeCardHeader} style={{ marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className={styles.tradeTag} style={{ background: statusColor, color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                            {isWin ? 'WIN' : 'LOSS'}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: statusColor }}>{h.type}</span>
+                          <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{h.strategy || 'MANUAL'}</span>
+                        </div>
+                        <span className={styles.tradeSymbol} style={{ fontSize: '0.9rem' }}>{h.symbol.replace('USDT', '')}</span>
+                      </div>
+
+                      {/* Prices Grid */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '10px',
+                        background: 'rgba(0, 0, 0, 0.2)',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        marginBottom: '10px'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}><span>ENTRADA DE</span></div>
+                          <div style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: '#E2E8F0' }}>
+                            ${h.entryPrice ? h.entryPrice.toLocaleString() : '---'}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '2px' }}><span>SALIDA EN</span></div>
+                          <div style={{ fontSize: '0.85rem', fontFamily: 'monospace', color: statusColor, fontWeight: 'bold' }}>
+                            ${(h.exitPrice || h.closePrice) ? (h.exitPrice || h.closePrice).toLocaleString() : '---'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Results Footer */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}><span>Resultado Neto</span></span>
+                          <span style={{ color: statusColor, fontWeight: 'bold', fontSize: '1rem' }}>
+                            {isWin ? '+' : ''}{h.pnl.toFixed(2)}%
+                          </span>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.7rem', color: '#94A3B8' }}><span>Valor Final 💵</span></div>
+                          <div style={{ color: '#fff', fontWeight: 'bold', fontFamily: 'monospace', fontSize: '1rem' }}>
+                            ${(h.investedAmount + (h.profitUsd || h.netProfit || 0)).toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: '0.65rem', color: statusColor }}>
+                            ({(h.profitUsd || h.netProfit) >= 0 ? '+' : ''}${(h.profitUsd || h.netProfit || 0).toFixed(2)})
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )
+        }
+
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <button
+            onClick={() => sendTelegramAlert('TEST-CLOUD', 0, { label: 'TEST DESDE WEB', color: '#fff' })}
+            style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#848E9C', padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer' }}
+          >
+            PROBAR TELEGRAM
+          </button>
+        </div>
+
+        {/* --- MARKET ANALYSIS GRID --- */}
+        {activeStrategy !== 'SNIPER' && (
+          <section style={{ width: '100%', marginTop: '20px' }}>
+            <h2 className={styles.sectionTitle}>📊 ANÁLISIS DE MERCADO (TOP 10 VOLUMEN)</h2>
+            <MarketGrid>
+              {Object.keys(marketData).map(symbol => (
+                <SentinelCard
+                  key={symbol}
+                  symbol={symbol}
+                  data={marketData[symbol]}
+                  loading={loading}
+                  onSimulate={handleSimulate}
+                />
+              ))}
+            </MarketGrid>
+          </section>
+        )}
+
+
+
+
+        <footer className={styles.footer}>
+          <div className={styles.copyright}>
+            <span>© 2026 Binance Sentinel AI • Todos los derechos reservados</span>
+            <span style={{ marginLeft: '15px', color: '#EF4444', opacity: 0.8 }}>
+              <span>⚠️ El trading conlleva riesgos. No arriesgues lo que no puedas perder.</span>
+            </span>
+          </div>
+          <div className={styles.docsLink} onClick={() => setIsDocsOpen(true)}>
+            <BookOpen size={16} />
+            Documentación
+          </div>
+        </footer>
       </main>
 
-      {/* 3. ACTIVE POSITIONS BAR (Sticky Footer) */}
-      <footer style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        background: '#1E2329', // SOLID BACKGROUND
-        borderTop: '1px solid var(--neon-cyan)',
-        padding: '10px 20px',
-        zIndex: 1000000, // SUPER NUCLEAR Z-INDEX
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.8)'
-      }}>
-        <div style={{ maxWidth: '1800px', margin: '0 auto', display: 'flex', gap: '20px', overflowX: 'auto', paddingBottom: '5px' }}>
-          {activeTrades.length === 0 ? (
-            <div style={{ opacity: 0.5, fontSize: '0.8rem', fontStyle: 'italic', padding: '10px' }}>
-              Waiting for signals... System Idle.
-            </div>
-          ) : (
-            activeTrades.map((trade) => (
-              <ActiveTradeCard
-                key={trade.id}
-                trade={trade}
-                currentPrice={marketData[trade.symbol]?.price || trade.entryPrice}
-                walletConfig={walletConfig}
-                onClose={handleCloseManual}
-              />
-            ))
-          )}
-        </div>
-      </footer>
-
       <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
-      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} mode={tradingMode} />
+
+      <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
     </div>
   );
 }
