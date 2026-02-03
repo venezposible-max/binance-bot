@@ -197,7 +197,18 @@
     }
 
     .tradeGrid {
-        grid-template-columns: 1fr;
-        /* Mobile: 1 column */
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Fix potential overflow in cards */
+    .tradeCard,
+    .card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 }
