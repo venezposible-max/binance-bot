@@ -261,56 +261,37 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     return (
         <div className={styles.card}>
             {/* Header with Execution Control - RESTORED */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Header with Execution Control - REFACTORED FOR MOBILE */}
+            <div className={styles.headerRow}>
+                <div className={styles.titleGroup}>
                     <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>💼 BILLETERA</span>
                         {wallet?.tradingMode === 'LIVE' && (
-                            <span style={{
-                                fontSize: '0.6rem',
-                                background: '#EF4444',
-                                color: 'white',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                animation: 'pulse 2s infinite'
-                            }}>LIVE MONEY 💸</span>
+                            <span className={styles.liveTag}>LIVE MONEY 💸</span>
                         )}
                     </div>
-                    <button
-                        onClick={onToggleMode}
-                        style={{
-                            background: 'transparent',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: tradingMode === 'LIVE' ? '#EF4444' : '#10B981',
-                            borderRadius: '4px',
-                            padding: '4px 8px',
-                            fontSize: '0.65rem',
-                            cursor: 'pointer',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        {tradingMode === 'LIVE' ? '🔴 LIVE (CAMBIAR)' : '🟢 SIM (CAMBIAR)'}
-                    </button>
                 </div>
 
-                {/* START / STOP CONTROL */}
-                <button
-                    onClick={handleToggleBot}
-                    className={wallet?.isBotActive ? styles.pauseBtn : styles.startBtn}
-                    style={{
-                        padding: '6px 16px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        background: wallet?.isBotActive ? '#F59E0B' : '#10B981',
-                        color: wallet?.isBotActive ? '#000' : '#fff',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}
-                >
-                    {wallet?.isBotActive ? '⏸️ PAUSE' : '▶️ START'}
-                </button>
+                <div className={styles.controlsGroup}>
+                    <button
+                        onClick={onToggleMode}
+                        className={styles.modeToggleBtn}
+                        style={{
+                            color: tradingMode === 'LIVE' ? '#EF4444' : '#10B981',
+                            borderColor: tradingMode === 'LIVE' ? '#EF4444' : '#10B981',
+                            marginRight: '10px'
+                        }}
+                    >
+                        {tradingMode === 'LIVE' ? '🔴 LIVE' : '🟢 SIM'}
+                    </button>
+
+                    <button
+                        onClick={handleToggleBot}
+                        className={wallet?.isBotActive ? styles.pauseBtn : styles.startBtn}
+                    >
+                        {wallet?.isBotActive ? '⏸️ PAUSE' : '▶️ START'}
+                    </button>
+                </div>
             </div>
 
             {/* --- BLITZ STATUS PANEL --- */}
