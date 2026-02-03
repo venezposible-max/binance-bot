@@ -7,8 +7,7 @@ import { analyzePair, analyzeFlow, analyzeTriple, analyzeOB, analyzeHybrid, calc
 import MarketGrid from './components/MarketGrid';
 import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
-import CVDView from './components/CVDView'; // NEW: Sniper View
-import CVDChart from './components/CVDChart'; // NEW: Embedded CVD Chart
+
 import DocumentationModal from './components/DocumentationModal'; // NEW: Docs
 import { sendTelegramAlert } from './utils/telegram';
 import { BookOpen } from 'lucide-react';
@@ -275,8 +274,22 @@ function App() {
 
       const analyzedPairs = (await Promise.all(promises)).filter(p => p !== null);
 
+      // 3. Fetch Real-Time Ticker Prices (Crucial for ZAMA/Global precision)
+      // This overrides the 'close' price from candles which might be slightly stale or empty
+      const allSymbols = analyzedPairs.map(p => p.symbol);
+      const tickerPrices = await fetchTickerPrices(allSymbols);
+
       // FIX: Populate results object from array
       analyzedPairs.forEach(p => {
+        // Override with Real-Time Price if available
+        if (tickerPrices[p.symbol]) {
+          p.price = tickerPrices[p.symbol];
+
+          // Also update the last history point to match current price (for smooth chart)
+          if (p.history && p.history.length > 0) {
+            p.history[p.history.length - 1] = p.price;
+          }
+        }
         results[p.symbol] = p;
       });
 
@@ -728,15 +741,7 @@ function App() {
           </section>
         )}
 
-        {/* --- SNIPER CVD CHART (When SNIPER is Active) --- */}
-        {(activeStrategy === 'SNIPER' || walletConfig?.strategyConfig?.SNIPER?.active) && (
-          <section className={styles.analysisSection}>
-            <h2 className={styles.sectionTitle}>🔫 CVD SNIPER - BTCUSDT WHALE TRACKER</h2>
-            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-              <CVDChart />
-            </div>
-          </section>
-        )}
+
 
 
         <footer className={styles.footer}>
