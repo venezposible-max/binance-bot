@@ -9,9 +9,10 @@ import SentinelCard from './components/SentinelCard';
 import WalletCard from './components/WalletCard';
 
 import DocumentationModal from './components/DocumentationModal';
+import HistoryModal from './components/HistoryModal'; // Feature: Detailed History
 import LogConsole from './components/LogConsole';
 import { sendTelegramAlert } from './utils/telegram';
-import { BookOpen, Terminal, ShieldCheck } from 'lucide-react';
+import { BookOpen, Terminal, ShieldCheck, History } from 'lucide-react'; // Added History Icon
 import ActiveTradeCard from './components/ActiveTradeCard';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
   const [walletConfig, setWalletConfig] = useState({}); // bot logic and risk settings
 
   const [isDocsOpen, setIsDocsOpen] = useState(false); // NEW: Documentation State
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false); // NEW: Detailed History State
   const [isLogOpen, setIsLogOpen] = useState(false); // NEW: Log Console State
   const [lockdown, setLockdown] = useState(false); // NEW: Emergency State
   const [apiConfigured, setApiConfigured] = useState(false); // NEW: API Check
@@ -496,6 +498,18 @@ function App() {
                 >
                   🗑️ BORRAR HISTORIAL
                 </button>
+
+                <button
+                  onClick={() => setIsHistoryOpen(true)}
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3B82F6', color: '#60A5FA',
+                    padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <History size={14} />
+                  DETALLADO
+                </button>
               </div>
               <div className={styles.tradeGrid}>
                 {cloudStatus.history.map((h, i) => {
@@ -649,6 +663,7 @@ function App() {
       </main>
 
       <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
+      <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} mode={tradingMode} />
       {isLogOpen && <LogConsole onClose={() => setIsLogOpen(false)} />}
 
       <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
