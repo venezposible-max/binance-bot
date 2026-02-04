@@ -433,7 +433,13 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     exitPrice: executionPrice,
                     investedAmount: trade.investedAmount
                 };
-                await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${(finalPnl || 0).toFixed(2)}%\n💰 Profit: $${(netProfit || 0).toFixed(2)}`);
+                // Duration Calc
+                const diffMs = new Date() - new Date(trade.timestamp);
+                const hrs = Math.floor(diffMs / 3600000);
+                const mins = Math.floor((diffMs % 3600000) / 60000);
+                const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+                await sendRawTelegram(`🚨 **[${mode}] TRADE CLOSED: ${symbol}**\n📉 ROI: ${(finalPnl || 0).toFixed(2)}%\n💰 Profit: $${(netProfit || 0).toFixed(2)}\n⏱️ Duración: ${durationStr}`);
 
                 return { status: 'CLOSED', win, id: trade.id };
             }

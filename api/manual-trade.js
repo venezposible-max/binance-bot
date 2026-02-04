@@ -189,7 +189,14 @@ export default async function handler(req, res) {
 
                 // NOTIFY TELEGRAM (MANUAL CLOSE)
                 const emoji = netProfit >= 0 ? '🟢' : '🔴';
-                const closureMsg = `🚨 **[${activeMode}] MANUAL CLOSE: ${trade.symbol}**\n${emoji} ROI: ${roi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}`;
+
+                // Duration Calc
+                const diffMs = new Date() - new Date(trade.timestamp);
+                const hrs = Math.floor(diffMs / 3600000);
+                const mins = Math.floor((diffMs % 3600000) / 60000);
+                const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+                const closureMsg = `🚨 **[${activeMode}] MANUAL CLOSE: ${trade.symbol}**\n${emoji} ROI: ${roi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
                 await sendRawTelegram(closureMsg);
 
 
