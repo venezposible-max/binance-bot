@@ -68,7 +68,11 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                                     <>
                                                         <span style={{ color: '#fff', fontWeight: 'bold' }}>
                                                             ⏱️ {(() => {
-                                                                const diff = new Date(trade.timestamp) - new Date(trade.entryTimestamp);
+                                                                const start = new Date(trade.entryTimestamp);
+                                                                const end = new Date(trade.timestamp);
+                                                                if (isNaN(start.getTime()) || isNaN(end.getTime())) return "??";
+
+                                                                const diff = end - start;
                                                                 const h = Math.floor(diff / 3600000);
                                                                 const m = Math.floor((diff % 3600000) / 60000);
                                                                 return h > 0 ? `${h}h ${m}m` : `${m}m`;

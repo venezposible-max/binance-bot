@@ -181,6 +181,7 @@ export default async function handler(req, res) {
                     strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
                     timestamp: new Date().toISOString(),
                     entryTimestamp: trade.timestamp, // Persist entry time
+                    _debug_timestamp: trade.timestamp, // Temp debug field
                     entryPrice: trade.entryPrice,
                     exitPrice: exitPrice || trade.entryPrice,
                     investedAmount: trade.investedAmount,
