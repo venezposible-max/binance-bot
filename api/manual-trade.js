@@ -1,10 +1,11 @@
+
 import redis from './utils/redisClient.js';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import binanceClient from './utils/binance-client.js';
 import { sendRawTelegram } from '../src/utils/telegram.js';
 import { calculateNetProfit } from '../src/utils/finance.js';
-// Telegram hardcoded config removed - using src/utils/telegram.js
+import { runWithLock } from './utils/locker.js';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -12,224 +13,193 @@ export default async function handler(req, res) {
     const { action, symbol, price, type, id, exitPrice, strategy } = req.body;
 
     try {
-        // 1. Load Data
-        // 1. Load Data
         // FORENSIC FIX: Prioritize explicit mode from Request (Override), fall back to Global Redis
         const globalMode = await redis.get('sentinel_active_mode') || 'SIMULATION';
         const activeMode = req.body.mode || globalMode;
 
-        // --- EMERGENCY LOCKDOWN CHECK ---
-        const isLocked = await redis.get('sentinel_lockdown') === 'true';
-        if (isLocked && action === 'OPEN') {
-            console.warn('⛔ TRADING BLOCKED BY EMERGENCY LOCKDOWN');
-            return res.status(403).json({ error: '⛔ SISTEMA BLOQUEADO POR EMERGENCIA' });
-        }
+        // LOCK ENTIRE OPERATION
+        const result = await runWithLock(`trades_${activeMode}`, async () => {
 
-        const suffix = activeMode === 'LIVE' ? '_real' : '_sim';
-        const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
-        const activeKey = `sentinel_active_trades${suffix}`;
-        const historyKey = `sentinel_win_history${suffix}`;
-        const sniperKey = `sentinel_sniper_trades${suffix}`;
+            // --- EMERGENCY LOCKDOWN CHECK ---
+            const isLocked = await redis.get('sentinel_lockdown') === 'true';
+            if (isLocked && action === 'OPEN') {
+                throw new Error('⛔ SISTEMA BLOQUEADO POR EMERGENCIA');
+            }
 
-        let activeTradesStr = await redis.get(activeKey);
-        let winHistoryStr = await redis.get(historyKey);
-        let walletConfigStr = await redis.get(configKey);
-        let sniperTradesStr = await redis.get(sniperKey);
+            const suffix = activeMode === 'LIVE' ? '_real' : '_sim';
+            const configKey = activeMode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
+            const activeKey = `sentinel_active_trades${suffix}`;
+            const historyKey = `sentinel_win_history${suffix}`;
+            const sniperKey = `sentinel_sniper_trades${suffix}`;
 
-        let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-        let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
-        let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
-        const wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
-            initialBalance: 1000,
-            currentBalance: 1000,
-            riskPercentage: 10,
-            tradingMode: activeMode
-        };
+            let activeTradesStr = await redis.get(activeKey);
+            let winHistoryStr = await redis.get(historyKey);
+            let walletConfigStr = await redis.get(configKey);
+            let sniperTradesStr = await redis.get(sniperKey);
 
-        if (action === 'OPEN') {
-            const { takeProfit, stopLoss } = req.body;
-            const risk = wallet.riskPercentage || 10;
-            const investedAmount = req.body.amount || (wallet.currentBalance * (risk / 100));
-            const openFee = investedAmount * 0.001;
-            const isLive = activeMode === 'LIVE';
+            let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+            let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+            let sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
+            const wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
+                initialBalance: 1000,
+                currentBalance: 1000,
+                riskPercentage: 10,
+                tradingMode: activeMode
+            };
 
-            let executionPrice = price;
-            let orderId = `SIM_${Date.now()}`;
-            let executedQty = investedAmount / price;
-            let actualSpentUsd = investedAmount;
+            // --- ACTION: CLEAR HISTORY ---
+            if (action === 'CLEAR_HISTORY') {
+                winHistory = [];
+                await redis.set(historyKey, JSON.stringify(winHistory));
+                return { success: true, history: [] };
+            }
 
-            if (isLive) {
-                console.log(`💸 EXECUTING LIVE MANUAL BUY: ${symbol} for $${investedAmount.toFixed(2)}`);
-                try {
+            // --- ACTION: OPEN TRADE ---
+            if (action === 'OPEN') {
+                const { takeProfit, stopLoss } = req.body;
+                const risk = wallet.riskPercentage || 10;
+                const investedAmount = req.body.amount || (wallet.currentBalance * (risk / 100));
+                const openFee = investedAmount * 0.001;
+                const isLive = activeMode === 'LIVE';
+
+                let executionPrice = price;
+                let orderId = `SIM_${Date.now()}`;
+                let executedQty = investedAmount / price;
+                let actualSpentUsd = investedAmount;
+
+                if (isLive) {
+                    console.log(`💸 EXECUTING LIVE MANUAL BUY: ${symbol} for $${investedAmount.toFixed(2)}`);
                     const order = await binanceClient.executeOrder(symbol, 'BUY', investedAmount, price, 'MARKET', true);
                     orderId = order.orderId;
                     executedQty = parseFloat(order.executedQty);
                     actualSpentUsd = parseFloat(order.cummulativeQuoteQty) || investedAmount;
                     executionPrice = actualSpentUsd / executedQty || price;
-                } catch (err) {
-                    console.error('🚨 LIVE MANUAL BUY FAILED:', err.message);
-                    throw new Error(`Binance Error: ${err.message}`);
+                } else {
+                    wallet.currentBalance -= (investedAmount + openFee);
                 }
-            } else {
-                // Simulation: Deduct from virtual balance
-                wallet.currentBalance -= (investedAmount + openFee);
-            }
 
-            const newTrade = {
-                id: uuidv4(),
-                symbol,
-                entryPrice: executionPrice,
-                type: type || 'LONG',
-                timestamp: new Date().toISOString(),
-                isManual: true,
-                investedAmount: actualSpentUsd,
-                quantity: executedQty,
-                strategy: strategy || 'SWING',
-                takeProfit,
-                stopLoss,
-                mode: activeMode,
-                orderId: orderId
-            };
-            activeTrades.push(newTrade);
+                const newTrade = {
+                    id: uuidv4(),
+                    symbol,
+                    entryPrice: executionPrice,
+                    type: type || 'LONG',
+                    timestamp: new Date().toISOString(),
+                    isManual: true,
+                    investedAmount: actualSpentUsd,
+                    quantity: executedQty,
+                    strategy: strategy || 'SWING',
+                    takeProfit,
+                    stopLoss,
+                    mode: activeMode,
+                    orderId: orderId
+                };
+                activeTrades.push(newTrade);
 
-            // Notify Telegram
-            let targetMsg = `\n_Vigilando objetivo +1% en la nube..._`;
-            if (takeProfit) {
-                const pnl = ((takeProfit - executionPrice) / executionPrice) * 100;
-                targetMsg = `\n🎯 **Objetivo (ATR):** $${takeProfit.toFixed(4)} (+${pnl.toFixed(2)}%)`;
-            }
-
-            await redis.set(activeKey, JSON.stringify(activeTrades));
-            await redis.set(configKey, JSON.stringify(wallet));
-
-            const telegramHeader = isLive ? `👆 **LIVE MANUAL ENTRY** ✅` : `👆 **MANUAL ENTRY** ✍️`;
-            const feesMsg = isLive ? "" : `\n📉 Fee: -$${openFee.toFixed(3)}`;
-
-            await sendRawTelegram(`${telegramHeader}\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type || 'LONG'}\n💰 Precio: $${executionPrice.toFixed(4)}\n💸 **Inversión:** $${actualSpentUsd.toFixed(2)}${feesMsg}${targetMsg}`);
-
-            return res.status(200).json({ success: true, active: activeTrades, wallet });
-        } else if (action === 'CLOSE') {
-            // Check both regular and Sniper trades
-            let tradeIndex = activeTrades.findIndex(t => t.id === id);
-            let isSniper = false;
-            let trade = null;
-
-            if (tradeIndex !== -1) {
-                trade = activeTrades[tradeIndex];
-            } else {
-                tradeIndex = sniperTrades.findIndex(t => t.id === id);
-                if (tradeIndex !== -1) {
-                    trade = sniperTrades[tradeIndex];
-                    isSniper = true;
+                // Notify Telegram
+                let targetMsg = `\n_Vigilando objetivo +1% en la nube..._`;
+                if (takeProfit) {
+                    const pnl = ((takeProfit - executionPrice) / executionPrice) * 100;
+                    targetMsg = `\n🎯 **Objetivo (ATR):** $${takeProfit.toFixed(4)} (+${pnl.toFixed(2)}%)`;
                 }
+                const telegramHeader = isLive ? `👆 **LIVE MANUAL ENTRY** ✅` : `👆 **MANUAL ENTRY** ✍️`;
+                const feesMsg = isLive ? "" : `\n📉 Fee: -$${openFee.toFixed(3)}`;
+                await sendRawTelegram(`${telegramHeader}\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type || 'LONG'}\n💰 Precio: $${executionPrice.toFixed(4)}\n💸 **Inversión:** $${actualSpentUsd.toFixed(2)}${feesMsg}${targetMsg}`);
             }
 
-            if (trade) {
-                // --- CRITICAL: Execute Real Sell if LIVE ---
-                const isLive = trade.mode === 'LIVE';
-                if (isLive) {
-                    const coin = trade.symbol.replace('USDT', '');
-                    console.log(`💸 Manual Close for LIVE trade: Selling ${trade.symbol} on Binance...`);
-                    try {
-                        const balanceData = await binanceClient.getAccountBalance('ALL');
-                        const assetBalance = balanceData.balances?.find(b => b.asset === coin);
-                        const qty = assetBalance ? parseFloat(assetBalance.free) : 0;
+            // --- ACTION: CLOSE TRADE ---
+            else if (action === 'CLOSE') {
+                let tradeIndex = activeTrades.findIndex(t => t.id === id);
+                let trade = activeTrades[tradeIndex];
+                let isSniper = false;
 
-                        if (qty > 0) {
-                            await binanceClient.executeOrder(trade.symbol, 'SELL', qty, exitPrice || trade.entryPrice, 'MARKET', true);
-                            console.log(`✅ Real SELL executed for ${qty} ${coin}`);
-                        } else {
-                            // BLOCKER: Don't remove from UI if we can't find funds to sell
-                            throw new Error(`No se encontró saldo disponible de ${coin} en Binance para cerrar la posición. ¿Quizás ya lo cerraste manualmente?`);
-                        }
-                    } catch (err) {
-                        // FIX: If balance is missing, it means it's already sold or ghost.
-                        // We must allow the DB cleanup to proceed.
-                        const errorMsg = err.response?.data?.msg || err.message;
-                        const errorCode = err.response?.data?.code;
-
-                        if (errorMsg.includes('No se encontró saldo') ||
-                            errorMsg.includes('Account has insufficient balance') ||
-                            errorCode === -2010) {
-                            console.warn(`⚠️ [FORCE CLOSE] Balance missing on Binance. Assumed already sold. Removing ghost trade...`);
-                            // Do not throw, let it proceed to remove from activeTrades
-                        } else {
-                            console.error('❌ FAILED to sell live trade on Binance:', err.message);
-                            throw new Error(`Fallo al cerrar en Binance: ${err.message}. El trade permanece activo para evitar desincronización.`);
-                        }
+                // Fallback: Check Sniper
+                if (!trade) {
+                    const sIndex = sniperTrades.findIndex(t => t.id === id);
+                    if (sIndex !== -1) {
+                        trade = sniperTrades[sIndex];
+                        isSniper = true;
+                        tradeIndex = sIndex;
                     }
                 }
 
-                // Calculate PnL if exitPrice is provided
-                // Use Unified Finance Logic
-                const finResult = calculateNetProfit(trade.entryPrice, exitPrice, trade.investedAmount, trade.type);
-                const { netProfit, roi, fees } = finResult;
-                const netReturn = trade.investedAmount + netProfit;
+                if (trade) {
+                    let currentPrice = exitPrice || trade.entryPrice;
+                    if (!exitPrice) {
+                        try {
+                            const ticker = await binanceClient.getTickerPrice(trade.symbol);
+                            currentPrice = parseFloat(ticker.price);
+                        } catch (e) { console.warn("Price fetch failed manual close", e); }
+                    }
 
-                // Credit to Wallet
-                wallet.currentBalance += netReturn;
+                    const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                    let netProfit = 0;
+                    let executionPrice = currentPrice;
 
-                console.log(`💰 Wallet Credit: Returned $${netReturn.toFixed(2)} (Fees: $${fees.toFixed(3)})`);
+                    // Execute Real Sell
+                    if (activeMode === 'LIVE') {
+                        try {
+                            const order = await binanceClient.executeOrder(trade.symbol, 'SELL', qty, currentPrice, 'MARKET', true);
+                            const received = parseFloat(order.cummulativeQuoteQty);
+                            const fee = received * 0.001;
+                            netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
+                            executionPrice = received / parseFloat(order.executedQty) || currentPrice;
+                        } catch (err) {
+                            if (err.message && (err.message.includes('-2010') || err.message.includes('insufficient'))) {
+                                netProfit = 0;
+                            } else {
+                                throw err;
+                            }
+                        }
+                    } else {
+                        // Sim
+                        const fee = (trade.investedAmount * 0.001) + (currentPrice * qty * 0.001);
+                        netProfit = (currentPrice * qty) - trade.investedAmount - fee;
+                        wallet.currentBalance += (trade.investedAmount + netProfit);
+                    }
 
-                // Add to History
-                // winHistory is already loaded at the top
-                winHistory.unshift({
-                    symbol: trade.symbol,
-                    pnl: roi, // Unified ROI
-                    profitUsd: netProfit,
-                    type: trade.type,
-                    strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
-                    timestamp: new Date().toISOString(),
-                    entryTimestamp: trade.timestamp, // Persist entry time
-                    _debug_timestamp: trade.timestamp, // Temp debug field
-                    entryPrice: trade.entryPrice,
-                    exitPrice: exitPrice || trade.entryPrice,
-                    investedAmount: trade.investedAmount,
-                    isManual: true
-                });
+                    const roi = (netProfit / trade.investedAmount) * 100;
 
-                // NOTIFY TELEGRAM (MANUAL CLOSE)
-                const emoji = netProfit >= 0 ? '🟢' : '🔴';
+                    // Archive
+                    winHistory.unshift({
+                        ...trade,
+                        exitPrice: executionPrice,
+                        profitUsd: netProfit,
+                        pnl: roi,
+                        timestamp: new Date().toISOString(),
+                        entryTimestamp: trade.entryTimestamp || trade.timestamp
+                    });
 
-                // Duration Calc
-                const diffMs = new Date() - new Date(trade.timestamp);
-                const hrs = Math.floor(diffMs / 3600000);
-                const mins = Math.floor((diffMs % 3600000) / 60000);
-                const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+                    if (winHistory.length > 50) winHistory.pop();
 
-                const closureMsg = `🚨 **[${activeMode}] MANUAL CLOSE: ${trade.symbol}**\n${emoji} ROI: ${roi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
-                await sendRawTelegram(closureMsg);
+                    // Remove
+                    if (isSniper) {
+                        sniperTrades.splice(tradeIndex, 1);
+                        await redis.set(sniperKey, JSON.stringify(sniperTrades));
+                        await redis.set('sentinel_sniper_cooldown', Date.now().toString());
+                    } else {
+                        activeTrades.splice(tradeIndex, 1);
+                    }
 
-
-                // Keep last 50
-                winHistory = winHistory.slice(0, 50);
-                await redis.set(historyKey, JSON.stringify(winHistory));
-
-
-                // Remove from correct array
-                if (isSniper) {
-                    sniperTrades.splice(tradeIndex, 1);
-                    await redis.set(sniperKey, JSON.stringify(sniperTrades));
-
-                    // Activate cooldown to prevent immediate reopening
-                    await redis.set('sentinel_sniper_cooldown', Date.now().toString());
-                    console.log('🔫 Sniper cooldown activated (manual close)');
-                } else {
-                    activeTrades.splice(tradeIndex, 1);
-                    await redis.set(activeKey, JSON.stringify(activeTrades));
+                    const emoji = netProfit >= 0 ? '🟢' : '🔴';
+                    const diffMs = new Date() - new Date(trade.timestamp);
+                    const hrs = Math.floor(diffMs / 3600000);
+                    const mins = Math.floor((diffMs % 3600000) / 60000);
+                    const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+                    const closureMsg = `🚨 **[${activeMode}] MANUAL CLOSE: ${trade.symbol}**\n${emoji} ROI: ${roi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
+                    await sendRawTelegram(closureMsg);
                 }
             }
 
-        } else if (action === 'CLEAR_HISTORY') {
-            await redis.set(historyKey, JSON.stringify([]));
-            return res.status(200).json({ success: true, history: [] });
-        }
+            // --- SAVE STATE (Atomic) ---
+            await redis.set(activeKey, JSON.stringify(activeTrades));
+            await redis.set(historyKey, JSON.stringify(winHistory));
+            await redis.set(configKey, JSON.stringify(wallet));
 
-        // Save State (Final Sync)
-        await redis.set(activeKey, JSON.stringify(activeTrades));
-        await redis.set(configKey, JSON.stringify(wallet));
+            return { success: true, active: activeTrades, balance: wallet.currentBalance };
 
-        res.status(200).json({ success: true, active: activeTrades, wallet });
+        }, 10000); // 10s Timeout
+
+        res.status(200).json(result);
 
     } catch (error) {
         console.error('Manual Trade Error:', error);
