@@ -126,6 +126,7 @@ const runInternalScan = async (source = 'TIMER') => {
 
     try {
         const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
+            headers: { 'x-cron-secret': process.env.CRON_SECRET }, // SECURE HANDSHAKE
             timeout: 30000 // Aumentado a 30s
         });
 
