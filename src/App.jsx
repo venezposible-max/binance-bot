@@ -518,6 +518,25 @@ function App() {
                           </span>
                           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: statusColor }}>{h.type}</span>
                           <span style={{ fontSize: '0.7rem', color: '#64748B' }}>{h.strategy || 'MANUAL'}</span>
+
+                          {/* Duration Display */}
+                          {h.entryTimestamp && (
+                            <span style={{ fontSize: '0.7rem', color: '#10B981', fontWeight: 'bold', marginLeft: '4px' }}>
+                              ⏱️ {(() => {
+                                const start = new Date(h.entryTimestamp);
+                                const end = new Date(h.timestamp);
+                                if (isNaN(start.getTime()) || isNaN(end.getTime())) return "--";
+
+                                const diff = end - start;
+                                const hr = Math.floor(diff / 3600000);
+                                const mn = Math.floor((diff % 3600000) / 60000);
+                                const sc = Math.floor((diff % 60000) / 1000);
+                                if (hr > 0) return `${hr}h ${mn}m`;
+                                if (mn > 0) return `${mn}m ${sc}s`;
+                                return `${sc}s`;
+                              })()}
+                            </span>
+                          )}
                         </div>
                         <span className={styles.tradeSymbol} style={{ fontSize: '0.9rem' }}>{h.symbol.replace('USDT', '')}</span>
                       </div>
