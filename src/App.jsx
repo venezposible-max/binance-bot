@@ -256,8 +256,8 @@ function App() {
           try {
             analysis = {
               ...analyzePair(klines),
-              ...analyzeFlow(klines), // Flow indicators
-              ...analyzeBlitz(klines), // BLITZ Signal (Overwrites signal with high priority)
+              ...analyzeFlow(null, klines), // Flow indicators (Depth null for now)
+              ...analyzeBlitz(null, klines), // BLITZ Signal (Depth null for now)
               forecast: calculateForecast(klines)
             };
           } catch (err) {
