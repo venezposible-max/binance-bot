@@ -87,7 +87,12 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
 
             <div className={styles.infoRow}>
                 <span>Entrada:</span>
-                <span className={styles.infoVal}>${trade.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
+                <span className={styles.infoVal}>
+                    ${trade.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    <span style={{ fontSize: '0.7rem', color: '#94A3B8', marginLeft: '6px', fontWeight: 'normal' }}>
+                        ({new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                    </span>
+                </span>
             </div>
 
             {trade.triggerDelta && (
