@@ -414,7 +414,14 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     if (mode === 'SIMULATION') wallet.currentBalance += (received - fee);
 
                 } catch (err) {
-                    if (mode === 'LIVE' && (err.message.includes('-2010') || err.message.includes('insufficient balance'))) {
+                    const errorMsg = err.response?.data?.msg || err.message;
+                    const errorCode = err.response?.data?.code;
+
+                    if (mode === 'LIVE' && (
+                        errorMsg.includes('-2010') ||
+                        errorMsg.includes('insufficient balance') ||
+                        errorCode === -2010
+                    )) {
                         console.warn(`⚠️ [LIVE] Force Closing ${symbol}: Position missing on Binance (Insufficient Balance).`);
                         // Force Close Local State: Assumed 0 PnL or small loss? 
                         // Safer to set 0 PnL to just remove it.
