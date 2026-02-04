@@ -11,18 +11,11 @@ export default async function handler(req, res) {
 
         const activeKey = `sentinel_active_trades${suffix}`;
         const historyKey = `sentinel_win_history${suffix}`;
-        const sniperKey = `sentinel_sniper_trades${suffix}`;
-
-        let activeTradesStr = await redis.get(activeKey);
-        let winHistoryStr = await redis.get(historyKey);
-        let sniperTradesStr = await redis.get(sniperKey);
-
         const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
-        const sniperTrades = sniperTradesStr ? JSON.parse(sniperTradesStr) : [];
 
-        // Merge Sniper trades with standard trades
-        const allActiveTrades = [...activeTrades, ...sniperTrades];
+        // Merge Sniper trades (REMOVED) with standard trades
+        const allActiveTrades = [...activeTrades];
 
         res.status(200).json({
             active: allActiveTrades,

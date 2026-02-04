@@ -155,27 +155,13 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     if (positions.length > 0) {
                         console.log(`[LIVE] ⚠️ Discovered ${positions.length} held assets on Binance not in Redis. Syncing...`);
 
-                        // FETCH SNIPER TRADES TO AVOID DOUBLE MANAGEMENT
-                        // If the Sniper is managing a trade (e.g. BTC), the Scanner must NOT adopt it.
-                        let activeSniperTrades = [];
-                        try {
-                            const sStr = await redis.get('sentinel_sniper_trades');
-                            activeSniperTrades = sStr ? JSON.parse(sStr) : [];
-                        } catch (e) {
-                            console.warn('⚠️ Failed to fetch sniper trades during sync check');
-                        }
+                        // SNIPER MODULE REMOVED
 
                         // Convert to trade objects so the bot can Manage them (SL/TP)
                         const syncedTrades = (await Promise.all(positions.map(async (pos) => {
                             const symbol = `${pos.asset}USDT`;
 
-                            // 🔍 CHECK 1: IS THIS A SNIPER TRADE?
-                            // We only care about LIVE sniper trades matching this symbol
-                            const isSniperManaged = activeSniperTrades.find(t => t.symbol === symbol && t.mode === 'LIVE');
-                            if (isSniperManaged) {
-                                console.log(`[LIVE] 🔫 Ignoring ${symbol} (Managed by SNIPER Worker).`);
-                                return null;
-                            }
+                            // SNIPER CHECK REMOVED
 
                             // 🛡️ CHECK 2: ZOMBIE PROTECTION (Enhanced)
                             // If we recently closed it, we usually ignore it to avoid "Ghost Reappearance" of dust.
