@@ -323,54 +323,72 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
             let isExit = false;
 
-            // --- STOP LOSS LOGIC ---
-            // 1. Determine effective SL Percentage
+            // --- DYNAMIC TRAILING STOP (Step Follow) ---
+            // Trigger: Start at +0.7% Profit
+            // Margin: Follow price at 0.2% distance
+            if (pnl >= 0.7) {
+                const trailMargin = 0.002; // 0.2% gap
+                let newTrailingSL = 0;
 
-            // UX SYNC: Respect Global "Enable Stop Loss" Toggle
-            // If Global SL is OFF, we only respect Manual/Explicit SLs. Auto SLs are disabled.
-            const globalSL_Enabled = wallet.useStopLoss !== false; // Default True
-
-            let effectiveSL = null; // Default to No SL
-
-            if (trade.stopLoss !== undefined && trade.stopLoss !== null) {
-                // EXPLICIT SL (Manual or Strategy Specific)
-                // If trade has specific SL, it is likely a PRICE. Convert to Percentage.
                 if (trade.type === 'SHORT') {
-                    effectiveSL = ((trade.stopLoss - trade.entryPrice) / trade.entryPrice) * 100;
-                } else {
-                    effectiveSL = ((trade.entryPrice - trade.stopLoss) / trade.entryPrice) * 100;
-                }
-                effectiveSL = Math.abs(effectiveSL);
+                    // Short: SL is ABOVE price. 
+                    // New SL = Current Price + 0.2%
+                    // We use `currentAsk` as worst case or `currentPrice`
+                    newTrailingSL = currentPrice * (1 + trailMargin);
 
-            } else {
-                // USER REQUEST: GLOBAL STOP LOSS REMOVED.
-                effectiveSL = null;
+                    // Only move SL DOWN (tighter)
+                    if (!trade.stopLoss || newTrailingSL < trade.stopLoss) {
+                        trade.stopLoss = newTrailingSL;
+                        console.log(`[${mode}] ⛓️ TRAILING STOP: ${symbol} @ +${pnl.toFixed(2)}%. SL moved to ${newTrailingSL.toFixed(4)}`);
+                    }
+                } else {
+                    // Long: SL is BELOW price.
+                    // New SL = Current Price - 0.2%
+                    newTrailingSL = currentPrice * (1 - trailMargin);
+
+                    // Only move SL UP (tighter)
+                    if (!trade.stopLoss || newTrailingSL > trade.stopLoss) {
+                        trade.stopLoss = newTrailingSL;
+                        console.log(`[${mode}] ⛓️ TRAILING STOP: ${symbol} @ +${pnl.toFixed(2)}%. SL moved to ${newTrailingSL.toFixed(4)}`);
+                    }
+                }
             }
 
-            // --- TAKE PROFIT LOGIC ---
-            // 1. Determine effective TP Percentage
-            let effectiveTP = wallet.takeProfit || 1.5; // Default Global
+            // --- STOP LOSS LOGIC ---
+            // 1. Determine effective SL Percentage (Legacy/Global logic)
+            const globalSLActive = wallet.useStopLoss !== false;
+            let effectiveSL = null;
 
-            if (trade.takeProfit !== undefined && trade.takeProfit !== null) {
-                // Assume Price. Convert to Percentage.
-                if (trade.type === 'SHORT') {
-                    effectiveTP = ((trade.entryPrice - trade.takeProfit) / trade.entryPrice) * 100;
-                } else {
-                    effectiveTP = ((trade.takeProfit - trade.entryPrice) / trade.entryPrice) * 100;
-                }
+            if ([null, undefined].includes(trade.stopLoss)) {
+                // Only use Global SL % if no specific price is set
+                effectiveSL = null; // DISABLED by default per user request, unless wallet has global override
+                // If we want Global SL back, logic goes here.
+            }
+
+            // ... Take Profit Logic ... (Unchanged)
+            let effectiveTP = wallet.takeProfit || 1.5;
+            if (trade.takeProfit) {
+                if (trade.type === 'SHORT') effectiveTP = ((trade.entryPrice - trade.takeProfit) / trade.entryPrice) * 100;
+                else effectiveTP = ((trade.takeProfit - trade.entryPrice) / trade.entryPrice) * 100;
                 effectiveTP = Math.abs(effectiveTP);
             }
 
-            // Log dynamic targets for debugging
-            // console.log(`   Targets for ${symbol}: TP +${effectiveTP}% | SL -${effectiveSL}%`);
+            // 2. CHECK STOP LOSS (SAFETY & TRAILING)
+            const hasSpecificSL = trade.stopLoss !== null && trade.stopLoss !== undefined;
 
-            // 2. CHECK STOP LOSS (SAFETY)
-            // Fix: Only trigger SL if explicitly enabled in wallet config OR if manual trade has specific SL
-            const globalSLActive = wallet.useStopLoss !== false; // Default true
-            const hasSpecificSL = trade.stopLoss !== null && trade.stopLoss !== undefined; // Check if trade has an explicit SL set
-
-            if ((globalSLActive || hasSpecificSL) && effectiveSL !== null && pnl <= -effectiveSL) {
-                console.log(`[${mode}] 🛑 STOP LOSS TRIGGERED for ${symbol} @ ${pnl.toFixed(2)}% (Target: -${effectiveSL}%)`);
+            // PRIORITY 1: Explicit Price SL (Supports Stops in Profit)
+            if (hasSpecificSL) {
+                if (trade.type === 'LONG' && currentPrice <= trade.stopLoss) {
+                    console.log(`[${mode}] 🛑 STOP LOSS HIT (Price): ${symbol} @ ${currentPrice} (SL: ${trade.stopLoss})`);
+                    isExit = true;
+                } else if (trade.type === 'SHORT' && currentPrice >= trade.stopLoss) {
+                    console.log(`[${mode}] 🛑 STOP LOSS HIT (Price): ${symbol} @ ${currentPrice} (SL: ${trade.stopLoss})`);
+                    isExit = true;
+                }
+            }
+            // PRIORITY 2: Global Percentage SL (Fallback for Loss Only)
+            else if (globalSLActive && effectiveSL !== null && pnl <= -effectiveSL) {
+                console.log(`[${mode}] 🛑 STOP LOSS TRIGGERED (Global %): ${symbol} @ ${pnl.toFixed(2)}% (Target: -${effectiveSL}%)`);
                 isExit = true;
             }
             if (pnl >= effectiveTP) {
