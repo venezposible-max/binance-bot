@@ -269,9 +269,10 @@ export const analyzeBlitz = (depth, candles) => {
             const minPrice = lastPrice * 1.006; // +0.6% Minimum Floor
 
             // USER STRATEGY: "Force Success"
-            // If technical target is small, stretch it to the minimum profitable level (0.6%).
-            // Use the greater of the two.
-            let targetPrice = Math.max(rawTarget, minPrice);
+            // If technical target is small, stretch it to the minimum profitable level (0.45%).
+            // Calculation: 0.45% Gross - 0.20% Fees = 0.25% NET Profit (Safe)
+            // 0.30% would be too risky (0.10% Net).
+            let targetPrice = Math.max(rawTarget, lastPrice * 1.0045);
 
             // Note: This disables the 'Skip' logic. We always trade, but with a floor.
 
