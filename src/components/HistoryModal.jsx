@@ -57,55 +57,68 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                         padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
                                         borderLeft: `4px solid ${trade.profitUsd >= 0 ? '#10B981' : '#EF4444'}`
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                            <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>
-                                                {trade.symbol.replace('USDT', '')}
+                                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                            {/* TOP ROW: Main Info */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>
+                                                        {trade.symbol.replace('USDT', '')}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px',
+                                                        background: 'rgba(255,255,255,0.1)', color: '#ccc'
+                                                    }}>
+                                                        {trade.strategy || 'MANUAL'}
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{
+                                                        fontWeight: 'bold', fontSize: '1.1rem',
+                                                        color: trade.profitUsd >= 0 ? '#10B981' : '#EF4444'
+                                                    }}>
+                                                        {trade.profitUsd >= 0 ? '+' : ''}${trade.profitUsd.toFixed(2)}
+                                                    </div>
+                                                    <div style={{ fontSize: '0.8rem', color: trade.pnl >= 0 ? '#A7F3D0' : '#FECACA' }}>
+                                                        {trade.pnl.toFixed(2)}%
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            {/* TIME BLOCK */}
-                                            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.75rem', color: '#aaa' }}>
+                                            {/* BOTTOM ROW: Time Details */}
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: '15px',
+                                                fontSize: '0.75rem', color: '#94A3B8',
+                                                background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '6px'
+                                            }}>
                                                 {trade.entryTimestamp ? (
                                                     <>
-                                                        <span style={{ color: '#fff', fontWeight: 'bold' }}>
+                                                        <span style={{ color: '#E2E8F0', fontWeight: 'bold' }}>
                                                             ⏱️ {(() => {
                                                                 const start = new Date(trade.entryTimestamp);
                                                                 const end = new Date(trade.timestamp);
-                                                                if (isNaN(start.getTime()) || isNaN(end.getTime())) return "??";
+                                                                if (isNaN(start.getTime()) || isNaN(end.getTime())) return "--";
 
                                                                 const diff = end - start;
                                                                 const h = Math.floor(diff / 3600000);
                                                                 const m = Math.floor((diff % 3600000) / 60000);
-                                                                return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                                                const s = Math.floor((diff % 60000) / 1000); // Added seconds
+                                                                if (h > 0) return `${h}h ${m}m`;
+                                                                if (m > 0) return `${m}m ${s}s`;
+                                                                return `${s}s`;
                                                             })()}
                                                         </span>
                                                         <span>
-                                                            {new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                            {' ➜ '}
-                                                            {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            OPEN: <span style={{ color: '#fff' }}>{new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        </span>
+                                                        <span>➜</span>
+                                                        <span>
+                                                            CLOSE: <span style={{ color: '#fff' }}>{new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                         </span>
                                                     </>
                                                 ) : (
-                                                    <span>{new Date(trade.timestamp).toLocaleString()}</span>
+                                                    <span>📅 {new Date(trade.timestamp).toLocaleString()} (Old Trade)</span>
                                                 )}
-                                            </div>
-
-                                            <div style={{
-                                                fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px',
-                                                background: 'rgba(255,255,255,0.1)', color: '#ccc'
-                                            }}>
-                                                {trade.strategy || 'MANUAL'}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{
-                                                fontWeight: 'bold', fontSize: '1.1rem',
-                                                color: trade.profitUsd >= 0 ? '#10B981' : '#EF4444'
-                                            }}>
-                                                {trade.profitUsd >= 0 ? '+' : ''}${trade.profitUsd.toFixed(2)}
-                                            </div>
-                                            <div style={{ fontSize: '0.8rem', color: trade.pnl >= 0 ? '#A7F3D0' : '#FECACA' }}>
-                                                {trade.pnl.toFixed(2)}%
                                             </div>
                                         </div>
                                     </div>
