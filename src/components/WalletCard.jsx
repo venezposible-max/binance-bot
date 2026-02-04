@@ -100,10 +100,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         tradingMode: tradingMode, // Always sync with current mode
                         riskPercentage: parseFloat(newRisk),
                         maxTrades: parseInt(maxTrades),
-                        tradingMode: tradingMode, // Always sync with current mode
-                        riskPercentage: parseFloat(newRisk),
-                        maxTrades: parseInt(maxTrades),
-                        maxTrades: parseInt(maxTrades),
+
 
                         strategy: activeStrategy || wallet.strategy || 'HYBRID_SWING',
                         reset: !isLive // Only full reset simulation balance
