@@ -32,7 +32,8 @@ _Verificar en Gráfico antes de operar._
 
     // 3. Send via Proxy
     try {
-        await axios.post('/api/telegram-proxy', { text: message });
+        const baseURL = getBaseUrl();
+        await axios.post(`${baseURL}/api/telegram-proxy`, { text: message });
 
         // 4. Update History
         alertHistory[symbol] = now;
@@ -44,9 +45,17 @@ _Verificar en Gráfico antes de operar._
     }
 };
 
+// Helper to get Base URL (Isomorphic: Works in Browser and Node)
+const getBaseUrl = () => {
+    if (typeof window !== 'undefined') return ''; // Browser: use relative path
+    const port = process.env.PORT || 8080;
+    return `http://127.0.0.1:${port}`; // Server: use localhost
+};
+
 export const sendRawTelegram = async (text) => {
     try {
-        await axios.post('/api/telegram-proxy', { text });
+        const baseURL = getBaseUrl();
+        await axios.post(`${baseURL}/api/telegram-proxy`, { text });
         console.log("Raw Telegram Sent");
         return true;
     } catch (e) {
