@@ -6,6 +6,9 @@ const NumberTicker = ({ value, decimals = 2, prefix = '', suffix = '', className
     const spring = useSpring(value, { stiffness: 100, damping: 20 });
     const display = useTransform(spring, (current) => {
         // Format logic
+        if (current === 0) return "0.00";
+        if (current < 1) return current.toFixed(8);
+        if (current < 10) return current.toFixed(4);
         return current.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     });
 

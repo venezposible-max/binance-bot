@@ -15,10 +15,12 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
 
     const {
         price = 0,
-        signal = 'WAIT',
-        intensity = 0,
-        indicators = {}
+        indicators = {},
+        prediction = {}
     } = data || {};
+
+    const signal = prediction.signal || data?.signal || 'WAIT';
+    const intensity = prediction.intensity || data?.intensity || 0;
 
 
     // DETERMINE SIGNAL LABEL & COLOR
