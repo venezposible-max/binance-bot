@@ -70,6 +70,28 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                                     }}>
                                                         {trade.strategy || 'MANUAL'}
                                                     </div>
+
+                                                    {/* DURATION PILL (New Location) */}
+                                                    {trade.entryTimestamp && (
+                                                        <div style={{
+                                                            fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px',
+                                                            background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', fontWeight: 'bold'
+                                                        }}>
+                                                            ⏱️ {(() => {
+                                                                const start = new Date(trade.entryTimestamp);
+                                                                const end = new Date(trade.timestamp);
+                                                                if (isNaN(start.getTime()) || isNaN(end.getTime())) return "--";
+
+                                                                const diff = end - start;
+                                                                const h = Math.floor(diff / 3600000);
+                                                                const m = Math.floor((diff % 3600000) / 60000);
+                                                                const s = Math.floor((diff % 60000) / 1000);
+                                                                if (h > 0) return `${h}h ${m}m`;
+                                                                if (m > 0) return `${m}m ${s}s`;
+                                                                return `${s}s`;
+                                                            })()}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 <div style={{ textAlign: 'right' }}>
@@ -93,21 +115,6 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                             }}>
                                                 {trade.entryTimestamp ? (
                                                     <>
-                                                        <span style={{ color: '#E2E8F0', fontWeight: 'bold' }}>
-                                                            ⏱️ {(() => {
-                                                                const start = new Date(trade.entryTimestamp);
-                                                                const end = new Date(trade.timestamp);
-                                                                if (isNaN(start.getTime()) || isNaN(end.getTime())) return "--";
-
-                                                                const diff = end - start;
-                                                                const h = Math.floor(diff / 3600000);
-                                                                const m = Math.floor((diff % 3600000) / 60000);
-                                                                const s = Math.floor((diff % 60000) / 1000); // Added seconds
-                                                                if (h > 0) return `${h}h ${m}m`;
-                                                                if (m > 0) return `${m}m ${s}s`;
-                                                                return `${s}s`;
-                                                            })()}
-                                                        </span>
                                                         <span>
                                                             OPEN: <span style={{ color: '#fff' }}>{new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                         </span>
