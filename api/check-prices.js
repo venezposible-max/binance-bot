@@ -326,8 +326,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
 export default async function handler(req, res) {
     // 🛡️ SECURITY LOCKDOWN (CRON_SECRET)
-    // Only allows requests from internal server (Cron) or authenticated sources
-    if (req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
+    // CRITICAL: We also check if CRON_SECRET is set in ENV. If not, we BLOCK EVERYTHING to prevent "undefined === undefined" bypass.
+    if (!process.env.CRON_SECRET || req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
         console.warn(`⛔ UNAUTHORIZED ACCESS ATTEMPT to check-prices from ${req.headers['x-forwarded-for'] || 'unknown'}`);
         return res.status(401).json({ error: '⛔ UNAUTHORIZED: Access Denied. Security Handshake Failed.' });
     }
