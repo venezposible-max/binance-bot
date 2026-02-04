@@ -61,9 +61,30 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                             <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>
                                                 {trade.symbol.replace('USDT', '')}
                                             </div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888' }}>
-                                                {new Date(trade.timestamp).toLocaleString()}
+
+                                            {/* TIME BLOCK */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.75rem', color: '#aaa' }}>
+                                                {trade.entryTimestamp ? (
+                                                    <>
+                                                        <span style={{ color: '#fff', fontWeight: 'bold' }}>
+                                                            ⏱️ {(() => {
+                                                                const diff = new Date(trade.timestamp) - new Date(trade.entryTimestamp);
+                                                                const h = Math.floor(diff / 3600000);
+                                                                const m = Math.floor((diff % 3600000) / 60000);
+                                                                return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                                                            })()}
+                                                        </span>
+                                                        <span>
+                                                            {new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {' ➜ '}
+                                                            {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span>{new Date(trade.timestamp).toLocaleString()}</span>
+                                                )}
                                             </div>
+
                                             <div style={{
                                                 fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px',
                                                 background: 'rgba(255,255,255,0.1)', color: '#ccc'

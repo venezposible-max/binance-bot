@@ -428,6 +428,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     strategy: trade.strategy,
                     mode: mode,
                     type: trade.type || 'LONG',
+                    entryTimestamp: trade.timestamp, // Persist entry time
                     entryPrice: trade.entryPrice,
                     exitPrice: executionPrice,
                     investedAmount: trade.investedAmount

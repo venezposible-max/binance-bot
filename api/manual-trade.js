@@ -180,6 +180,7 @@ export default async function handler(req, res) {
                     type: trade.type,
                     strategy: isSniper ? 'SNIPER' : (trade.strategy || 'MANUAL'),
                     timestamp: new Date().toISOString(),
+                    entryTimestamp: trade.timestamp, // Persist entry time
                     entryPrice: trade.entryPrice,
                     exitPrice: exitPrice || trade.entryPrice,
                     investedAmount: trade.investedAmount,
