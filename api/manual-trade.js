@@ -186,6 +186,11 @@ export default async function handler(req, res) {
                     isManual: true
                 });
 
+                // NOTIFY TELEGRAM (MANUAL CLOSE)
+                const emoji = netProfit >= 0 ? '🟢' : '🔴';
+                const closureMsg = `🚨 **[${activeMode}] MANUAL CLOSE: ${trade.symbol}**\n${emoji} ROI: ${roi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}`;
+                await sendRawTelegram(closureMsg);
+
 
                 // Keep last 50
                 winHistory = winHistory.slice(0, 50);
