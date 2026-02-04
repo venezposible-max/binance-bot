@@ -335,6 +335,7 @@ export const analyzeBlitz = (depth, candles) => {
         indicators: {
             rsi: currentRSI.toFixed(1),
             ema: currentEMA ? currentEMA.toFixed(1) : '---',
+            volatility: ((currentATR / lastPrice) * 100).toFixed(2), // NEW: ATR %
             flow: { bidPercent: bidPercent.toFixed(1) }
         },
         prediction: {

@@ -115,7 +115,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 ) : (
                     <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.7rem', color: '#64748B' }}>RSI: <span style={{ color: '#E2E8F0' }}>{indicators.rsi ? parseFloat(indicators.rsi).toFixed(1) : '--'}</span></div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>VOL: <span style={{ color: '#E2E8F0' }}>{intensity || 0}%</span></div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>INT: <span style={{ color: '#E2E8F0' }}>{intensity || 0}%</span></div>
                     </div>
                 )}
             </div>
