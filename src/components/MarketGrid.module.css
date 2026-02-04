@@ -1,8 +1,8 @@
 .grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    /* Desktop: 2 columns */
-    gap: 30px;
+    display: flex;
+    flex-direction: column;
+    /* List View: Single Column */
+    gap: 12px;
     width: 100%;
     max-width: 1000px;
     margin: 0 auto;
