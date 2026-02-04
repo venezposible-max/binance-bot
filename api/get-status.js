@@ -11,6 +11,10 @@ export default async function handler(req, res) {
 
         const activeKey = `sentinel_active_trades${suffix}`;
         const historyKey = `sentinel_win_history${suffix}`;
+
+        const activeTradesStr = await redis.get(activeKey);
+        const winHistoryStr = await redis.get(historyKey);
+
         const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
 
