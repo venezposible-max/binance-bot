@@ -261,15 +261,26 @@ export const analyzeBlitz = (depth, candles) => {
         // BLITZ Threshold: > 0.5% impulse is enough
         if (impulse >= 0.5 && isBearish) {
             const obMid = (prevLow + prevHigh) / 2;
+
+            // BLITZ TARGETS & FEE SHIELD
+            // TP: 2.5x ATR
+            // FEE SHIELD: Minimum +0.6% ROI is REQUIRED to pay fees (0.2%) and profit.
+            let rawTarget = lastPrice + (currentATR * 2.5);
+            const minPrice = lastPrice * 1.006; // +0.6% Minimum Floor
+
+            // USER STRATEGY: "Force Success"
+            // If technical target is small, stretch it to the minimum profitable level (0.6%).
+            // Use the greater of the two.
+            let targetPrice = Math.max(rawTarget, minPrice);
+
+            // Note: This disables the 'Skip' logic. We always trade, but with a floor.
+
             obZone = {
                 low: prevLow,
                 high: prevHigh,
                 mid: obMid,
                 impulse: impulse,
-                // BLITZ TARGETS:
-                // TP: 2.5x ATR
-                // SL: NULL (No Negative Closes)
-                tp: lastPrice + (currentATR * 2.5),
+                tp: targetPrice,
                 sl: null
             };
 
