@@ -21,7 +21,7 @@ export const getApiBaseUrl = () => {
 // Start Helper
 export const API_BASE = getApiBaseUrl();
 
-export const isVercel = () => {
+export const isVercelGuest = () => {
     if (typeof window === 'undefined') return false;
     return window.location.hostname.includes('vercel.app');
 };
