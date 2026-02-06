@@ -60,7 +60,11 @@ const PORT = process.env.PORT || 8080;
 
 console.log(`🔌 Configured PORT: ${PORT}`);
 
-app.use(cors());
+app.use(cors({
+    origin: '*', // Allow all (Vercel, Localhost, etc.)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-cron-secret']
+}));
 app.use(express.json());
 
 // --- API ROUTES (Adapter) ---
