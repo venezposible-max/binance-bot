@@ -4,9 +4,15 @@ import { ShieldCheck, Brain, Activity, Zap, History } from 'lucide-react';
 
 const BotReport = ({ config, cloudStatus }) => {
     const blacklistCount = cloudStatus?.blacklist?.length || 0;
-    const strategy = config?.strategy || 'BLITZ';
-    const isHybrid = config?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false;
-    const minOdds = config?.strategyConfig?.HYBRID_BLITZ?.minOdds || 67;
+    const strategyConf = config?.strategyConfig?.HYBRID_BLITZ || {};
+    const useBlitz = strategyConf.useBlitz !== false;
+    const useHybrid = strategyConf.useHybrid !== false;
+    const minOdds = strategyConf.minOdds || 67;
+
+    let strategyName = 'MONITOR (INACTIVO)';
+    if (useBlitz && useHybrid) strategyName = 'FUSIÓN (TÉCN + ESTAD)';
+    else if (useBlitz) strategyName = 'BLITZ (TÉCNICO)';
+    else if (useHybrid) strategyName = 'HYBRID (ESTADÍSTICO)';
 
     return (
         <div className={styles.reportContainer}>
@@ -20,7 +26,7 @@ const BotReport = ({ config, cloudStatus }) => {
                     <div className={styles.statLabel}>
                         <Zap size={12} /> ESTRATEGIA
                     </div>
-                    <div className={styles.statValue}>{strategy} {isHybrid ? '(Híbrido)' : ''}</div>
+                    <div className={styles.statValue} style={{ fontSize: '0.8rem' }}>{strategyName}</div>
                 </div>
 
                 <div className={styles.statItem}>
