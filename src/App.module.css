@@ -33,6 +33,18 @@
     color: #5E6673;
     font-size: 0.75rem;
     margin-top: 40px;
+    margin-bottom: 0;
+    padding-bottom: 30px;
+}
+
+@media (max-width: 768px) {
+    .footer {
+        flex-direction: column;
+        gap: 20px;
+        padding-bottom: 120px;
+        /* EXTRA SPACE FOR MOBILE NAVBAR */
+        text-align: center;
+    }
 }
 
 .copyright {

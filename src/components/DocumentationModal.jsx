@@ -22,6 +22,24 @@ const DocumentationModal = ({ isOpen, onClose }) => {
                     text: 'Una vez dentro, el bot coloca órdenes de venta escalonadas. Si el precio sube un 1.5%, asegura ganancias. Si baja más, espera (HODL) ya que en Spot no hay liquidación, aprovechando la recuperación natural del activo.'
                 }
             ]
+        },
+        {
+            id: 'hybrid-protect',
+            title: 'HYBRID PROTECT: FILTRO GENÉTICO',
+            icon: <ShieldCheck className={styles.modeIcon} style={{ color: '#8B5CF6' }} size={28} />,
+            description: 'Un "portero" inteligente que valida todas las señales del bot técnico antes de dejarlas pasar. Utiliza modelos probabilísticos basados en historia reciente para evitar "trampas de mercado".',
+            indicators: ['Odds Probability (Calculated)', 'Volatility Context'],
+            logic: 'Si el Bot Técnico dice "COMPRA", el Filtro Genético pregunta: "¿Qué probabilidad tiene este patrón de ganar hoy?". Si la respuesta es menor que tu umbral configurado (ej. 67%), la operación se bloquea para proteger tu capital.',
+            examples: [
+                {
+                    title: 'Filtrado de Señal Débil',
+                    text: 'El bot detecta una compra en PEPEUSDT. El filtro calcula que, dada la volatilidad actual, la probabilidad de éxito es solo del 45%. Como tú configuraste el mínimo en 60%, la operación se descarta.'
+                },
+                {
+                    title: 'Configuración de Riesgo',
+                    text: 'Puedes ajustar este filtro en ⚙️ CONFIG. Un valor alto (70%+) hará que el bot sea muy selectivo (pocas operaciones, alta seguridad). Un valor bajo (40%) permitirá más operaciones con mayor riesgo.'
+                }
+            ]
         }
     ];
 
