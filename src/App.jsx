@@ -675,15 +675,19 @@ function App() {
             )}
 
             <MarketGrid>
-              {Object.keys(marketData).map(symbol => (
-                <SentinelCard
-                  key={symbol}
-                  symbol={symbol}
-                  data={marketData[symbol]}
-                  loading={loading}
-                  onSimulate={handleSimulate}
-                />
-              ))}
+              {Object.keys(marketData).map(symbol => {
+                const minOdds = walletConfig?.strategyConfig?.HYBRID_BLITZ?.minOdds || 67;
+                return (
+                  <SentinelCard
+                    key={symbol}
+                    symbol={symbol}
+                    data={marketData[symbol]}
+                    loading={loading}
+                    onSimulate={handleSimulate}
+                    minOdds={minOdds}
+                  />
+                );
+              })}
             </MarketGrid>
           </section>
         )}

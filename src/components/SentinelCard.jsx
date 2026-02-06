@@ -3,7 +3,7 @@ import styles from './SentinelCard.module.css';
 import { motion } from 'framer-motion';
 import NumberTicker from './NumberTicker';
 
-const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
+const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds }) => {
     // Phase 1: Skeleton Loading (Row)
     if (loading || !data) {
         return (
@@ -100,23 +100,11 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 {indicators.hybrid?.odds && (
                     <div style={{
                         fontSize: '0.7rem', fontWeight: 'bold',
-                        color: parseFloat(indicators.hybrid.odds) >= 67 ? '#10B981' : '#EF4444',
+                        color: parseFloat(indicators.hybrid.odds) >= (minOdds || 67) ? '#10B981' : '#EF4444',
                         display: 'flex', alignItems: 'center', gap: '4px'
                     }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: parseFloat(indicators.hybrid.odds) >= 67 ? '#10B981' : '#EF4444', boxShadow: parseFloat(indicators.hybrid.odds) >= 67 ? '0 0 5px #10B981' : 'none' }}></div>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: parseFloat(indicators.hybrid.odds) >= (minOdds || 67) ? '#10B981' : '#EF4444', boxShadow: parseFloat(indicators.hybrid.odds) >= (minOdds || 67) ? '0 0 5px #10B981' : 'none' }}></div>
                         🧬 PROB: {parseFloat(indicators.hybrid.odds).toFixed(0)}%
-                    </div>
-                )}
-                {/* 3. BLACKLIST (PAIN MEMORY) */}
-                {indicators.isBlacklisted && (
-                    <div style={{
-                        fontSize: '0.7rem', fontWeight: 'bold',
-                        color: '#EF4444',
-                        display: 'flex', alignItems: 'center', gap: '4px',
-                        marginTop: '2px'
-                    }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 5px #EF4444' }}></div>
-                        🚫 BLOQUED (12h)
                     </div>
                 )}
             </div>
