@@ -246,13 +246,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     }
 
     if (wallet.isBotActive && !isLockdown) {
-        // ... Logic Scan Code ...
-        // We simplify here to reduce file size risk. Logic is same as before.
-        // Effectively we run scan if quota not full.
         const currentlyActive = monitorResults.filter(r => r.status === 'KEEP').length;
         if (currentlyActive < (wallet.maxTrades || 3)) {
-            // ... Scan logic would go here ...
-            // For brevity/safety in this rewrite, I will reimplement the basic logic
             const currentPairs = await getDynamicTopPairs();
             const occupied = activeTrades.map(t => t.symbol);
 
@@ -260,8 +255,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             const COOLDOWN_MS = 15 * 60 * 1000;
             const now = Date.now();
 
-            // 💀 Fetch Blacklist (Coins that lost money in last 12h)
-            const allKeys = await redis.keys('blacklist:*');
+            // 💀 Fetch Blacklist (Coins that lost money in last 12h) [MODE SPECIFIC]
+            const allKeys = await redis.keys(`blacklist_${mode}:*`);
             const blacklistedSymbols = allKeys.map(k => k.split(':')[1]);
 
             const recentCloses = winHistory
@@ -368,8 +363,8 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                         // 💀 PAIN MEMORY LOGIC: If loss, blacklist for 12 hours
                         if (res.win.profitUsd < 0) {
                             console.log(`💀 LOSS DETECTED on ${dbTrade.symbol}. Blacklisting for 12 hours.`);
-                            await redis.set(`blacklist:${dbTrade.symbol}`, 'LOSS', 'EX', 12 * 60 * 60);
-                            await sendRawTelegram(`💀 **PAIN MEMORY ACTIVATED**\nMoneda ${dbTrade.symbol} bloqueada por 12 horas por pérdida.`);
+                            await redis.set(`blacklist_${mode}:${dbTrade.symbol}`, 'LOSS', 'EX', 12 * 60 * 60);
+                            await sendRawTelegram(`💀 **PAIN MEMORY ACTIVATED [${mode}]**\nMoneda ${dbTrade.symbol} bloqueada por 12 horas por pérdida.`);
                         }
                         // Do NOT add to nextActiveList
                     } else {
