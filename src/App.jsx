@@ -271,7 +271,7 @@ function App() {
             const useHybrid = walletConfig?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
             const odds = parseFloat(analysis.indicators?.hybrid?.odds || 50);
 
-            if (activeStrategy.includes('BLITZ') && useHybrid && odds < 60) {
+            if (activeStrategy.includes('BLITZ') && useHybrid && odds < 67) {
               // Suppress Signal if Odds are too low
               if (analysis.prediction?.signal.includes('BUY')) {
                 analysis.prediction.signal = 'NEUTRAL';

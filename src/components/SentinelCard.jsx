@@ -50,7 +50,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
 
     return (
         <motion.div
-            className={styles.card}
+            className={`${styles.card} ${isSignal ? styles.flash : ''}`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             style={{
@@ -100,10 +100,10 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 {indicators.hybrid?.odds && (
                     <div style={{
                         fontSize: '0.7rem', fontWeight: 'bold',
-                        color: parseFloat(indicators.hybrid.odds) >= 60 ? '#10B981' : '#EF4444',
+                        color: parseFloat(indicators.hybrid.odds) >= 67 ? '#10B981' : '#EF4444',
                         display: 'flex', alignItems: 'center', gap: '4px'
                     }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: parseFloat(indicators.hybrid.odds) >= 60 ? '#10B981' : '#EF4444', boxShadow: parseFloat(indicators.hybrid.odds) >= 60 ? '0 0 5px #10B981' : 'none' }}></div>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: parseFloat(indicators.hybrid.odds) >= 67 ? '#10B981' : '#EF4444', boxShadow: parseFloat(indicators.hybrid.odds) >= 67 ? '0 0 5px #10B981' : 'none' }}></div>
                         🧬 PROB: {parseFloat(indicators.hybrid.odds).toFixed(0)}%
                     </div>
                 )}

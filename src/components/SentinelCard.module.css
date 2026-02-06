@@ -28,18 +28,32 @@
 
 @keyframes pulse {
     0% {
-        opacity: 0.5;
-        transform: scale(0.95);
+        opacity: 0.6;
     }
 
     50% {
         opacity: 1;
-        transform: scale(1);
     }
 
     100% {
-        opacity: 0.5;
-        transform: scale(0.95);
+        opacity: 0.6;
+    }
+}
+
+.flash {
+    animation: flash 1s infinite alternate;
+    box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+@keyframes flash {
+    from {
+        border-color: rgba(16, 185, 129, 0.2);
+        background: #0F172A;
+    }
+
+    to {
+        border-color: rgba(16, 185, 129, 1);
+        background: rgba(16, 185, 129, 0.05);
     }
 }
 
