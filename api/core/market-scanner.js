@@ -1,9 +1,8 @@
-
 import axios from 'axios';
 import * as analysis from '../../src/utils/analysis.js';
 import binanceClient from '../utils/binance-client.js';
 import { v4 as uuidv4 } from 'uuid';
-import { sendRawTelegram } from '../../src/utils/telegram.js';
+import { sendServerTelegram } from '../utils/telegram-server.js';
 
 // --- HELPERS (Reused) ---
 async function fetchGlobalKlines(symbol, interval, limit = 150) {
@@ -116,6 +115,12 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                     }
                 }
 
+                // Determine Dynamic Strategy Label
+                let strategyLabel = 'BLITZ';
+                if (useBlitz && useHybrid) strategyLabel = 'BLITZ+HYBRID';
+                else if (useHybrid) strategyLabel = 'HYBRID';
+                else if (useBlitz) strategyLabel = 'BLITZ';
+
                 const tradeRecord = {
                     id: uuidv4(),
                     symbol,
@@ -124,7 +129,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                     quantity: qty,
                     type: 'LONG',
                     timestamp: new Date().toISOString(),
-                    strategy: 'BLITZ',
+                    strategy: strategyLabel,
                     mode: mode,
                     isManual: false,
                     stopLoss: analysisRes.obZone?.sl || null,
@@ -135,7 +140,8 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 newTrades.push(tradeRecord);
 
                 console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%)`);
-                await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 ${symbol}\n🧬 Odds: ${odds.toFixed(1)}%`);
+                console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%)`);
+                await sendServerTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 ${symbol}\n🏷️ ${strategyLabel}\n🧬 Odds: ${odds.toFixed(1)}%`);
             }
 
         } catch (e) {
