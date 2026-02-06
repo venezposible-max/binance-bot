@@ -276,6 +276,13 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
             const candidates = currentPairs.filter(s => !occupied.includes(s) && !excludedSymbols.includes(s));
 
+            // LOG: Show what we are scanning
+            if (candidates.length > 0) {
+                console.log(`📡 [${mode}] SCANNING ${candidates.length} COINS: ${candidates.join(', ')}`);
+            } else {
+                console.log(`💤 [${mode}] NO CANDIDATES TO SCAN (All occupied or blacklisted)`);
+            }
+
             for (const symbol of candidates) {
                 if (newScanTrades.length + currentlyActive >= (wallet.maxTrades || 3)) break;
                 // Quick Check
