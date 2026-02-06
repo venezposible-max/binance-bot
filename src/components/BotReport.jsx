@@ -6,6 +6,7 @@ const BotReport = ({ config, cloudStatus }) => {
     const blacklistCount = cloudStatus?.blacklist?.length || 0;
     const strategy = config?.strategy || 'BLITZ';
     const isHybrid = config?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false;
+    const minOdds = config?.strategyConfig?.HYBRID_BLITZ?.minOdds || 67;
 
     return (
         <div className={styles.reportContainer}>
@@ -26,7 +27,7 @@ const BotReport = ({ config, cloudStatus }) => {
                     <div className={styles.statLabel}>
                         <Brain size={12} /> FILTRO ELITE
                     </div>
-                    <div className={styles.statValue}>+67% Prob.</div>
+                    <div className={styles.statValue}>+{minOdds}% Prob.</div>
                 </div>
 
                 <div className={styles.statItem}>
