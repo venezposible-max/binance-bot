@@ -326,13 +326,29 @@ export const analyzeBlitz = (depth, candles) => {
     // We scan the provided candles to build a probability map
     if (candles.length > 50) {
         const memory = {};
+
+        // Helper to safely get Open/Close regardless of format (Object or Raw Array)
+        const getCandleData = (c) => {
+            if (!c) return { open: 0, close: 0 };
+            const open = c.open !== undefined ? c.open : (c[1] !== undefined ? parseFloat(c[1]) : 0);
+            const close = c.close !== undefined ? c.close : (c[4] !== undefined ? parseFloat(c[4]) : 0);
+            return { open, close };
+        };
+
+        const isGreen = (c) => {
+            const { open, close } = getCandleData(c);
+            return close > open;
+        };
+
+        const getColor = (c) => isGreen(c) ? 'G' : 'R';
+
         for (let i = 20; i < candles.length - 1; i++) {
-            const p2 = candles[i - 2].close > candles[i - 2].open ? 'G' : 'R';
-            const p1 = candles[i - 1].close > candles[i - 1].open ? 'G' : 'R';
-            const p0 = candles[i].close > candles[i].open ? 'G' : 'R';
+            const p2 = getColor(candles[i - 2]);
+            const p1 = getColor(candles[i - 1]);
+            const p0 = getColor(candles[i]);
             const key = p2 + p1 + p0;
 
-            const nextIsGreen = candles[i + 1].close > candles[i + 1].open;
+            const nextIsGreen = isGreen(candles[i + 1]);
 
             if (!memory[key]) memory[key] = { total: 0, green: 0 };
             memory[key].total++;
@@ -341,9 +357,9 @@ export const analyzeBlitz = (depth, candles) => {
 
         // What is the current pattern?
         const cLen = candles.length;
-        const curP2 = candles[cLen - 3].close > candles[cLen - 3].open ? 'G' : 'R';
-        const curP1 = candles[cLen - 2].close > candles[cLen - 2].open ? 'G' : 'R';
-        const curP0 = candles[cLen - 1].close > candles[cLen - 1].open ? 'G' : 'R'; // Last closed candle
+        const curP2 = getColor(candles[cLen - 3]);
+        const curP1 = getColor(candles[cLen - 2]);
+        const curP0 = getColor(candles[cLen - 1]); // Last closed candle
         const currentPattern = curP2 + curP1 + curP0;
 
         if (memory[currentPattern]) {
