@@ -15,8 +15,15 @@ const BotReport = ({ config, cloudStatus }) => {
     else if (useBlitz) strategyName = 'BLITZ (TÉCNICO)';
     else if (useHybrid) strategyName = 'HYBRID (ESTADÍSTICO)';
 
+    const [displayOdds, setDisplayOdds] = React.useState(minOdds);
+
+    // Sync local state when prop updates (from server polling)
+    React.useEffect(() => {
+        setDisplayOdds(minOdds);
+    }, [minOdds]);
+
     const handleEditOdds = async () => {
-        const newOddsStr = prompt(`🧬 Ajustar Filtro de Probabilidad (Actual: ${minOdds}%) \n\nIntroduce el nuevo porcentaje mínimo (50-95):`, minOdds);
+        const newOddsStr = prompt(`🧬 Ajustar Filtro de Probabilidad (Actual: ${displayOdds}%) \n\nIntroduce el nuevo porcentaje mínimo (50-95):`, displayOdds);
         if (newOddsStr === null) return;
 
         const newOdds = parseInt(newOddsStr);
@@ -24,6 +31,9 @@ const BotReport = ({ config, cloudStatus }) => {
             alert("Por favor introduce un número válido entre 10 y 100");
             return;
         }
+
+        // OPTIMISTIC UPDATE: Update UI immediately
+        setDisplayOdds(newOdds);
 
         const newStrategyConfig = {
             ...config?.strategyConfig,
@@ -47,6 +57,7 @@ const BotReport = ({ config, cloudStatus }) => {
         } catch (e) {
             console.error("Error updating odds:", e);
             alert("❌ Error al guardar configuración");
+            setDisplayOdds(minOdds); // Revert on error
         }
     };
 
@@ -70,7 +81,7 @@ const BotReport = ({ config, cloudStatus }) => {
                         <Brain size={12} /> FILTRO ELITE
                     </div>
                     <div className={styles.statValue} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>+{minOdds}% Prob.</span>
+                        <span>+{displayOdds}% Prob.</span>
                         <Settings
                             size={12}
                             style={{ cursor: 'pointer', opacity: 0.7 }}
