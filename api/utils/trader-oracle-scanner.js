@@ -21,7 +21,12 @@ export async function scanTopTraders() {
         let candidates = [];
         try {
             // console.log('📡 [TRADER ORACLE] Connecting to Binance SAPI for Live Leaderboard...');
-            // Undocumented/SAPI endpoint attempt
+
+            // DISABLED: API Endpoint /sapi/v1/copyTrading/futures/allLeadTraders returns 404 (Not Found).
+            // This endpoint is either deprecated or requires specific whitelist access.
+            // Using Verified Fallback List directly until a new endpoint is discovered.
+
+            /* 
             const liveData = await authenticatedRequest('/sapi/v1/copyTrading/futures/allLeadTraders', 'GET');
 
             if (liveData && Array.isArray(liveData.list) && liveData.list.length > 0) {
@@ -38,6 +43,7 @@ export async function scanTopTraders() {
                     isLive: true
                 }));
             }
+            */
         } catch (e) {
             // console.log(`⚠️ [TRADER ORACLE] Live fetch failed (${e.message}), using verified fallback.`);
         }

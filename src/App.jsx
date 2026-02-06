@@ -14,6 +14,7 @@ import LogConsole from './components/LogConsole';
 import { sendTelegramAlert } from './utils/telegram';
 import { BookOpen, Terminal, ShieldCheck, History } from 'lucide-react'; // Added History Icon
 import ActiveTradeCard from './components/ActiveTradeCard';
+import BotReport from './components/BotReport';
 
 function App() {
   const [pairs, setPairs] = useState(INITIAL_PAIRS); // Dynamic Top 10 Pairs
@@ -449,13 +450,20 @@ function App() {
           {/* Wallet Card - Control Center */}
           <WalletCard
             ref={walletRef}
-            onConfigChange={handleConfigChange}
+            mode={tradingMode}
+            config={walletConfig}
+            binanceBalance={binanceBalance}
+            onUpdate={loadModeAndConfig}
             activeTrades={cloudStatus.active}
             marketData={marketData}
             activeStrategy={activeStrategy}
             tradingMode={tradingMode}
-            binanceBalance={binanceBalance}
             onToggleMode={toggleTradingMode}
+          />
+
+          <BotReport
+            config={walletConfig}
+            cloudStatus={cloudStatus}
           />
         </section>
 
