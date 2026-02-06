@@ -88,7 +88,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
             <div className={styles.infoRow}>
                 <span>Entrada:</span>
                 <span className={styles.infoVal}>
-                    ${trade.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    ${(trade.entryPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                     <span style={{ fontSize: '0.7rem', color: '#94A3B8', marginLeft: '6px', fontWeight: 'normal' }}>
                         ({new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                     </span>
@@ -110,7 +110,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
                         <span style={{ fontSize: '0.65rem', color: '#A7F3D0' }}>({tpDist > 0 ? '+' : ''}{tpDist.toFixed(1)}%)</span>
                     </div>
                     <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        ${tpPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                        ${(tpPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
                     </span>
                 </div>
 
@@ -121,7 +121,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
                     </div>
                     <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: slPrice > 0 ? '#fff' : '#94A3B8' }}>
                         {trade.isTrailing
-                            ? <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)' }}>⛓️ TS: ${slPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            ? <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)' }}>⛓️ TS: ${(slPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                             : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN S/L')
                         }
                     </span>
