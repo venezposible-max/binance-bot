@@ -1,17 +1,44 @@
-# React + Vite
+# 🤖 Sentinel Binance Bot
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistema de trading automatizado de alta frecuencia diseñado para operar en Binance Futures/Spot. Incorpora análisis técnico avanzado, gestión de riesgo en tiempo real y arquitectura de doble motor (Live/Simulation).
 
-Currently, two official plugins are available:
+## 🚀 Características Principales
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Doble Motor (Dual Engine):** Opera simultáneamente en modo **LIVE** (Dinero Real) y **SIMULATION** (Paper Trading) con configuraciones y saldos totalmente independientes.
+*   **Estrategia BLITZ:** Scalping de alta velocidad basado en Order Blocks, Flujo de Órdenes y Rebotes de EMA.
+*   **Gestión de Riesgo:** Control de Drawdown, Stop Loss dinámico y Take Profit basado en ATR.
+*   **Interfaz React:** Panel de control en tiempo real con actualización optimista (sin recargas).
 
-## React Compiler
+## 🛡️ Hybrid Protect (Filtro Genético)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+El **Hybrid Protect** es la capa de defensa estadística del bot. Utiliza un algoritmo de probabilidad basado en patrones históricos para validar cada señal de entrada antes de ejecutarla.
 
-## Expanding the ESLint configuration
+### ¿Cómo funciona?
+Cada vez que la estrategia técnica (BLITZ) detecta una oportunidad de compra, el Filtro Genético analiza la estructura de mercado actual y la compara con miles de escenarios pasados para calcular las **Odds (Probabilidades de Éxito)**.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-Mon Feb  2 18:30:23 -04 2026
+*   **Cálculo de Odds:** Se basa en la fuerza de la tendencia, volumen relativo y distancia a medias móviles claves.
+*   **Filtrado:** Si la probabilidad calculada es **MENOR** que el umbral configurado por el usuario, la operación se descarta automáticamente, incluso si los indicadores técnicos dan señal de compra.
+
+### Configuración
+Puedes ajustar la agresividad del filtro directamente desde el panel de control:
+
+1.  Ve a la tarjeta de **Wallet** y pulsa el botón de configuración (⚙️).
+2.  Busca la opción **"Filtro Genético (% Probabilidad Mínima)"**.
+3.  Ingresa el valor deseado (Ejemplo: `67` para un filtro conservador, `40` para uno más agresivo).
+
+**Impacto:**
+*   ⬆️ **Mayor % (e.g. 70%):** Menos operaciones, pero mayor tasa de acierto (Filtrado estricto).
+*   ⬇️ **Menor % (e.g. 40%):** Más operaciones, pero mayor riesgo de falsos positivos.
+
+## ⚙️ Instalación y Despliegue
+
+El proyecto está configurado para desplegarse automáticamente en railway/vercel mediante los push a la rama `main`.
+
+### Variables de Entorno Requeridas
+*   `BINANCE_API_KEY`: Tu API Key de Binance.
+*   `BINANCE_API_SECRET`: Tu API Secret.
+*   `CRON_SECRET`: Clave de seguridad para la ejecución de tareas programadas.
+*   `REDIS_URL`: URL de conexión a la base de datos Redis (Persistencia).
+
+---
+*Developed by Antigravity Agents*
