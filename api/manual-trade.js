@@ -51,7 +51,7 @@ export default async function handler(req, res) {
             if (action === 'CLEAR_HISTORY') {
                 winHistory = [];
                 await redis.set(historyKey, JSON.stringify(winHistory));
-                return { success: true, history: [] };
+                return { success: true, history: [], active: activeTrades };
             }
 
             // --- ACTION: OPEN TRADE ---
