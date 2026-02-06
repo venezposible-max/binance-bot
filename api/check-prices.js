@@ -264,6 +264,16 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                                 let qty = invest / pd.price;
                                 let realInvest = invest;
 
+                                // 🧬 HYBRID FILTER CHECK
+                                // If config says "useHybrid" (default true for safety now), check odds
+                                const useHybrid = wallet.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
+                                const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
+
+                                if (useHybrid && odds < 60) {
+                                    console.log(`[${mode}] 🧬 HYBRID PROTECT: Skipping ${symbol} (Odds: ${odds}%)`);
+                                    continue; // SKIP THIS TRADE
+                                }
+
                                 if (mode === 'LIVE') {
                                     const order = await binanceClient.executeOrder(symbol, 'BUY', invest, pd.price, 'MARKET', true);
                                     qty = parseFloat(order.executedQty);

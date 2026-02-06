@@ -211,18 +211,37 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         }
     };
 
-    const handleSetHybridMode = async (mode) => {
+    const toggleHybridBlitz = async () => {
         if (!wallet) return;
+        const currentStrategies = wallet.strategyConfig || {};
+        const hybridConfig = currentStrategies['HYBRID_BLITZ'] || { useHybrid: true }; // Default true if missing
+
+        // Toggle
+        const newState = !hybridConfig.useHybrid;
+
+        const newStrategies = {
+            ...currentStrategies,
+            HYBRID_BLITZ: { ...hybridConfig, useHybrid: newState }
+        };
+
         try {
-            setWallet(prev => ({ ...prev, hybridMode: mode }));
+            // Optimistic Client Update
+            const newWallet = { ...wallet, strategyConfig: newStrategies };
+            setWallet(newWallet);
+            if (onConfigChange) onConfigChange(newWallet); // Propagate up
+
+            // Server Update
             await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hybridMode: mode, tradingMode })
+                body: JSON.stringify({
+                    strategyConfig: newStrategies,
+                    tradingMode
+                })
             });
-            if (onConfigChange) onConfigChange({ ...wallet, hybridMode: mode });
+            console.log(`🧬 Hybrid Mode Set to: ${newState ? 'ON' : 'OFF'}`);
         } catch (e) {
-            console.error(e);
+            console.error("Hybrid Toggle Error:", e);
         }
     };
 
@@ -283,9 +302,41 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 {/* RIGHT: OPERATIONS (Strategy & Status) */}
                 <div className={styles.rightPanel}>
                     {/* BLITZ STATUS */}
-                    <div className={styles.blitzBadge}>
-                        <div style={{ fontSize: '0.8rem', color: '#00D9FF', fontWeight: 'bold' }}>⚡ BLITZ ENGINE ACTIVE</div>
-                        <span style={{ fontSize: '0.6rem', color: '#64748B' }}>(5m High Frequency)</span>
+                    {/* BLITZ STATUS + HYBRID TOGGLE */}
+                    <div style={{ display: 'flex', gap: '10px', width: '100%', marginBottom: '8px' }}>
+                        {/* 1. Blitz Badge */}
+                        <div className={styles.blitzBadge} style={{ flex: 1, margin: 0, padding: '8px', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#00D9FF', fontWeight: 'bold' }}>⚡ BLITZ</div>
+                            <span style={{ fontSize: '0.6rem', color: '#64748B' }}>SCALPER</span>
+                        </div>
+
+                        {/* 2. Hybrid Toggle 🧬 */}
+                        {(() => {
+                            const isHybridOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
+                            return (
+                                <div
+                                    onClick={toggleHybridBlitz}
+                                    title="Activar/Desactivar Filtro Estadístico"
+                                    style={{
+                                        flex: 1,
+                                        background: isHybridOn ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: isHybridOn ? '1px solid #8B5CF6' : '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        userSelect: 'none'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.9rem', color: isHybridOn ? '#A78BFA' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        🧬 HYBRID
+                                    </div>
+                                    <div style={{ fontSize: '0.55rem', color: isHybridOn ? '#fff' : '#64748B', marginTop: '2px' }}>
+                                        {isHybridOn ? 'PROTECTED' : 'DISABLED'}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* STATS MINI */}

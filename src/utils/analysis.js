@@ -317,6 +317,40 @@ export const analyzeBlitz = (depth, candles) => {
         wallPrice = masterWall ? parseFloat(masterWall[0]) : 0;
     }
 
+    // --- HYBRID STATISTICAL LAYER 🧬 ---
+    // If enabled, we check pattern probabilities
+    let hybridPermission = true; // Default Allow
+    let reboundOdds = 50;
+
+    // Pattern Learning (Real-Time)
+    // We scan the provided candles to build a probability map
+    if (candles.length > 50) {
+        const memory = {};
+        for (let i = 20; i < candles.length - 1; i++) {
+            const p2 = candles[i - 2].close > candles[i - 2].open ? 'G' : 'R';
+            const p1 = candles[i - 1].close > candles[i - 1].open ? 'G' : 'R';
+            const p0 = candles[i].close > candles[i].open ? 'G' : 'R';
+            const key = p2 + p1 + p0;
+
+            const nextIsGreen = candles[i + 1].close > candles[i + 1].open;
+
+            if (!memory[key]) memory[key] = { total: 0, green: 0 };
+            memory[key].total++;
+            if (nextIsGreen) memory[key].green++;
+        }
+
+        // What is the current pattern?
+        const cLen = candles.length;
+        const curP2 = candles[cLen - 3].close > candles[cLen - 3].open ? 'G' : 'R';
+        const curP1 = candles[cLen - 2].close > candles[cLen - 2].open ? 'G' : 'R';
+        const curP0 = candles[cLen - 1].close > candles[cLen - 1].open ? 'G' : 'R'; // Last closed candle
+        const currentPattern = curP2 + curP1 + curP0;
+
+        if (memory[currentPattern]) {
+            reboundOdds = (memory[currentPattern].green / memory[currentPattern].total) * 100;
+        }
+    }
+
     // --- FINAL CONFLUENCE ---
     let signal = 'NEUTRAL';
     let label = 'ESPERANDO';
@@ -327,16 +361,22 @@ export const analyzeBlitz = (depth, candles) => {
     // Actually, Blitz is mean reversion too. Checks if price > EMA usually good.
     // User wants simplistic "Blitz".
 
+    if (foundOB) {
+        signal = 'BUY';
+        label = 'BLITZ (OB ONLY)';
+        color = '#10B981';
+        intensity = 60;
+
+        // HYBRID OVERRIDE 🧬
+        // If Hybrid is requested (via config passed implicitly or we output the odds for decision maker)
+        // We will output the odds, and the decision maker (check-prices) will filter.
+    }
+
     if (foundOB && flowSignal === 'BUY') {
         signal = 'STRONG_BUY';
         label = `⚡ BLITZ ENTRY (${bidPercent.toFixed(0)}%)`;
         color = '#F59E0B'; // Amber
         intensity = 90;
-    } else if (foundOB) {
-        signal = 'BUY';
-        label = 'BLITZ (OB ONLY)';
-        color = '#10B981';
-        intensity = 60;
     }
 
     return {
@@ -347,8 +387,9 @@ export const analyzeBlitz = (depth, candles) => {
         indicators: {
             rsi: currentRSI.toFixed(1),
             ema: currentEMA ? currentEMA.toFixed(1) : '---',
-            volatility: ((currentATR / lastPrice) * 100).toFixed(2), // NEW: ATR %
-            flow: { bidPercent: bidPercent.toFixed(1) }
+            volatility: ((currentATR / lastPrice) * 100).toFixed(2),
+            flow: { bidPercent: bidPercent.toFixed(1) },
+            hybrid: { odds: reboundOdds.toFixed(1) } // 🧬 Export Odds
         },
         prediction: {
             signal,
