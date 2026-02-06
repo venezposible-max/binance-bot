@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './BotReport.module.css';
-import { ShieldCheck, Brain, Activity, Zap, History } from 'lucide-react';
+import { ShieldCheck, Brain, Activity, Zap, History, Settings } from 'lucide-react';
+import { API_BASE } from '../config/api';
 
 const BotReport = ({ config, cloudStatus }) => {
     const blacklistCount = cloudStatus?.blacklist?.length || 0;
@@ -13,6 +14,41 @@ const BotReport = ({ config, cloudStatus }) => {
     if (useBlitz && useHybrid) strategyName = 'FUSIÓN (BLITZ + HYBRID)';
     else if (useBlitz) strategyName = 'BLITZ (TÉCNICO)';
     else if (useHybrid) strategyName = 'HYBRID (ESTADÍSTICO)';
+
+    const handleEditOdds = async () => {
+        const newOddsStr = prompt(`🧬 Ajustar Filtro de Probabilidad (Actual: ${minOdds}%) \n\nIntroduce el nuevo porcentaje mínimo (50-95):`, minOdds);
+        if (newOddsStr === null) return;
+
+        const newOdds = parseInt(newOddsStr);
+        if (isNaN(newOdds) || newOdds < 10 || newOdds > 100) {
+            alert("Por favor introduce un número válido entre 10 y 100");
+            return;
+        }
+
+        const newStrategyConfig = {
+            ...config?.strategyConfig,
+            HYBRID_BLITZ: {
+                ...strategyConf,
+                minOdds: newOdds
+            }
+        };
+
+        try {
+            await fetch(`${API_BASE}/api/wallet/config?mode=${config.tradingMode || 'SIMULATION'}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    strategyConfig: newStrategyConfig,
+                    tradingMode: config.tradingMode
+                })
+            });
+            // UX Feedback: simple alert for now, polling will update UI shortly
+            // alert(`✅ Filtro actualizado a ${newOdds}%`); 
+        } catch (e) {
+            console.error("Error updating odds:", e);
+            alert("❌ Error al guardar configuración");
+        }
+    };
 
     return (
         <div className={styles.reportContainer}>
@@ -33,7 +69,16 @@ const BotReport = ({ config, cloudStatus }) => {
                     <div className={styles.statLabel}>
                         <Brain size={12} /> FILTRO ELITE
                     </div>
-                    <div className={styles.statValue}>+{minOdds}% Prob.</div>
+                    <div className={styles.statValue} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>+{minOdds}% Prob.</span>
+                        <Settings
+                            size={12}
+                            style={{ cursor: 'pointer', opacity: 0.7 }}
+                            onClick={handleEditOdds}
+                            onMouseEnter={(e) => e.target.style.opacity = 1}
+                            onMouseLeave={(e) => e.target.style.opacity = 0.7}
+                        />
+                    </div>
                 </div>
 
 
