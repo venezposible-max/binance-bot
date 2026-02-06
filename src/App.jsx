@@ -134,6 +134,7 @@ function App() {
 
       if (res.ok) {
         setTradingMode(newMode);
+        setWalletConfig({}); // Clear old config instantly to prevent stale UI
 
         // Reload config for the new mode
         const configRes = await fetch(`/api/wallet/config?mode=${newMode}`);
