@@ -267,7 +267,8 @@ function App() {
       const pricesMap = await fetchTickerPrices(currentPairs);
 
       // 2. Fetch Candles (Simultaneously for all pairs)
-      const candlesMap = await fetchCandles(currentPairs, currentTf); // [NEW] Batch Fetch Support
+      // [SYNC FIX] Force 150 candles to match Backend logic for proper Odds calculation
+      const candlesMap = await fetchCandles(currentPairs, currentTf, 150);
 
       // 3. Process each pair
       for (const symbol of currentPairs) {
