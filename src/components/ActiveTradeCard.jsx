@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import styles from './ActiveTradeCard.module.css';
 
-const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
+const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly }) => {
     // Memoize PnL calculation to avoid recalculating if props didn't change (though React.memo handles the component level)
     const { pnl, profitUsd, isWin, currentVal } = useMemo(() => {
         if (!currentPrice || !trade.entryPrice) return { pnl: 0, profitUsd: 0, isWin: false, currentVal: 0 };
@@ -78,7 +78,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
                     </span>
                 </div>
                 <span className={styles.symbol}>{trade.symbol.replace('USDT', '')}</span>
-                <button className={styles.closeBtn} onClick={() => onClose(trade.id)}>×</button>
+                {!readOnly && <button className={styles.closeBtn} onClick={() => onClose(trade.id)}>×</button>}
             </div>
 
             <div className={styles.pnl} style={{ color: isWin ? '#10B981' : '#EF4444' }}>

@@ -4,7 +4,7 @@ import styles from './SentinelCard.module.css';
 import { motion } from 'framer-motion';
 import NumberTicker from './NumberTicker';
 
-const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = true, showProb = true }) => {
+const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = true, showProb = true, readOnly }) => {
     // Phase 1: Skeleton Loading (Row)
     if (loading || !data) {
         return (
@@ -142,15 +142,19 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
             <div className={styles.actionSection}>
                 {isSignal ? (
                     <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => onSimulate(symbol, price)}
+                        whileTap={!readOnly ? { scale: 0.95 } : {}}
+                        onClick={() => !readOnly && onSimulate(symbol, price)}
                         style={{
-                            background: color, color: '#000', border: 'none',
-                            padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold',
+                            background: readOnly ? '#334155' : color,
+                            color: readOnly ? '#94A3B8' : '#000',
+                            border: 'none',
+                            padding: '10px 20px', borderRadius: '6px',
+                            cursor: readOnly ? 'default' : 'pointer',
+                            fontWeight: 'bold',
                             fontSize: '0.8rem', width: '100%', maxWidth: '140px'
                         }}
                     >
-                        ⚡ ENTRAR
+                        {readOnly ? '👁️ VISOR' : '⚡ ENTRAR'}
                     </motion.button>
                 ) : (
                     <div style={{ textAlign: 'right' }}>

@@ -40,12 +40,16 @@ function App() {
   const [mobileTab, setMobileTab] = useState('dashboard');
   const walletRef = useRef(null);
 
+  // --- GUEST MODE DETECTION ---
+  const isReadOnly = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('view') === 'guest';
+
   // --- HANDLERS ---
   const handleMobileNav = (tab) => {
     setMobileTab(tab);
     if (tab === 'dashboard') document.getElementById('market-section')?.scrollIntoView({ behavior: 'smooth' });
     if (tab === 'wallet') window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (tab === 'settings') walletRef.current?.configure();
+    // Prevent Settings access in ReadOnly
+    if (tab === 'settings' && !isReadOnly) walletRef.current?.configure();
   };
 
   const onScanToggleMode = () => {
@@ -53,6 +57,8 @@ function App() {
   };
 
   const handleSimulate = useCallback((symbol, price, type, amount = null) => {
+    if (isReadOnly) return; // Block in Guest Mode
+
     // Capture ATR targets if available (BLITZ mode)
     let takeProfit = null;
     let stopLoss = null;
@@ -64,13 +70,14 @@ function App() {
     }
 
     handleManualAction('OPEN', { symbol, price, type, strategy: activeStrategy, takeProfit, stopLoss, amount });
-  }, [activeStrategy, marketData, handleManualAction]);
+  }, [activeStrategy, marketData, handleManualAction, isReadOnly]);
 
   const handleCloseManual = useCallback((id) => {
+    if (isReadOnly) return; // Block in Guest Mode
     const trade = cloudStatus.active.find(t => t.id === id);
     const currentPrice = trade ? marketData[trade.symbol]?.price : null;
     handleManualAction('CLOSE', { id, exitPrice: currentPrice, source: 'user' });
-  }, [cloudStatus.active, marketData, handleManualAction]);
+  }, [cloudStatus.active, marketData, handleManualAction, isReadOnly]);
 
 
   return (
@@ -82,7 +89,7 @@ function App() {
           <div className={styles.headerLeft}>
             <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldCheck size={26} color="#00D9FF" strokeWidth={2.5} />
-              <span>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></span>
+              <span>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span> {isReadOnly && <span style={{ fontSize: '0.6rem', background: '#333', padding: '2px 4px', borderRadius: '4px', color: '#aaa' }}>VIEWER</span>}</span>
             </div>
             <div
               className={styles.statusBadge}
@@ -106,14 +113,16 @@ function App() {
               {apiConfigured ? 'API: LIVE' : 'NO API'}
             </div>
 
-            {/* EMERGENCY BUTTON */}
-            <button onClick={toggleLockdown} style={{
-              background: lockdown ? '#EF4444' : 'rgba(239, 68, 68, 0.1)', border: '1px solid #EF4444', color: lockdown ? '#fff' : '#EF4444',
-              padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-              marginRight: '10px', boxShadow: lockdown ? '0 0 15px rgba(239, 68, 68, 0.5)' : 'none', animation: lockdown ? 'pulse 2s infinite' : 'none'
-            }}>
-              {lockdown ? '⛔ BLOQUEADO' : '🛑 STOP'}
-            </button>
+            {/* EMERGENCY BUTTON (HIDDEN IN READ ONLY) */}
+            {!isReadOnly && (
+              <button onClick={toggleLockdown} style={{
+                background: lockdown ? '#EF4444' : 'rgba(239, 68, 68, 0.1)', border: '1px solid #EF4444', color: lockdown ? '#fff' : '#EF4444',
+                padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                marginRight: '10px', boxShadow: lockdown ? '0 0 15px rgba(239, 68, 68, 0.5)' : 'none', animation: lockdown ? 'pulse 2s infinite' : 'none'
+              }}>
+                {lockdown ? '⛔ BLOQUEADO' : '🛑 STOP'}
+              </button>
+            )}
 
             <button onClick={() => setIsLogOpen(true)} style={{
               background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8',
@@ -138,6 +147,7 @@ function App() {
             activeStrategy={activeStrategy}
             tradingMode={tradingMode}
             onToggleMode={onScanToggleMode}
+            readOnly={isReadOnly}
           />
 
           <BotReport config={walletConfig} cloudStatus={cloudStatus} />
@@ -156,6 +166,7 @@ function App() {
                     currentPrice={marketData[trade.symbol]?.price || trade.entryPrice}
                     walletConfig={walletConfig}
                     onClose={() => handleCloseManual(trade.id)}
+                    readOnly={isReadOnly}
                   />
                 ))}
               </div>

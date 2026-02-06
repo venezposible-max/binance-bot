@@ -1,7 +1,8 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styles from './WalletCard.module.css';
 
-const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode }, ref) => {
+const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode, readOnly }, ref) => {
+    // ... (state and fetch logic remains same)
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
     const isSaving = React.useRef(false);
@@ -56,6 +57,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     }, [tradingMode]);
 
     const handleConfigure = async () => {
+        if (readOnly) return; // Security Guard
         if (!wallet) return;
 
         const isLive = tradingMode === 'LIVE';
@@ -81,10 +83,6 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         // 2. Risk
         const newRisk = prompt('Porcentaje de Riesgo por Operación (%):', wallet.riskPercentage || 10);
         if (newRisk === null) return;
-
-        // 3. SL Seguridad (REMOVED)
-        // Defaulting to FALSE/0 for Spot freedom.
-
 
         // 4. Max Trades
         const maxTradesInput = prompt('Número Máximo de Trades Simultáneos:', wallet.maxTrades || 3);
@@ -221,6 +219,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     // REMOVED: getStrategyColor (Not used in new UI)
 
     const handleToggleBot = async () => {
+        if (readOnly) return; // Security Guard
         if (!wallet) return;
 
         // Simplified Toggle: Just Toggle global active state
@@ -242,6 +241,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     // REMOVED: handleSetHybridMode
 
     const handleToggleStrategyActive = async (strategyName) => {
+        if (readOnly) return; // Security Guard
         if (!wallet) return;
         const strategyConfig = wallet.strategyConfig || {};
         const currentConfig = strategyConfig[strategyName] || { active: false };
@@ -270,6 +270,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     };
 
     const toggleHybridBlitz = async () => {
+        if (readOnly) return; // Security Guard
         if (!wallet) return;
         const currentStrategies = wallet.strategyConfig || {};
         const hybridConfig = currentStrategies['HYBRID_BLITZ'] || { useHybrid: true }; // Default true if missing
@@ -308,6 +309,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     };
 
     const toggleBlitzOnly = async () => {
+        if (readOnly) return; // Security Guard
         if (!wallet) return;
         const currentStrategies = wallet.strategyConfig || {};
         const config = currentStrategies['HYBRID_BLITZ'] || { useBlitz: true };
@@ -347,7 +349,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 </div>
                 <div className={styles.controlsGroup}>
                     <button onClick={onToggleMode} className={styles.modeToggleBtn} style={{ color: tradingMode === 'LIVE' ? '#EF4444' : '#10B981', borderColor: tradingMode === 'LIVE' ? '#EF4444' : '#10B981', marginRight: '10px' }}>{tradingMode === 'LIVE' ? '🔴 LIVE' : '🟢 SIM'}</button>
-                    <button onClick={handleToggleBot} className={wallet?.isBotActive ? styles.pauseBtn : styles.startBtn}>{wallet?.isBotActive ? '⏸️ PAUSE' : '▶️ START'}</button>
+                    {!readOnly && <button onClick={handleToggleBot} className={wallet?.isBotActive ? styles.pauseBtn : styles.startBtn}>{wallet?.isBotActive ? '⏸️ PAUSE' : '▶️ START'}</button>}
                 </div>
             </div>
 
@@ -374,7 +376,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                             const isBlitzOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useBlitz !== false; // Default ON
                             return (
                                 <div
-                                    onClick={toggleBlitzOnly}
+                                    onClick={readOnly ? null : toggleBlitzOnly}
                                     title="Activar/Desactivar Análisis Técnico (Dips)"
                                     style={{
                                         flex: 1,
@@ -382,10 +384,11 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                         border: isBlitzOn ? '1px solid #06B6D4' : '1px solid rgba(255,255,255,0.1)',
                                         borderRadius: '8px',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer',
+                                        cursor: readOnly ? 'default' : 'pointer',
                                         transition: 'all 0.2s ease',
                                         userSelect: 'none',
-                                        padding: '8px'
+                                        padding: '8px',
+                                        opacity: readOnly ? 0.7 : 1
                                     }}
                                 >
                                     <div style={{ fontSize: '0.9rem', color: isBlitzOn ? '#22D3EE' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -403,7 +406,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                             const isHybridOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
                             return (
                                 <div
-                                    onClick={toggleHybridBlitz}
+                                    onClick={readOnly ? null : toggleHybridBlitz}
                                     title="Activar/Desactivar Filtro Estadístico"
                                     style={{
                                         flex: 1,
@@ -411,10 +414,11 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                         border: isHybridOn ? '1px solid #8B5CF6' : '1px solid rgba(255,255,255,0.1)',
                                         borderRadius: '8px',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer',
+                                        cursor: readOnly ? 'default' : 'pointer',
                                         padding: '8px',
                                         transition: 'all 0.2s ease',
-                                        userSelect: 'none'
+                                        userSelect: 'none',
+                                        opacity: readOnly ? 0.7 : 1
                                     }}
                                 >
                                     <div style={{ fontSize: '0.9rem', color: isHybridOn ? '#A78BFA' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -441,7 +445,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                             <div style={{ fontWeight: 'bold' }}><span>{wallet.riskPercentage}%</span></div>
                         </div>
                         <div className={styles.configGroup}>
-                            <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>
+                            {!readOnly && <button onClick={handleConfigure} className={styles.configBtn}>⚙</button>}
                         </div>
                     </div>
                 </div>
