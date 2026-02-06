@@ -97,7 +97,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
         if (confirm(confirmMsg)) {
             try {
-                const res = await fetch('/api/wallet/config', {
+                const res = await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
