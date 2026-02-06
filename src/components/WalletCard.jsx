@@ -293,45 +293,48 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         }
     };
 
+    const toggleBlitzOnly = async () => {
+        if (!wallet) return;
+        const currentStrategies = wallet.strategyConfig || {};
+        const config = currentStrategies['HYBRID_BLITZ'] || { useBlitz: true };
+        const newState = !config.useBlitz;
+
+        const newStrategies = {
+            ...currentStrategies,
+            HYBRID_BLITZ: { ...config, useBlitz: newState }
+        };
+
+        try {
+            const newWallet = { ...wallet, strategyConfig: newStrategies };
+            setWallet(newWallet);
+            if (onConfigChange) onConfigChange(newWallet); // Propagate
+
+            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
+            });
+            console.log(`⚡ Blitz Mode Set to: ${newState ? 'ON' : 'OFF'}`);
+        } catch (e) { console.error(e); }
+    };
+
     return (
         <div className={styles.card}>
-            {/* Header with Execution Control - RESTORED */}
-            {/* Header with Execution Control - REFACTORED FOR MOBILE */}
+            {/* ... Header & Left Panel (Unchanged) ... */}
             <div className={styles.headerRow}>
                 <div className={styles.titleGroup}>
                     <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>💼 BILLETERA</span>
-                        {wallet?.tradingMode === 'LIVE' && (
-                            <span className={styles.liveTag}>LIVE MONEY 💸</span>
-                        )}
+                        {wallet?.tradingMode === 'LIVE' && <span className={styles.liveTag}>LIVE MONEY 💸</span>}
                     </div>
                 </div>
-
                 <div className={styles.controlsGroup}>
-                    <button
-                        onClick={onToggleMode}
-                        className={styles.modeToggleBtn}
-                        style={{
-                            color: tradingMode === 'LIVE' ? '#EF4444' : '#10B981',
-                            borderColor: tradingMode === 'LIVE' ? '#EF4444' : '#10B981',
-                            marginRight: '10px'
-                        }}
-                    >
-                        {tradingMode === 'LIVE' ? '🔴 LIVE' : '🟢 SIM'}
-                    </button>
-
-                    <button
-                        onClick={handleToggleBot}
-                        className={wallet?.isBotActive ? styles.pauseBtn : styles.startBtn}
-                    >
-                        {wallet?.isBotActive ? '⏸️ PAUSE' : '▶️ START'}
-                    </button>
+                    <button onClick={onToggleMode} className={styles.modeToggleBtn} style={{ color: tradingMode === 'LIVE' ? '#EF4444' : '#10B981', borderColor: tradingMode === 'LIVE' ? '#EF4444' : '#10B981', marginRight: '10px' }}>{tradingMode === 'LIVE' ? '🔴 LIVE' : '🟢 SIM'}</button>
+                    <button onClick={handleToggleBot} className={wallet?.isBotActive ? styles.pauseBtn : styles.startBtn}>{wallet?.isBotActive ? '⏸️ PAUSE' : '▶️ START'}</button>
                 </div>
             </div>
 
-            {/* --- DESKTOP SPLIT CONTAINER --- */}
             <div className={styles.desktopSplit}>
-                {/* LEFT: FINANCIALS (Big Numbers) */}
                 <div className={styles.leftPanel}>
                     <div className={styles.mainStats}>
                         <div className={styles.balanceGroup}>
@@ -340,25 +343,45 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         </div>
                         <div className={styles.balanceGroup} style={{ borderLeft: '1px solid #333', paddingLeft: '20px' }}>
                             <div className={styles.label}><span>EQUITY</span></div>
-                            <div className={styles.value} style={{ color: equity >= initialBalance ? '#10B981' : '#EF4444' }}>
-                                <span>${equity.toFixed(2)}</span>
-                            </div>
+                            <div className={styles.value} style={{ color: equity >= initialBalance ? '#10B981' : '#EF4444' }}><span>${equity.toFixed(2)}</span></div>
                         </div>
                     </div>
                 </div>
 
-                {/* RIGHT: OPERATIONS (Strategy & Status) */}
+                {/* RIGHT PANEL - STRATEGY CONTROLS */}
                 <div className={styles.rightPanel}>
-                    {/* BLITZ STATUS */}
-                    {/* BLITZ STATUS + HYBRID TOGGLE */}
                     <div style={{ display: 'flex', gap: '10px', width: '100%', marginBottom: '8px' }}>
-                        {/* 1. Blitz Badge */}
-                        <div className={styles.blitzBadge} style={{ flex: 1, margin: 0, padding: '8px', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
-                            <div style={{ fontSize: '0.8rem', color: '#00D9FF', fontWeight: 'bold' }}>⚡ BLITZ</div>
-                            <span style={{ fontSize: '0.6rem', color: '#64748B' }}>SCALPER</span>
-                        </div>
 
-                        {/* 2. Hybrid Toggle 🧬 */}
+                        {/* 1. BLITZ TOGGLE (Interactive) */}
+                        {(() => {
+                            const isBlitzOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useBlitz !== false; // Default ON
+                            return (
+                                <div
+                                    onClick={toggleBlitzOnly}
+                                    title="Activar/Desactivar Análisis Técnico (Dips)"
+                                    style={{
+                                        flex: 1,
+                                        background: isBlitzOn ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: isBlitzOn ? '1px solid #06B6D4' : '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        userSelect: 'none',
+                                        padding: '8px'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.9rem', color: isBlitzOn ? '#22D3EE' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        ⚡ BLITZ
+                                    </div>
+                                    <div style={{ fontSize: '0.55rem', color: isBlitzOn ? '#fff' : '#64748B', marginTop: '2px' }}>
+                                        {isBlitzOn ? 'TECHNICAL' : 'DISABLED'}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* 2. HYBRID TOGGLE */}
                         {(() => {
                             const isHybridOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
                             return (
@@ -372,6 +395,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                         borderRadius: '8px',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                         cursor: 'pointer',
+                                        padding: '8px',
                                         transition: 'all 0.2s ease',
                                         userSelect: 'none'
                                     }}
@@ -380,7 +404,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                         🧬 HYBRID
                                     </div>
                                     <div style={{ fontSize: '0.55rem', color: isHybridOn ? '#fff' : '#64748B', marginTop: '2px' }}>
-                                        {isHybridOn ? 'PROTECTED' : 'DISABLED'}
+                                        {isHybridOn ? 'STATS' : 'DISABLED'}
                                     </div>
                                 </div>
                             );
