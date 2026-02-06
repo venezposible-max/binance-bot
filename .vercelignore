@@ -1,4 +1,4 @@
-api/
+/api/
 server.js
 scan-server.js
 trade-monitor.js
