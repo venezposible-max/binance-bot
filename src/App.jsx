@@ -64,8 +64,10 @@ function App() {
 
   const handleMobileNav = (tab) => {
     setMobileTab(tab);
-    if (tab === 'dashboard') window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (tab === 'wallet') document.getElementById('wallet-section')?.scrollIntoView({ behavior: 'smooth' });
+    // DASHBOARD = MARKET GRID
+    if (tab === 'dashboard') document.getElementById('market-section')?.scrollIntoView({ behavior: 'smooth' });
+    // WALLET = TOP / WALLET CARD
+    if (tab === 'wallet') window.scrollTo({ top: 0, behavior: 'smooth' });
     if (tab === 'settings') walletRef.current?.configure(); // Open config modal
   };
 
@@ -657,7 +659,7 @@ function App() {
 
         {/* --- MARKET ANALYSIS GRID --- */}
         {activeStrategy !== 'SNIPER' && (
-          <section style={{ width: '100%', marginTop: '20px' }}>
+          <section id="market-section" style={{ width: '100%', marginTop: '20px' }}>
             <h2 className={styles.sectionTitle}>📊 ANÁLISIS DE MERCADO (TOP 10 VOLUMEN)</h2>
 
             {Object.keys(marketData).length === 0 && (
