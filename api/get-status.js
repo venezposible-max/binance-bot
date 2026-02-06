@@ -19,9 +19,8 @@ export default async function handler(req, res) {
         let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         let history = winHistoryStr ? JSON.parse(winHistoryStr) : [];
 
-        // 💀 PAIN MEMORY: Fetch blacklist (Mode Specific)
-        const blacklistKeys = await redis.keys(`blacklist_${activeMode}:*`);
-        const blacklist = blacklistKeys.map(k => k.split(':')[1]);
+        // 💀 PAIN MEMORY: Disabled
+        const blacklist = [];
 
         // 🛡️ SELF-HEALING HISTORY (PnL Fix)
         let fixNeeded = false;

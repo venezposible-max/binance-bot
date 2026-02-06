@@ -251,19 +251,15 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             const currentPairs = await getDynamicTopPairs();
             const occupied = activeTrades.map(t => t.symbol);
 
-            // COOLDOWN LOGIC (15 Minutes for all, 12 Hours for LOSSES) ❄️💀
+            // COOLDOWN LOGIC (15 Minutes for all) ❄️
             const COOLDOWN_MS = 15 * 60 * 1000;
             const now = Date.now();
-
-            // 💀 Fetch Blacklist (Coins that lost money in last 12h) [MODE SPECIFIC]
-            const allKeys = await redis.keys(`blacklist_${mode}:*`);
-            const blacklistedSymbols = allKeys.map(k => k.split(':')[1]);
 
             const recentCloses = winHistory
                 .filter(w => (now - new Date(w.timestamp).getTime()) < COOLDOWN_MS)
                 .map(w => w.symbol);
 
-            const excludedSymbols = [...new Set([...recentCloses, ...blacklistedSymbols])];
+            const excludedSymbols = [...new Set(recentCloses)];
 
             if (excludedSymbols.length > 0) {
                 console.log(`❄️ EXCLUSION ACTIVE: ${excludedSymbols.join(', ')}`);
@@ -360,11 +356,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                         // We decided to close it. Add to history.
                         dbHistory.unshift(res.win);
 
-                        // 💀 PAIN MEMORY LOGIC: If loss, blacklist for 12 hours
+                        // 💀 PAIN MEMORY REMOVED: Just standard logging
                         if (res.win.profitUsd < 0) {
-                            console.log(`💀 LOSS DETECTED on ${dbTrade.symbol}. Blacklisting for 12 hours.`);
-                            await redis.set(`blacklist_${mode}:${dbTrade.symbol}`, 'LOSS', 'EX', 12 * 60 * 60);
-                            await sendRawTelegram(`💀 **PAIN MEMORY ACTIVATED [${mode}]**\nMoneda ${dbTrade.symbol} bloqueada por 12 horas por pérdida.`);
+                            console.log(`📉 LOSS DETECTED on ${dbTrade.symbol}. No Blacklist (Standard Cooldown only).`);
                         }
                         // Do NOT add to nextActiveList
                     } else {
