@@ -23,32 +23,39 @@ async function fetchGlobalKlines(symbol, interval, limit = 150) {
 /**
  * CORE MODULE: MARKET SCANNER
  * Responsibility: Scan candidate pairs, check logic (Blitz/Hybrid), and execute NEW entries.
- * It ignores existing trades (controlled by validCandidates param).
+ * It uses a SEQUENTIAL LOOP to strict enforcement of trade limits (preventing race conditions).
  */
 
-export async function scanMarketOpportunities(candidates, mode, walletConfig, marketCache) {
+export async function scanMarketOpportunities(candidates, mode, walletConfig, marketCache, activeTradesCount = 0) {
     const newTrades = [];
     const activeStrategy = walletConfig.strategy || 'HYBRID_BLITZ';
+    const MAX_TRADES = walletConfig.maxTrades || 3;
 
-    // Parallel Scan
-    // We cap parallel requests to avoid blasting the API if candidates list is huge
-    // But for 10-12 items, Promise.all is fine.
+    // Log intent (Sequential)
+    console.log(`📡 [${mode}] SCANNING ${candidates.length} COINS via SEQUENTIAL LOOP`);
 
-    // Log intent
-    console.log(`📡 [${mode}] SCANNING ${candidates.length} COINS: ${candidates.join(', ')}`);
+    // SEQUENTIAL LOOP (Prevents Race Conditions)
+    for (const symbol of candidates) {
 
-    const promises = candidates.map(async (symbol) => {
+        // 🛑 CRITICAL LIMIT CHECK
+        // We check this at the START of every iteration.
+        // If we already filled the bag, we STOP immediately.
+        if ((activeTradesCount + newTrades.length) >= MAX_TRADES) {
+            console.log(`⛔ [${mode}] MAX TRADES REACHED (${activeTradesCount + newTrades.length}/${MAX_TRADES}). Stopping Scan.`);
+            break;
+        }
+
         try {
-            // 1. Get Candles (150 limit for Odds consistency)
+            // 1. Get Candles (150 limit)
             const candles = await fetchGlobalKlines(symbol, '5m', 150);
-            if (!candles) return; // Skip if data fail
+            if (!candles) continue; // Skip to next iteration
 
             // 2. Run Analysis
             const analysisRes = analysis.analyzeBlitz(null, candles);
 
             // 🧬 CONFIG: STRATEGY TOGGLES
             const strategyConfig = walletConfig.strategyConfig?.HYBRID_BLITZ || {};
-            // Default to TRUE if undefined, to maintain backward compatibility
+            // Default to TRUE if undefined to maintain backward compatibility
             const useBlitz = strategyConfig.useBlitz !== false;
             const useHybrid = strategyConfig.useHybrid !== false;
             const minOdds = parseFloat(strategyConfig.minOdds || 67);
@@ -59,14 +66,10 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
 
             // A. BLITZ (Technical Dip)
             if (useBlitz) {
-                // Must have BUY signal + Intensity > 30
                 if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 30) {
                     blitzSignal = true;
                 }
-            } else {
-                // If Blitz is OFF, we bypass (assume true, relies on Hybrid)
-                blitzSignal = true;
-            }
+            } else { blitzSignal = true; } // Bypass if OFF
 
             // B. HYBRID (Statistical Odds)
             const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
@@ -76,30 +79,24 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 } else {
                     console.log(`[${mode}] 🧬 HYBRID SKIP ${symbol} (${odds.toFixed(1)}% < ${minOdds}%)`);
                 }
-            } else {
-                // If Hybrid is OFF, we bypass (assume true, relies on Blitz)
-                hybridSignal = true;
-            }
+            } else { hybridSignal = true; } // Bypass if OFF
 
             // --- FINAL DECISION ---
             // Safety: If BOTH are OFF, do nothing.
             const bothOff = !useBlitz && !useHybrid;
 
             if (!bothOff && blitzSignal && hybridSignal) {
-                // ... EXECUTION (Same as before) ...
 
                 // 4. Get Price (Real-time)
-                // Use cache if available/fresh, else fetch
                 let currentPrice = marketCache[symbol]?.price;
                 if (!currentPrice) {
-                    // Fallback to simpler fetch
                     try {
                         const res = await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
                         currentPrice = parseFloat(res.data.price);
-                    } catch (e) { return; }
+                    } catch (e) { continue; }
                 }
 
-                if (!currentPrice) return;
+                if (!currentPrice) continue;
 
                 // 6. EXECUTE ENTRY
                 const risk = walletConfig.riskPercentage || 10;
@@ -115,13 +112,8 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                         realInvest = parseFloat(order.cummulativeQuoteQty);
                     } catch (err) {
                         console.error(`❌ ENTRY FAILED [${symbol}]:`, err.message);
-                        return; // Abort entry
+                        continue; // Abort entry, continue loop
                     }
-                } else {
-                    // Sim Logic
-                    // We modify the wallet balance later in the orchestrator to avoid race conditions here?
-                    // Actually, cleaner to return the "Cost" and let orchestrator deduct.
-                    // But for now, we attach the cost to the trade object.
                 }
 
                 const tradeRecord = {
@@ -137,22 +129,19 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                     isManual: false,
                     stopLoss: analysisRes.obZone?.sl || null,
                     takeProfit: analysisRes.obZone?.tp || null,
-                    odds: odds // Record the odds for history
+                    odds: odds
                 };
 
                 newTrades.push(tradeRecord);
 
-                console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%) [Blitz:${useBlitz} Hybrid:${useHybrid}]`);
+                console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%)`);
                 await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 ${symbol}\n🧬 Odds: ${odds.toFixed(1)}%`);
             }
 
         } catch (e) {
-            // calculated silence or low log
             // console.warn(`Scan Error ${symbol}`, e.message);
         }
-    });
-
-    await Promise.all(promises);
+    }
 
     return newTrades;
 }

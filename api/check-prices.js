@@ -135,7 +135,7 @@ async function processMode(mode, marketPairs, marketCache) {
 
             if (candidates.length > 0) {
                 // 🔥 CALL THE SCANNER MODULE
-                newScanTrades = await scanMarketOpportunities(candidates, mode, wallet, marketCache);
+                newScanTrades = await scanMarketOpportunities(candidates, mode, wallet, marketCache, updatedActiveTrades.length);
             } else {
                 console.log(`💤 [${mode}] NO CANDIDATES (Slots: ${slotsAvailable}, but all occupied or cooldown)`);
             }
