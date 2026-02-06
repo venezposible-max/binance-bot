@@ -114,13 +114,27 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                     </motion.button>
                 ) : (
                     <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>RSI: <span style={{ color: '#E2E8F0' }}>{indicators.rsi ? parseFloat(indicators.rsi).toFixed(1) : '--'}</span></div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>INT: <span style={{ color: '#E2E8F0' }}>{intensity || 0}%</span></div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                            RSI: <span style={{ color: '#E2E8F0' }}>{indicators.rsi ? parseFloat(indicators.rsi).toFixed(1) : '--'}</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                            INT: <span style={{ color: '#E2E8F0' }}>{intensity || 0}%</span>
+                        </div>
+                        {/* 🧬 HYBRID ODDS (Always visible if available) */}
+                        {indicators.hybrid?.odds && (
+                            <div style={{
+                                fontSize: '0.65rem',
+                                marginTop: '4px',
+                                color: parseFloat(indicators.hybrid.odds) >= 60 ? '#10B981' : '#EF4444'
+                            }}>
+                                🧬 PROB: {parseFloat(indicators.hybrid.odds).toFixed(0)}%
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
 
-        </motion.div>
+        </motion.div >
     );
 };
 
