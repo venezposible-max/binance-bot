@@ -29,7 +29,7 @@ async function getDynamicTopPairs() {
                     return parseFloat(p.quoteVolume) > 5000000;
                 });
                 relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-                const finalPairs = relevant.slice(0, 10).map(p => p.symbol);
+                const finalPairs = relevant.slice(0, 12).map(p => p.symbol);
 
                 try {
                     await redis.set('sentinel_active_pairs', JSON.stringify(finalPairs));
@@ -256,18 +256,25 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             const currentPairs = await getDynamicTopPairs();
             const occupied = activeTrades.map(t => t.symbol);
 
-            // COOLDOWN LOGIC (15 Minutes) ❄️
+            // COOLDOWN LOGIC (15 Minutes for all, 12 Hours for LOSSES) ❄️💀
             const COOLDOWN_MS = 15 * 60 * 1000;
             const now = Date.now();
+
+            // 💀 Fetch Blacklist (Coins that lost money in last 12h)
+            const allKeys = await redis.keys('blacklist:*');
+            const blacklistedSymbols = allKeys.map(k => k.split(':')[1]);
+
             const recentCloses = winHistory
                 .filter(w => (now - new Date(w.timestamp).getTime()) < COOLDOWN_MS)
                 .map(w => w.symbol);
 
-            if (recentCloses.length > 0) {
-                console.log(`❄️ COOLDOWN ACTIVE (Skiping): ${recentCloses.join(', ')}`);
+            const excludedSymbols = [...new Set([...recentCloses, ...blacklistedSymbols])];
+
+            if (excludedSymbols.length > 0) {
+                console.log(`❄️ EXCLUSION ACTIVE: ${excludedSymbols.join(', ')}`);
             }
 
-            const candidates = currentPairs.filter(s => !occupied.includes(s) && !recentCloses.includes(s));
+            const candidates = currentPairs.filter(s => !occupied.includes(s) && !excludedSymbols.includes(s));
 
             for (const symbol of candidates) {
                 if (newScanTrades.length + currentlyActive >= (wallet.maxTrades || 3)) break;
@@ -347,6 +354,13 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     if (res.status === 'CLOSED') {
                         // We decided to close it. Add to history.
                         dbHistory.unshift(res.win);
+
+                        // 💀 PAIN MEMORY LOGIC: If loss, blacklist for 12 hours
+                        if (res.win.profitUsd < 0) {
+                            console.log(`💀 LOSS DETECTED on ${dbTrade.symbol}. Blacklisting for 12 hours.`);
+                            await redis.set(`blacklist:${dbTrade.symbol}`, 'LOSS', 'EX', 12 * 60 * 60);
+                            await sendRawTelegram(`💀 **PAIN MEMORY ACTIVATED**\nMoneda ${dbTrade.symbol} bloqueada por 12 horas por pérdida.`);
+                        }
                         // Do NOT add to nextActiveList
                     } else {
                         // We decided to keep it.

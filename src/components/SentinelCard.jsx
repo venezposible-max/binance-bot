@@ -107,6 +107,18 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                         🧬 PROB: {parseFloat(indicators.hybrid.odds).toFixed(0)}%
                     </div>
                 )}
+                {/* 3. BLACKLIST (PAIN MEMORY) */}
+                {indicators.isBlacklisted && (
+                    <div style={{
+                        fontSize: '0.7rem', fontWeight: 'bold',
+                        color: '#EF4444',
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        marginTop: '2px'
+                    }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', boxShadow: '0 0 5px #EF4444' }}></div>
+                        🚫 BLOQUED (12h)
+                    </div>
+                )}
             </div>
 
             {/* COLUMN 4: ACTION / INFO */}

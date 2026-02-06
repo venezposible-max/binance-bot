@@ -18,6 +18,10 @@ export default async function handler(req, res) {
         let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         let history = winHistoryStr ? JSON.parse(winHistoryStr) : [];
 
+        // 💀 PAIN MEMORY: Fetch blacklist
+        const blacklistKeys = await redis.keys('blacklist:*');
+        const blacklist = blacklistKeys.map(k => k.split(':')[1]);
+
         // 🛡️ SELF-HEALING HISTORY (PnL Fix)
         let fixNeeded = false;
         history = history.map(h => {
@@ -43,7 +47,8 @@ export default async function handler(req, res) {
             timestamp: new Date().toISOString(),
             lockdown: lockdownStr === 'true', // NEW
             isApiConfigured, // NEW
-            mode: activeMode
+            mode: activeMode,
+            blacklist
         });
     } catch (error) {
         console.error('Error fetching cloud status:', error);

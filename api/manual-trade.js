@@ -224,6 +224,13 @@ export default async function handler(req, res) {
                         activeTrades.splice(tradeIndex, 1);
                     }
 
+                    // 💀 PAIN MEMORY LOGIC: If manual loss, blacklist for 12 hours
+                    if (netProfit < 0) {
+                        console.log(`💀 MANUAL LOSS DETECTED on ${trade.symbol}. Blacklisting for 12 hours.`);
+                        await redis.set(`blacklist:${trade.symbol}`, 'LOSS_MANUAL', 'EX', 12 * 60 * 60);
+                        await sendRawTelegram(`💀 **MANUAL PAIN MEMORY**\nMoneda ${trade.symbol} bloqueada por 12 horas por cierre en pérdida.`);
+                    }
+
                     const emoji = netProfit >= 0 ? '🟢' : '🔴';
                     const diffMs = new Date() - new Date(trade.timestamp);
                     const hrs = Math.floor(diffMs / 3600000);

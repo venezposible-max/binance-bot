@@ -18,6 +18,10 @@ export default async function handler(req, res) {
         const activeTradesStr = await redis.get('sentinel_active_trades');
         const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
 
+        // 💀 Get Blacklist (Pain Memory)
+        const blacklistKeys = await redis.keys('blacklist:*');
+        const blacklist = blacklistKeys.map(k => k.split(':')[1]);
+
         // Get wallet config
         const walletConfigStr = await redis.get('sentinel_wallet_config');
         const wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {};
@@ -40,7 +44,8 @@ export default async function handler(req, res) {
                 region: process.env.REGION || 'US',
                 strategy: wallet.strategy || 'SWING',
                 activeTrades: activeTrades.length,
-                balance: wallet.currentBalance || 0
+                balance: wallet.currentBalance || 0,
+                blacklist // 💀 Include blacklist
             },
             server: {
                 uptime: process.uptime(),

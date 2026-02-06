@@ -107,7 +107,11 @@ function App() {
       const res = await fetch(`/api/get-status?mode=${modeToFetch}`);
       if (res.ok) {
         const data = await res.json();
-        setCloudStatus({ active: data.active || [], history: data.history || [] });
+        setCloudStatus({
+          active: data.active || [],
+          history: data.history || [],
+          blacklist: data.blacklist || [] // 💀 Sync Blacklist
+        });
         setLockdown(data.lockdown || false); // Sync Lockdown
         setApiConfigured(data.isApiConfigured || false); // Sync API Status
       }
@@ -267,6 +271,10 @@ function App() {
             const rawSignal = analysis.prediction?.signal || 'NEUTRAL';
             analysis.indicators.isDip = rawSignal.includes('BUY'); // True if Dip Detected
 
+            // 💀 CHECK BLACKLIST (Pain Memory)
+            const isBlacklisted = (cloudStatus.blacklist || []).includes(symbol);
+            analysis.indicators.isBlacklisted = isBlacklisted;
+
             // 🛡️ FRONTEND HYBRID FILTER: Match Backend Logic
             const useHybrid = walletConfig?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
             const odds = parseFloat(analysis.indicators?.hybrid?.odds || 50);
@@ -278,6 +286,13 @@ function App() {
                 analysis.prediction.label = `🛡️ PROTEGIDO (${odds.toFixed(0)}%)`;
                 analysis.prediction.color = '#64748B'; // Gray out
               }
+            }
+
+            // 💀 PAIN MEMORY SUPPRESSION
+            if (isBlacklisted && analysis.prediction?.signal.includes('BUY')) {
+              analysis.prediction.signal = 'NEUTRAL';
+              analysis.prediction.label = `🚫 BLOQUEADO`;
+              analysis.prediction.color = '#EF4444';
             }
           } catch (err) {
             console.warn(`Analysis failed for ${symbol}:`, err);
