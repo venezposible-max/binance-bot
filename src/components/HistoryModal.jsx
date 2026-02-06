@@ -42,6 +42,33 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                         HISTORIAL DE TRADES ({mode})
                     </h1>
 
+                    {/* NEW: SUMMARY HEADER */}
+                    {!loading && history.length > 0 && (() => {
+                        const totalUsd = history.reduce((acc, t) => acc + (t.profitUsd || 0), 0);
+                        const totalPct = history.reduce((acc, t) => acc + (t.pnl || 0), 0); // Simple sum as requested
+
+                        return (
+                            <div style={{
+                                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px',
+                                padding: '15px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px',
+                                border: '1px solid rgba(16, 185, 129, 0.2)'
+                            }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>GANANCIA TOTAL</div>
+                                    <div style={{ fontSize: '1.4rem', color: totalUsd >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                        {totalUsd >= 0 ? '+' : ''}${totalUsd.toFixed(2)}
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>ACUMULADO %</div>
+                                    <div style={{ fontSize: '1.4rem', color: totalPct >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                        {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(2)}%
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     <div className={styles.section}>
                         {loading ? (
                             <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Cargando historial...</div>
