@@ -296,7 +296,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                                 const useHybrid = wallet.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
                                 const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
 
-                                if (useHybrid && odds < 60) {
+                                if (useHybrid && odds < 67) {
                                     console.log(`[${mode}] 🧬 HYBRID PROTECT: Skipping ${symbol} (Odds: ${odds}%)`);
                                     continue; // SKIP THIS TRADE
                                 }

@@ -162,13 +162,8 @@ export default async function handler(req, res) {
                             netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
                             executionPrice = received / parseFloat(order.executedQty) || currentPrice;
 
-                            // 🧮 MATH-BASED ROI (Trust Truth of Market Price, not just cash flow which can be partial)
-                            // If price went up, ROI MUST be positive.
-                            if (trade.type === 'SHORT') {
-                                finalRoi = ((trade.entryPrice - executionPrice) / trade.entryPrice) * 100;
-                            } else {
-                                finalRoi = ((executionPrice - trade.entryPrice) / trade.entryPrice) * 100;
-                            }
+                            // 🧮 MATH-BASED ROI (Net Portfolio ROI)
+                            finalRoi = (netProfit / trade.investedAmount) * 100;
 
                         } catch (err) {
                             if (err.message && (err.message.includes('-2010') || err.message.includes('insufficient'))) {
@@ -236,7 +231,8 @@ export default async function handler(req, res) {
                     const hrs = Math.floor(diffMs / 3600000);
                     const mins = Math.floor((diffMs % 3600000) / 60000);
                     const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-                    const closureMsg = `🚨 **[${activeMode}] MANUAL CLOSE: ${trade.symbol}**\n${emoji} ROI: ${roi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
+                    const label = (req.body.source === 'user') ? 'MANUAL CLOSE' : 'AUTO CLOSE';
+                    const closureMsg = `🚨 **[${activeMode}] ${label}: ${trade.symbol}**\n${emoji} ROI: ${finalRoi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
                     await sendRawTelegram(closureMsg);
                 }
             }

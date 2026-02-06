@@ -202,7 +202,7 @@ function App() {
     const trade = cloudStatus.active.find(t => t.id === id);
     const currentPrice = trade ? marketData[trade.symbol]?.price : null;
 
-    handleManualAction('CLOSE', { id, exitPrice: currentPrice });
+    handleManualAction('CLOSE', { id, exitPrice: currentPrice, source: 'user' });
   }, [cloudStatus.active, marketData]);
 
 
