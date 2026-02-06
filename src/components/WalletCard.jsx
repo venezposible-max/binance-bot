@@ -85,6 +85,12 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         if (maxTradesInput === null) return;
         const maxTrades = parseInt(maxTradesInput);
 
+        // 5. [NEW] Genetic Filter Threshold
+        const currentMinOdds = wallet.strategyConfig?.HYBRID_BLITZ?.minOdds || 67;
+        const minOddsInput = prompt('🧬 Filtro Genético (% Probabilidad Mínima):\n(Default: 67%)', currentMinOdds);
+        if (minOddsInput === null) return;
+        const minOdds = parseFloat(minOddsInput);
+
         const confirmMsg = isLive
             ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\n\n¿Estás seguro?`
             : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%`;
@@ -103,7 +109,16 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
 
                         strategy: activeStrategy || wallet.strategy || 'HYBRID_SWING',
-                        reset: !isLive // Only full reset simulation balance
+                        reset: !isLive, // Only full reset simulation balance
+
+                        // [NEW] Update Strategy Config with Min Odds
+                        strategyConfig: {
+                            ...wallet.strategyConfig,
+                            HYBRID_BLITZ: {
+                                ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
+                                minOdds: minOdds
+                            }
+                        }
                     })
                 });
 

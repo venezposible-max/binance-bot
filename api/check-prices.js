@@ -300,11 +300,14 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
                                 // 🧬 HYBRID FILTER CHECK
                                 // If config says "useHybrid" (default true for safety now), check odds
-                                const useHybrid = wallet.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
+                                const strategyConfig = wallet.strategyConfig?.HYBRID_BLITZ || {};
+                                const useHybrid = strategyConfig.useHybrid !== false; // Default ON
+                                const minOdds = parseFloat(strategyConfig.minOdds || 67); // Default 67%
+
                                 const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
 
-                                if (useHybrid && odds < 67) {
-                                    console.log(`[${mode}] 🧬 HYBRID PROTECT: Skipping ${symbol} (Odds: ${odds}%)`);
+                                if (useHybrid && odds < minOdds) {
+                                    console.log(`[${mode}] 🧬 HYBRID PROTECT: Skipping ${symbol} (Odds: ${odds}% < ${minOdds}%)`);
                                     continue; // SKIP THIS TRADE
                                 }
 
