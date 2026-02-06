@@ -54,8 +54,10 @@ export default async function handler(req, res) {
                     multiFrameMode: false,
                     strategy: 'HYBRID_BLITZ',
                     timeframe: '5m',
-                    strategyConfig: {
-                        HYBRID_BLITZ: { active: true }
+                    strategy: 'HYBRID_BLITZ',
+                    timeframe: '5m',
+                    strategyConfig: req.body.strategyConfig || current.strategyConfig || {
+                        HYBRID_BLITZ: { active: true, minOdds: 67 }
                     },
                     whaleThreshold: req.body.whaleThreshold ? parseFloat(req.body.whaleThreshold) : (current.whaleThreshold || 150000)
                 };
