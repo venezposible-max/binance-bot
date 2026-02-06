@@ -263,6 +263,10 @@ function App() {
               forecast: calculateForecast(klines)
             };
 
+            // Capture Raw Technical Signal (The "Dip")
+            const rawSignal = analysis.prediction?.signal || 'NEUTRAL';
+            analysis.indicators.isDip = rawSignal.includes('BUY'); // True if Dip Detected
+
             // 🛡️ FRONTEND HYBRID FILTER: Match Backend Logic
             const useHybrid = walletConfig?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
             const odds = parseFloat(analysis.indicators?.hybrid?.odds || 50);

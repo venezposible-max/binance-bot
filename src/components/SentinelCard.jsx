@@ -84,18 +84,29 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                 {/* Optional: Add 24h change here if available later */}
             </div>
 
-            {/* COLUMN 3: STATUS */}
-            <div className={styles.statusSection}>
+            {/* COLUMN 3: TRAFFIC LIGHT STATUS */}
+            <div className={styles.statusSection} style={{ flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                {/* 1. DIP INDICATOR */}
                 <div style={{
-                    background: statusBg, color: color, padding: '6px 14px', borderRadius: '4px',
-                    fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
-                    border: `1px solid ${color}30`,
-                    animation: pulse ? `${styles.pulse} 2s infinite` : 'none',
-                    minWidth: '140px', justifyContent: 'center'
+                    fontSize: '0.7rem', fontWeight: 'bold',
+                    color: indicators.isDip ? '#10B981' : '#64748B',
+                    display: 'flex', alignItems: 'center', gap: '4px'
                 }}>
-                    {pulse && <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }}></span>}
-                    {label}
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.isDip ? '#10B981' : '#334155', boxShadow: indicators.isDip ? '0 0 5px #10B981' : 'none' }}></div>
+                    {indicators.isDip ? '📉 DIP: SI' : '➖ DIP: NO'}
                 </div>
+
+                {/* 2. PROB INDICATOR */}
+                {indicators.hybrid?.odds && (
+                    <div style={{
+                        fontSize: '0.7rem', fontWeight: 'bold',
+                        color: parseFloat(indicators.hybrid.odds) >= 60 ? '#10B981' : '#EF4444',
+                        display: 'flex', alignItems: 'center', gap: '4px'
+                    }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: parseFloat(indicators.hybrid.odds) >= 60 ? '#10B981' : '#EF4444', boxShadow: parseFloat(indicators.hybrid.odds) >= 60 ? '0 0 5px #10B981' : 'none' }}></div>
+                        🧬 PROB: {parseFloat(indicators.hybrid.odds).toFixed(0)}%
+                    </div>
+                )}
             </div>
 
             {/* COLUMN 4: ACTION / INFO */}
@@ -120,16 +131,6 @@ const SentinelCard = ({ symbol, data, loading, onSimulate }) => {
                         <div style={{ fontSize: '0.7rem', color: '#64748B' }}>
                             INT: <span style={{ color: '#E2E8F0' }}>{intensity || 0}%</span>
                         </div>
-                        {/* 🧬 HYBRID ODDS (Always visible if available) */}
-                        {indicators.hybrid?.odds && (
-                            <div style={{
-                                fontSize: '0.65rem',
-                                marginTop: '4px',
-                                color: parseFloat(indicators.hybrid.odds) >= 60 ? '#10B981' : '#EF4444'
-                            }}>
-                                🧬 PROB: {parseFloat(indicators.hybrid.odds).toFixed(0)}%
-                            </div>
-                        )}
                     </div>
                 )}
             </div>
