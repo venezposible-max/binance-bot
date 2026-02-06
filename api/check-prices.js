@@ -83,7 +83,13 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     const historyKey = `sentinel_win_history${suffix}`;
 
     // 1. READ INITIAL STATE (Snapshot)
-    const [activeTradesStr, winHistoryStr, walletConfigStr] = await redis.mget([activeKey, historyKey, configKey]);
+    const [activeTradesStr, winHistoryStr, walletConfigStr, globalLockdown] = await redis.mget([activeKey, historyKey, configKey, 'sentinel_lockdown']);
+
+    if (globalLockdown === 'true') {
+        // console.log(`[${mode}] ⛔ GLOBAL LOCKDOWN ACTIVE. SKIPPING CYCLE.`);
+        // return { activeAccount: 0, active: [], history: [] };
+        // FIXED: We do NOT return early. We continue to monitor active trades.
+    }
 
     let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
     let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
@@ -212,7 +218,14 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 
     // 3. SCAN NEW (Parallel - No Lock)
     let newScanTrades = [];
-    if (wallet.isBotActive) {
+
+    // 🔥 LOCKDOWN CHECK: Only block NEW trades
+    const isLockdown = globalLockdown === 'true';
+    if (isLockdown) {
+        console.log(`[${mode}] ⛔ LOCKDOWN: Monitoring Active Trades Only. No new entries.`);
+    }
+
+    if (wallet.isBotActive && !isLockdown) {
         // ... Logic Scan Code ...
         // We simplify here to reduce file size risk. Logic is same as before.
         // Effectively we run scan if quota not full.
