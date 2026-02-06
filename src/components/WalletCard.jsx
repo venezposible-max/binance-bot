@@ -85,15 +85,25 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         if (maxTradesInput === null) return;
         const maxTrades = parseInt(maxTradesInput);
 
-        // 5. [NEW] Genetic Filter Threshold
-        const currentMinOdds = wallet.strategyConfig?.HYBRID_BLITZ?.minOdds || 67;
-        const minOddsInput = prompt('🧬 Filtro Genético (% Probabilidad Mínima):\n(Default: 67%)', currentMinOdds);
-        if (minOddsInput === null) return;
-        const minOdds = parseFloat(minOddsInput);
+        // 5. [NEW] Strategy Modules Configuration
+        const currentConfig = wallet.strategyConfig?.HYBRID_BLITZ || {};
+
+        // Blitz Toggle
+        const useBlitz = confirm(`⚡ MODULO TÉCNICO (BLITZ)\n\n¿Activar análisis de Dips y Velas?\nEstado Actual: ${currentConfig.useBlitz !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+
+        // Hybrid Toggle
+        const useHybrid = confirm(`🧬 MODULO ESTADÍSTICO (HYBRID)\n\n¿Activar filtro de Probabilidades?\nEstado Actual: ${currentConfig.useHybrid !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+
+        let minOdds = 67;
+        if (useHybrid) {
+            const minOddsInput = prompt('🧬 Umbral Mínimo de Probabilidad (%):', currentConfig.minOdds || 67);
+            if (minOddsInput === null) return;
+            minOdds = parseFloat(minOddsInput);
+        }
 
         const confirmMsg = isLive
-            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\n\n¿Estás seguro?`
-            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%`;
+            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Blitz: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
+            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Blitz: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]`;
 
         if (confirm(confirmMsg)) {
             // OPTIMISTIC UPDATE: Update UI immediately
@@ -109,7 +119,9 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     ...wallet.strategyConfig,
                     HYBRID_BLITZ: {
                         ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
-                        minOdds: minOdds
+                        minOdds: minOdds,
+                        useBlitz: useBlitz,
+                        useHybrid: useHybrid
                     }
                 }
             };
@@ -127,17 +139,17 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         tradingMode: tradingMode, // Always sync with current mode
                         riskPercentage: parseFloat(newRisk),
                         maxTrades: parseInt(maxTrades),
-
-
                         strategy: activeStrategy || wallet.strategy || 'HYBRID_SWING',
                         reset: !isLive, // Only full reset simulation balance
 
-                        // [NEW] Update Strategy Config with Min Odds
+                        // [NEW] Update Strategy Config with Modules
                         strategyConfig: {
                             ...wallet.strategyConfig,
                             HYBRID_BLITZ: {
                                 ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
-                                minOdds: minOdds
+                                minOdds: minOdds,
+                                useBlitz: useBlitz,
+                                useHybrid: useHybrid
                             }
                         }
                     })

@@ -230,7 +230,11 @@ function App() {
 
             <MarketGrid>
               {Object.keys(marketData).map(symbol => {
-                const minOdds = walletConfig?.strategyConfig?.HYBRID_BLITZ?.minOdds || 67;
+                const stratConfig = walletConfig?.strategyConfig?.HYBRID_BLITZ || {};
+                const minOdds = stratConfig.minOdds || 67;
+                const showDip = stratConfig.useBlitz !== false; // Default ON
+                const showProb = stratConfig.useHybrid !== false; // Default ON
+
                 return (
                   <SentinelCard
                     key={symbol}
@@ -239,6 +243,8 @@ function App() {
                     loading={loading}
                     onSimulate={handleSimulate}
                     minOdds={minOdds}
+                    showDip={showDip}
+                    showProb={showProb}
                   />
                 );
               })}

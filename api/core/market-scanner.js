@@ -46,9 +46,47 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
             // 2. Run Analysis
             const analysisRes = analysis.analyzeBlitz(null, candles);
 
-            // 3. Filter: Is Technical Signal Valid?
-            // "BUY" signal + Intensity > 30 (Filters weak noise)
-            if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 30) {
+            // 🧬 CONFIG: STRATEGY TOGGLES
+            const strategyConfig = walletConfig.strategyConfig?.HYBRID_BLITZ || {};
+            // Default to TRUE if undefined, to maintain backward compatibility
+            const useBlitz = strategyConfig.useBlitz !== false;
+            const useHybrid = strategyConfig.useHybrid !== false;
+            const minOdds = parseFloat(strategyConfig.minOdds || 67);
+
+            // --- EVALUATE SIGNALS ---
+            let blitzSignal = false;
+            let hybridSignal = false;
+
+            // A. BLITZ (Technical Dip)
+            if (useBlitz) {
+                // Must have BUY signal + Intensity > 30
+                if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 30) {
+                    blitzSignal = true;
+                }
+            } else {
+                // If Blitz is OFF, we bypass (assume true, relies on Hybrid)
+                blitzSignal = true;
+            }
+
+            // B. HYBRID (Statistical Odds)
+            const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
+            if (useHybrid) {
+                if (odds >= minOdds) {
+                    hybridSignal = true;
+                } else {
+                    console.log(`[${mode}] 🧬 HYBRID SKIP ${symbol} (${odds.toFixed(1)}% < ${minOdds}%)`);
+                }
+            } else {
+                // If Hybrid is OFF, we bypass (assume true, relies on Blitz)
+                hybridSignal = true;
+            }
+
+            // --- FINAL DECISION ---
+            // Safety: If BOTH are OFF, do nothing.
+            const bothOff = !useBlitz && !useHybrid;
+
+            if (!bothOff && blitzSignal && hybridSignal) {
+                // ... EXECUTION (Same as before) ...
 
                 // 4. Get Price (Real-time)
                 // Use cache if available/fresh, else fetch
@@ -62,19 +100,6 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 }
 
                 if (!currentPrice) return;
-
-                // 5. HYBRID ODDS FILTER 🧬
-                // Check user config
-                const strategyConfig = walletConfig.strategyConfig?.HYBRID_BLITZ || {};
-                const useHybrid = strategyConfig.useHybrid !== false; // Default ON
-                const minOdds = parseFloat(strategyConfig.minOdds || 67); // Default 67%
-
-                const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
-
-                if (useHybrid && odds < minOdds) {
-                    console.log(`[${mode}] 🧬 HYBRID PROTECT: Skipping ${symbol} (Odds: ${odds.toFixed(1)}% < ${minOdds}%)`);
-                    return; // SKIP
-                }
 
                 // 6. EXECUTE ENTRY
                 const risk = walletConfig.riskPercentage || 10;
@@ -117,7 +142,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
 
                 newTrades.push(tradeRecord);
 
-                console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%)`);
+                console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%) [Blitz:${useBlitz} Hybrid:${useHybrid}]`);
                 await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 ${symbol}\n🧬 Odds: ${odds.toFixed(1)}%`);
             }
 

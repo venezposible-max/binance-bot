@@ -1,9 +1,10 @@
+
 import React from 'react';
 import styles from './SentinelCard.module.css';
 import { motion } from 'framer-motion';
 import NumberTicker from './NumberTicker';
 
-const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds }) => {
+const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = true, showProb = true }) => {
     // Phase 1: Skeleton Loading (Row)
     if (loading || !data) {
         return (
@@ -87,17 +88,19 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds }) => {
             {/* COLUMN 3: TRAFFIC LIGHT STATUS */}
             <div className={styles.statusSection} style={{ flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
                 {/* 1. DIP INDICATOR */}
-                <div style={{
-                    fontSize: '0.7rem', fontWeight: 'bold',
-                    color: indicators.isDip ? '#10B981' : '#64748B',
-                    display: 'flex', alignItems: 'center', gap: '4px'
-                }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.isDip ? '#10B981' : '#334155', boxShadow: indicators.isDip ? '0 0 5px #10B981' : 'none' }}></div>
-                    {indicators.isDip ? '📉 DIP: SI' : '➖ DIP: NO'}
-                </div>
+                {showDip !== false && (
+                    <div style={{
+                        fontSize: '0.7rem', fontWeight: 'bold',
+                        color: indicators.isDip ? '#10B981' : '#64748B',
+                        display: 'flex', alignItems: 'center', gap: '4px'
+                    }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.isDip ? '#10B981' : '#334155', boxShadow: indicators.isDip ? '0 0 5px #10B981' : 'none' }}></div>
+                        {indicators.isDip ? '📉 DIP: SI' : '➖ DIP: NO'}
+                    </div>
+                )}
 
                 {/* 2. PROB INDICATOR */}
-                {indicators.hybrid?.odds && (
+                {showProb !== false && indicators.hybrid?.odds && (
                     <div style={{
                         fontSize: '0.7rem', fontWeight: 'bold',
                         color: parseFloat(indicators.hybrid.odds) >= (minOdds || 67) ? '#10B981' : '#EF4444',
