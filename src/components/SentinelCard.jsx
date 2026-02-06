@@ -24,6 +24,31 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
     const intensity = prediction.intensity || data?.intensity || 0;
 
 
+    // --- MODULAR DECISION LOGIC (Visual Sync with Backend) ---
+    const blitzSignal = signal?.includes('BUY');
+    const hybridSignal = parseFloat(indicators.hybrid?.odds || 0) >= (minOdds || 67);
+
+    let finalDecision = false;
+
+    // 1. Blitz Check
+    let passBlitz = true;
+    if (showDip !== false) { // If Blitz Module ON
+        passBlitz = blitzSignal;
+    }
+
+    // 2. Hybrid Check
+    let passHybrid = true;
+    if (showProb !== false) { // If Hybrid Module ON
+        passHybrid = hybridSignal;
+    }
+
+    // 3. Safety: If both modules OFF, no decision.
+    if (showDip === false && showProb === false) {
+        finalDecision = false;
+    } else {
+        finalDecision = passBlitz && passHybrid;
+    }
+
     // DETERMINE SIGNAL LABEL & COLOR
     let label = 'ESCANNEANDO';
     let subLabel = 'BUSCANDO ENTRADA';
@@ -33,7 +58,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
     let pulse = true;
 
     // PRIORITY: SIGNAL DETECTED
-    if (signal?.includes('BUY')) {
+    if (finalDecision) {
         label = 'LONG DETECTADO';
         subLabel = `INTENSIDAD: ${intensity}%`;
         color = '#10B981';
@@ -41,6 +66,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
         isSignal = true;
         pulse = false;
     } else if (signal?.includes('SELL')) {
+        // Keeps SELL logic just for visualization if needed, though strategy is LONG-only usually
         label = 'SHORT DETECTADO';
         subLabel = `INTENSIDAD: ${intensity}%`;
         color = '#EF4444';
