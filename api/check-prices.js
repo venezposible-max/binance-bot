@@ -132,18 +132,25 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             if (pnl >= 0.7) {
                 const trailMargin = 0.002;
                 let newTrailingSL = 0;
+                let trailingTriggered = false;
+
                 if (trade.type === 'SHORT') {
                     newTrailingSL = currentPrice * (1 + trailMargin);
                     if (!trade.stopLoss || newTrailingSL < trade.stopLoss) {
                         updatedTrade.stopLoss = newTrailingSL;
-                        console.log(`[${mode}] ⛓️ TRAILING STOP: ${symbol} @ +${pnl.toFixed(2)}%`);
+                        trailingTriggered = true;
                     }
                 } else {
                     newTrailingSL = currentPrice * (1 - trailMargin);
                     if (!trade.stopLoss || newTrailingSL > trade.stopLoss) {
                         updatedTrade.stopLoss = newTrailingSL;
-                        console.log(`[${mode}] ⛓️ TRAILING STOP: ${symbol} @ +${pnl.toFixed(2)}%`);
+                        trailingTriggered = true;
                     }
+                }
+
+                if (trailingTriggered || trade.isTrailing) {
+                    updatedTrade.isTrailing = true;
+                    if (trailingTriggered) console.log(`[${mode}] ⛓️ TRAILING STOP: ${symbol} @ +${pnl.toFixed(2)}%`);
                 }
             }
 
