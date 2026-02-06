@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { API_BASE } from '../config/api';
+
 import styles from './DocumentationModal.module.css'; // Re-use styles for consistency
 import { X, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 
@@ -9,7 +11,7 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
     const fetchHistory = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/get-status?mode=${mode}`);
+            const res = await fetch(`${API_BASE}/api/get-status?mode=${mode}`);
             if (res.ok) {
                 const data = await res.json();
                 // Sort by newest first

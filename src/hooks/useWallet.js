@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { API_BASE } from '../config/api';
 
 export function useWallet() {
     const [tradingMode, setTradingMode] = useState('SIMULATION');
@@ -30,12 +31,13 @@ export function useWallet() {
     const loadModeAndConfig = useCallback(async () => {
         try {
             // Fetch Global Mode
-            const modeRes = await fetch('/api/wallet/active-mode');
+            const modeRes = await fetch(`${API_BASE}/api/wallet/active-mode`);
             const { mode } = modeRes.ok ? await modeRes.json() : { mode: 'SIMULATION' };
             setTradingMode(mode);
 
             // Fetch Config
-            const configRes = await fetch(`/api/wallet/config?mode=${mode}`);
+            // Fetch Config
+            const configRes = await fetch(`${API_BASE}/api/wallet/config?mode=${mode}`);
             const data = configRes.ok ? await configRes.json() : null;
 
             if (data) {
@@ -59,7 +61,7 @@ export function useWallet() {
     const fetchCloudStatus = async (explicitMode = null) => {
         try {
             const modeToFetch = explicitMode || tradingMode;
-            const res = await fetch(`/api/get-status?mode=${modeToFetch}`);
+            const res = await fetch(`${API_BASE}/api/get-status?mode=${modeToFetch}`);
             if (res.ok) {
                 const data = await res.json();
                 setCloudStatus({
@@ -77,7 +79,7 @@ export function useWallet() {
 
     const fetchBinanceBalance = async () => {
         try {
-            const res = await fetch('/api/wallet/balance');
+            const res = await fetch(`${API_BASE}/api/wallet/balance`);
             if (res.ok) {
                 const data = await res.json();
                 setBinanceBalance(data);
@@ -117,7 +119,7 @@ export function useWallet() {
             setTradingMode(newMode);
             setWalletConfig({});
 
-            const res = await fetch('/api/wallet/active-mode', {
+            const res = await fetch(`${API_BASE}/api/wallet/active-mode`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mode: newMode })
@@ -125,7 +127,8 @@ export function useWallet() {
 
             if (res.ok) {
                 // Reload config for new mode
-                const configRes = await fetch(`/api/wallet/config?mode=${newMode}`);
+                // Reload config for new mode
+                const configRes = await fetch(`${API_BASE}/api/wallet/config?mode=${newMode}`);
                 if (configRes.ok) {
                     const configData = await configRes.json();
                     setWalletConfig(configData);
@@ -141,7 +144,7 @@ export function useWallet() {
     const toggleLockdown = async () => {
         if (!confirm(lockdown ? '¿Desbloquear sistema y permitir operaciones?' : '⛔ ¿PARADA DE EMERGENCIA?\n\nEsto bloqueará todas las nuevas operaciones.')) return;
         try {
-            const res = await fetch('/api/lockdown', {
+            const res = await fetch(`${API_BASE}/api/lockdown`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ active: !lockdown })
@@ -156,7 +159,7 @@ export function useWallet() {
     // Manual Trade Action
     const handleManualAction = async (action, data) => {
         try {
-            const res = await fetch('/api/manual-trade', {
+            const res = await fetch(`${API_BASE}/api/manual-trade`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, ...data })

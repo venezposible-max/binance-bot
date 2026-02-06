@@ -17,31 +17,12 @@ import { BookOpen, Terminal, ShieldCheck, History } from 'lucide-react';
 // --- HOOKS (The New Brains) ---
 import { useWallet } from './hooks/useWallet';
 import { useMarketData } from './hooks/useMarketData';
-import { sendTelegramAlert } from './utils/telegram';
+import { isVercelGuest } from './config/api';
 
 function App() {
-  // 1. Initialize Wallet (User State)
-  const {
-    tradingMode, activeStrategy, timeframe, walletConfig, cloudStatus,
-    lockdown, apiConfigured, binanceBalance,
-    setWalletConfig, toggleTradingMode, toggleLockdown, handleManualAction, refreshConfig
-  } = useWallet();
-
-  // 2. Initialize Market Data (Data Feed)
-  // We pass wallet data so the market hook knows which pairs to prioritize or filter
-  const { marketData, loading, pairs, flushData } = useMarketData(
-    activeStrategy, timeframe, tradingMode, walletConfig, cloudStatus
-  );
-
-  // --- UI STATE ---
-  const [isDocsOpen, setIsDocsOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isLogOpen, setIsLogOpen] = useState(false);
-  const [mobileTab, setMobileTab] = useState('dashboard');
-  const walletRef = useRef(null);
-
+  // ...
   // --- GUEST MODE DETECTION ---
-  const isReadOnly = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('view') === 'guest';
+  const isReadOnly = (new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('view') === 'guest') || isVercelGuest();
 
   // --- HANDLERS ---
   const handleMobileNav = (tab) => {

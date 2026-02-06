@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { API_BASE } from '../config/api';
 
 const LogConsole = ({ onClose }) => {
     const [logs, setLogs] = useState([]);
@@ -6,7 +7,7 @@ const LogConsole = ({ onClose }) => {
 
     const fetchLogs = async () => {
         try {
-            const res = await fetch('/api/logs');
+            const res = await fetch(`${API_BASE}/api/logs`);
             const data = await res.json();
             if (data.logs) {
                 setLogs(data.logs);

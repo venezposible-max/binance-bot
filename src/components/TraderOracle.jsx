@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config/api';
+
 import { Users, TrendingUp, ShieldAlert, Award, ChevronDown, Activity } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import styles from './TraderOracle.module.css';
 
 const TraderOracle = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -10,7 +10,7 @@ const TraderOracle = () => {
 
     const fetchTrader = async () => {
         try {
-            const res = await fetch('/api/wallet/trader-oracle');
+            const res = await fetch(`${API_BASE}/api/wallet/trader-oracle`);
             if (res.ok) {
                 const data = await res.json();
                 setTrader(data);

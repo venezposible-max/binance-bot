@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { API_BASE } from '../config/api';
 
 const BASE_URL = 'https://api.binance.com/api/v3';
 
@@ -14,7 +15,7 @@ export let TOP_PAIRS = [
 export const fetchTopPairs = async () => {
     try {
         // [NEW] Fetch from our Backend Sync (Redis)
-        const res = await axios.get('/api/get-market-pairs');
+        const res = await axios.get(`${API_BASE}/api/get-market-pairs`);
         const top10 = res.data;
 
         // Validation
@@ -121,7 +122,7 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 300) => {
             const symbolsParam = symbol.join(',');
 
             // Try Backend Proxy
-            const response = await axios.get(`/api/candles`, {
+            const response = await axios.get(`${API_BASE}/api/candles`, {
                 params: { symbol: symbolsParam, interval, limit },
                 timeout: 30000
             });
@@ -141,7 +142,7 @@ export const fetchCandles = async (symbol, interval = '4h', limit = 300) => {
         const delay = Math.floor(Math.random() * 500) + 300;
         await wait(delay);
 
-        const response = await axios.get(`/api/candles`, {
+        const response = await axios.get(`${API_BASE}/api/candles`, {
             params: { symbol, interval, limit },
             timeout: 20000
         });
@@ -181,7 +182,7 @@ export const fetchTicker24h = async () => {
  */
 export const fetchDepth = async (symbol, limit = 50) => {
     try {
-        const response = await axios.get(`/api/depth`, {
+        const response = await axios.get(`${API_BASE}/api/depth`, {
             params: { symbol, limit },
             timeout: 5000
         });
@@ -236,7 +237,7 @@ export const fetchTickerPrices = async (symbols) => {
     try {
         const symbolParam = symbols.join(',');
         // Add timestamp to bust Vercel/Browser Cache
-        const response = await axios.get(`/api/ticker?symbols=${symbolParam}&_t=${Date.now()}`, { timeout: 5000 });
+        const response = await axios.get(`${API_BASE}/api/ticker?symbols=${symbolParam}&_t=${Date.now()}`, { timeout: 5000 });
 
         // Validation: If backend returns empty, throw to trigger fallback
         if (!response.data || Object.keys(response.data).length === 0) {
