@@ -1,6 +1,6 @@
 
 import binanceClient from '../utils/binance-client.js';
-import { sendRawTelegram } from '../../src/utils/telegram.js';
+import { sendServerTelegram } from '../utils/telegram-server.js';
 
 /**
  * CORE MODULE: TRADE MONITOR
@@ -164,9 +164,9 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                     exitReason: exitReason
                 };
 
-                // Notification
+                // Notification - USING SERVER DIRECT SEND
                 const emoji = netProfit >= 0 ? '🟢' : '🔴';
-                await sendRawTelegram(`🚨 **[${mode}] AUTO CLOSE: ${symbol}**\n${emoji} ROI: ${finalPercent.toFixed(2)}%\n💰 $${netProfit.toFixed(2)} (${exitReason})`);
+                await sendServerTelegram(`🚨 **[${mode}] AUTO CLOSE: ${symbol}**\n${emoji} ROI: ${finalPercent.toFixed(2)}%\n💰 $${netProfit.toFixed(2)} (${exitReason})`);
 
                 history.push(winRecord);
 
