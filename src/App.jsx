@@ -262,6 +262,19 @@ function App() {
               ...analyzeBlitz(null, klines), // BLITZ Signal (Depth null for now)
               forecast: calculateForecast(klines)
             };
+
+            // 🛡️ FRONTEND HYBRID FILTER: Match Backend Logic
+            const useHybrid = walletConfig?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
+            const odds = parseFloat(analysis.indicators?.hybrid?.odds || 50);
+
+            if (activeStrategy.includes('BLITZ') && useHybrid && odds < 60) {
+              // Suppress Signal if Odds are too low
+              if (analysis.prediction?.signal.includes('BUY')) {
+                analysis.prediction.signal = 'NEUTRAL';
+                analysis.prediction.label = `🛡️ PROTEGIDO (${odds.toFixed(0)}%)`;
+                analysis.prediction.color = '#64748B'; // Gray out
+              }
+            }
           } catch (err) {
             console.warn(`Analysis failed for ${symbol}:`, err);
           }
