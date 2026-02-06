@@ -96,6 +96,27 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%`;
 
         if (confirm(confirmMsg)) {
+            // OPTIMISTIC UPDATE: Update UI immediately
+            const optimisticUpdate = {
+                ...wallet,
+                initialBalance: isLive ? wallet.initialBalance : newCap,
+                allocatedCapital: isLive ? newCap : wallet.allocatedCapital,
+                riskPercentage: parseFloat(newRisk),
+                maxTrades: parseInt(maxTrades),
+                tradingMode: tradingMode,
+                currentBalance: isLive ? wallet.currentBalance : newCap, // If SIM reset, current = new
+                strategyConfig: {
+                    ...wallet.strategyConfig,
+                    HYBRID_BLITZ: {
+                        ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
+                        minOdds: minOdds
+                    }
+                }
+            };
+
+            setWallet(optimisticUpdate);
+            if (onConfigChange) onConfigChange(null, null, optimisticUpdate); // Propagate up
+
             try {
                 const res = await fetch(`/api/wallet/config?mode=${tradingMode}`, {
                     method: 'POST',
