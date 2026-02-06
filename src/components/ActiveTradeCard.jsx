@@ -118,6 +118,24 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose }) => {
                 <div className={`${styles.targetRow} ${slPrice > 0 ? styles.slRow : styles.slRowNeutral}`}>
                     <div className={styles.tagGroup}>
                         <span style={{ fontSize: '0.65rem', color: slPrice > 0 ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 SL</span>
+                        {/* TRAILING INDICATOR UI */}
+                        {trade.isTrailing && (
+                            <span
+                                title="Trailing Stop Activo"
+                                style={{
+                                    marginLeft: '4px',
+                                    fontSize: '0.65rem',
+                                    background: '#3B82F6',
+                                    color: '#fff',
+                                    padding: '1px 3px',
+                                    borderRadius: '3px',
+                                    boxShadow: '0 0 5px #3B82F6',
+                                    animation: 'pulse 1s infinite'
+                                }}
+                            >
+                                ⛓️ ACTIVO
+                            </span>
+                        )}
                     </div>
                     <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: slPrice > 0 ? '#fff' : '#94A3B8' }}>
                         {slPrice > 0
