@@ -186,11 +186,31 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                     netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
                     finalPnl = (netProfit / trade.investedAmount) * 100;
                     executionPrice = received / parseFloat(order.executedQty) || currentPrice;
-                    if (mode === 'SIMULATION') wallet.currentBalance += (received - fee);
                 } catch (err) {
                     if (err.message && (err.message.includes('-2010') || err.message.includes('insufficient'))) {
                         netProfit = 0; finalPnl = 0; // Force Close
                     } else { throw err; }
+                }
+
+                if (mode === 'SIMULATION') {
+                    // Correct Simulation Math
+                    const simQty = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                    const entryFee = trade.investedAmount * 0.001;
+                    const exitFee = (currentPrice * simQty) * 0.001;
+                    const totalFee = entryFee + exitFee;
+
+                    let grossProfit = 0;
+                    if (trade.type === 'SHORT') {
+                        grossProfit = (trade.entryPrice - currentPrice) * simQty;
+                    } else {
+                        grossProfit = (currentPrice - trade.entryPrice) * simQty;
+                    }
+
+                    netProfit = grossProfit - totalFee;
+                    finalPnl = (netProfit / trade.investedAmount) * 100;
+                    executionPrice = currentPrice;
+
+                    wallet.currentBalance += (trade.investedAmount + netProfit);
                 }
 
                 const win = {

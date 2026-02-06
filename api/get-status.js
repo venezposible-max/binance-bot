@@ -15,15 +15,31 @@ export default async function handler(req, res) {
         const activeTradesStr = await redis.get(activeKey);
         const winHistoryStr = await redis.get(historyKey);
 
-        const activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
-        const winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+        let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
+        let history = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+
+        // 🛡️ SELF-HEALING HISTORY (PnL Fix)
+        let fixNeeded = false;
+        history = history.map(h => {
+            if (h.type === 'LONG' && h.exitPrice > h.entryPrice && h.pnl < 0) {
+                h.pnl = ((h.exitPrice - h.entryPrice) / h.entryPrice) * 100;
+                if (h.profitUsd < 0) h.profitUsd = Math.abs(h.profitUsd); // Rough fix for USD too
+                fixNeeded = true;
+            }
+            return h;
+        });
+
+        // Async Save if needed (Don't await to keep UI fast)
+        if (fixNeeded) {
+            redis.set(historyKey, JSON.stringify(history)).catch(e => console.error("History Auto-Fix Save Error:", e));
+        }
 
         // Merge Sniper trades (REMOVED) with standard trades
         const allActiveTrades = [...activeTrades];
 
         res.status(200).json({
             active: allActiveTrades,
-            history: winHistory,
+            history: history,
             timestamp: new Date().toISOString(),
             lockdown: lockdownStr === 'true', // NEW
             isApiConfigured, // NEW

@@ -70,9 +70,21 @@ export default async function handler(req, res) {
                 if (isLive) {
                     console.log(`💸 EXECUTING LIVE MANUAL BUY: ${symbol} for $${investedAmount.toFixed(2)}`);
                     const order = await binanceClient.executeOrder(symbol, 'BUY', investedAmount, price, 'MARKET', true);
+
+                    // 🛡️ STRICT VALIDATION: Ensure Order was actually accepted
+                    if (!order || !order.orderId) {
+                        throw new Error(`CRITICAL: Binance rejected order or returned null. Trade NOT recorded.`);
+                    }
+                    if (order.status === 'REJECTED' || order.status === 'EXPIRED') {
+                        throw new Error(`CRITICAL: Binance Execution Status: ${order.status}`);
+                    }
+
                     orderId = order.orderId;
                     executedQty = parseFloat(order.executedQty);
                     actualSpentUsd = parseFloat(order.cummulativeQuoteQty) || investedAmount;
+
+                    if (executedQty <= 0) throw new Error('CRITICAL: Executed Qty is 0. Trade failed.');
+
                     executionPrice = actualSpentUsd / executedQty || price;
                 } else {
                     wallet.currentBalance -= (investedAmount + openFee);
@@ -134,37 +146,69 @@ export default async function handler(req, res) {
                     const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
                     let netProfit = 0;
                     let executionPrice = currentPrice;
+                    let finalRoi = 0;
 
                     // Execute Real Sell
                     if (activeMode === 'LIVE') {
                         try {
                             const order = await binanceClient.executeOrder(trade.symbol, 'SELL', qty, currentPrice, 'MARKET', true);
+
+                            if (!order || !order.orderId) throw new Error('Sell Logic Error: No response');
+
                             const received = parseFloat(order.cummulativeQuoteQty);
-                            const fee = received * 0.001;
+                            const fee = received * 0.001; // Approx fee if standard account
+
+                            // REAL PnL (Cash in Hand)
                             netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
                             executionPrice = received / parseFloat(order.executedQty) || currentPrice;
+
+                            // 🧮 MATH-BASED ROI (Trust Truth of Market Price, not just cash flow which can be partial)
+                            // If price went up, ROI MUST be positive.
+                            if (trade.type === 'SHORT') {
+                                finalRoi = ((trade.entryPrice - executionPrice) / trade.entryPrice) * 100;
+                            } else {
+                                finalRoi = ((executionPrice - trade.entryPrice) / trade.entryPrice) * 100;
+                            }
+
                         } catch (err) {
                             if (err.message && (err.message.includes('-2010') || err.message.includes('insufficient'))) {
+                                console.error("⚠️ Insufficient Funds on Close. Marking as 0 to clear ghost trade.");
                                 netProfit = 0;
+                                finalRoi = 0;
                             } else {
                                 throw err;
                             }
                         }
                     } else {
-                        // Sim
-                        const fee = (trade.investedAmount * 0.001) + (currentPrice * qty * 0.001);
-                        netProfit = (currentPrice * qty) - trade.investedAmount - fee;
-                        wallet.currentBalance += (trade.investedAmount + netProfit);
-                    }
+                        // SIMULATION MATH (Corrected)
+                        // Fees: 0.1% on open (already deducted from balance usually, but we deduct here for Net calc) + 0.1% on close
+                        // Note: wallet.currentBalance already had open fee deducted at entry time in simulation mode logic above
+                        const entryFee = trade.investedAmount * 0.001;
+                        const exitFee = (currentPrice * qty) * 0.001;
+                        const totalFee = entryFee + exitFee;
 
-                    const roi = (netProfit / trade.investedAmount) * 100;
+                        let grossProfit = 0;
+                        if (trade.type === 'SHORT') {
+                            // Short: (Entry - Exit) * Qty
+                            grossProfit = (trade.entryPrice - currentPrice) * qty;
+                        } else {
+                            // Long: (Exit - Entry) * Qty
+                            grossProfit = (currentPrice - trade.entryPrice) * qty;
+                        }
+
+                        netProfit = grossProfit - totalFee;
+
+                        // Update Balance: Return Init + NetProfit (which includes fee deduction)
+                        wallet.currentBalance += (trade.investedAmount + netProfit);
+                        finalRoi = (netProfit / trade.investedAmount) * 100;
+                    }
 
                     // Archive
                     winHistory.unshift({
                         ...trade,
                         exitPrice: executionPrice,
                         profitUsd: netProfit,
-                        pnl: roi,
+                        pnl: finalRoi, // 👈 USING CORRECTED ROI
                         timestamp: new Date().toISOString(),
                         entryTimestamp: trade.entryTimestamp || trade.timestamp
                     });
