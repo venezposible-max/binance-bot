@@ -4,11 +4,16 @@ import styles from './WalletCard.module.css';
 const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode }, ref) => {
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
+    const isSaving = React.useRef(false);
 
     const fetchWallet = async () => {
+        // Block updates if we are in the middle of a manual save to preven jitter
+        if (isSaving.current) return;
+
         try {
             const modeParam = tradingMode || 'SIMULATION';
 
+            // ... (rest of fetch logic)
             // 1. Parallel Fetch of Critical Data
             const promises = [
                 fetch(`/api/wallet/config?mode=${modeParam}`).then(r => r.json()),
@@ -24,7 +29,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
             const [configData, statusData, balanceData] = await Promise.all(promises);
 
-            if (configData) {
+            // Double check lock before setting state
+            if (configData && !isSaving.current) {
                 setWallet(configData);
 
                 // 3. Sync Upstream to App.jsx (Signature: status, balance, config)
@@ -107,6 +113,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
         if (confirm(confirmMsg)) {
             // OPTIMISTIC UPDATE: Update UI immediately
+            isSaving.current = true; // 🔒 LOCK POLLING
+
             const optimisticUpdate = {
                 ...wallet,
                 initialBalance: isLive ? wallet.initialBalance : newCap,
@@ -161,6 +169,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 }
             } catch (error) {
                 alert(`❌ Error: ${error.message}`);
+            } finally {
+                isSaving.current = false; // 🔓 UNLOCK
             }
         }
     };
@@ -273,6 +283,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         };
 
         try {
+            isSaving.current = true; // 🔒 LOCK
+
             // Optimistic Client Update
             const newWallet = { ...wallet, strategyConfig: newStrategies };
             setWallet(newWallet);
@@ -290,6 +302,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             console.log(`🧬 Hybrid Mode Set to: ${newState ? 'ON' : 'OFF'}`);
         } catch (e) {
             console.error("Hybrid Toggle Error:", e);
+        } finally {
+            isSaving.current = false; // 🔓 UNLOCK
         }
     };
 
@@ -305,6 +319,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         };
 
         try {
+            isSaving.current = true; // 🔒 LOCK
+
             const newWallet = { ...wallet, strategyConfig: newStrategies };
             setWallet(newWallet);
             if (onConfigChange) onConfigChange(newWallet); // Propagate
@@ -316,6 +332,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             });
             console.log(`⚡ Blitz Mode Set to: ${newState ? 'ON' : 'OFF'}`);
         } catch (e) { console.error(e); }
+        finally { isSaving.current = false; } // 🔓 UNLOCK
     };
 
     return (
