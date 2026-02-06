@@ -256,6 +256,7 @@ function App() {
                     minOdds={minOdds}
                     showDip={showDip}
                     showProb={showProb}
+                    readOnly={isReadOnly}
                   />
                 );
               })}
