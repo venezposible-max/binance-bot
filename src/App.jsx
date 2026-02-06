@@ -36,7 +36,18 @@ function App() {
   const [apiConfigured, setApiConfigured] = useState(false); // NEW: API Check
 
   // --- CLOUD AUTONOMY STATE ---
-  const [cloudStatus, setCloudStatus] = useState({ active: [], history: [] });
+  // Keep a Ref for the status to avoid stale closures in the Interval
+  const cloudStatusRef = useRef({ active: [], history: [], blacklist: [] });
+  const [cloudStatus, setCloudStatusState] = useState({ active: [], history: [] });
+
+  // Wrapper to sync Ref and State
+  const setCloudStatus = (newStatusOrFn) => {
+    setCloudStatusState(prev => {
+      const newVal = typeof newStatusOrFn === 'function' ? newStatusOrFn(prev) : newStatusOrFn;
+      cloudStatusRef.current = { ...prev, ...newVal }; // Update Ref
+      return newVal;
+    });
+  };
 
   // --- BINANCE REAL BALANCE ---
   const [binanceBalance, setBinanceBalance] = useState(null);
@@ -126,6 +137,14 @@ function App() {
   const toggleTradingMode = async () => {
     try {
       const newMode = tradingMode === 'SIMULATION' ? 'LIVE' : 'SIMULATION';
+
+      // ⚡ IMMEDIATE VISUAL FLUSH
+      setLoading(true);
+      setCloudStatus({ active: [], history: [], blacklist: [] }); // Clear UI immediately
+      setTradingMode(newMode); // Optimistic UI update
+      setWalletConfig({}); // Clear config to prevent mismatched data
+      setMarketData({}); // Clear old prices to prevent ghosting
+
       const res = await fetch('/api/wallet/active-mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,9 +152,6 @@ function App() {
       });
 
       if (res.ok) {
-        setTradingMode(newMode);
-        setWalletConfig({}); // Clear old config instantly to prevent stale UI
-
         // Reload config for the new mode
         const configRes = await fetch(`/api/wallet/config?mode=${newMode}`);
         if (configRes.ok) {
@@ -148,10 +164,13 @@ function App() {
 
         console.log(`🌓 Mode toggled to: ${newMode}`);
       }
+      setLoading(false);
     } catch (e) {
       console.error("Toggle Mode Error:", e);
+      setLoading(false);
     }
   };
+
 
   const toggleLockdown = async () => {
     if (!confirm(lockdown ? '¿Desbloquear sistema y permitir operaciones?' : '⛔ ¿PARADA DE EMERGENCIA?\n\nEsto bloqueará todas las nuevas operaciones.')) return;
@@ -210,14 +229,13 @@ function App() {
   }, [cloudStatus.active, marketData]);
 
 
-
-  const fetchData = async (overrideTimeframe) => {
+  // WRAPPED IN USECALLBACK for Deps Safety
+  const fetchData = useCallback(async (overrideTimeframe) => {
     if (isFetchingBus.current) return; // PREVENT OVERLAP
     isFetchingBus.current = true;
 
     const currentTf = overrideTimeframe || timeframe;
     const results = {};
-
 
     try {
 
@@ -225,8 +243,10 @@ function App() {
       // 0. Dynamic Pair Selection (Top Volume + Active Trades)
       let currentPairs = [...pairs];
 
-      // ALWAYS Ensure Active Trades are in the fetch list
-      const activeSymbols = cloudStatus.active.map(t => t.symbol);
+      // ALWAYS Ensure Active Trades are in the fetch list (Use Ref for safety in interval)
+      const cachedActive = cloudStatusRef.current.active || [];
+      const activeSymbols = cachedActive.map(t => t.symbol);
+
       // Merge unique
       currentPairs = [...new Set([...currentPairs, ...activeSymbols])];
 
@@ -276,7 +296,7 @@ function App() {
             analysis.indicators.isDip = rawSignal.includes('BUY'); // True if Dip Detected
 
             // 💀 CHECK BLACKLIST (Pain Memory)
-            const isBlacklisted = (cloudStatus.blacklist || []).includes(symbol);
+            const isBlacklisted = (cloudStatusRef.current.blacklist || []).includes(symbol);
             analysis.indicators.isBlacklisted = isBlacklisted;
 
             // 🛡️ FRONTEND HYBRID FILTER: Match Backend Logic
@@ -322,13 +342,13 @@ function App() {
     } finally {
       isFetchingBus.current = false;
     }
-  };
+  }, [pairs, timeframe, tradingMode, loading, walletConfig, activeStrategy]); // Added proper deps
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => fetchData(), 4000); // 4s Loop
     return () => clearInterval(interval);
-  }, [timeframe, pairs.length]); // Re-init if timeframe changes
+  }, [fetchData]); // Depends on the callback itself
 
   // Auto-Sync Strategy Mode
   const handleStrategyChange = (newStrategy) => {
