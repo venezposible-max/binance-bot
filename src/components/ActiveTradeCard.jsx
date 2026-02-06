@@ -66,6 +66,21 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
         return { tpPrice, tpDist, slPrice, slDist };
     }, [trade, walletConfig]);
 
+    // Helper for formatting prices based on magnitude
+    const formatPrice = (price) => {
+        if (!price) return '0.00';
+        // For distinctively small coins like PEPE/SHIB (< 0.01)
+        if (price < 0.01) {
+            return price.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 8 });
+        }
+        // For cents (< 1)
+        if (price < 1) {
+            return price.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 });
+        }
+        // Standard
+        return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
     return (
         <div className={styles.card} style={{ borderLeft: `5px solid ${trade.type === 'LONG' ? '#10B981' : '#EF4444'}` }}>
             <div className={styles.header}>
@@ -88,7 +103,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
             <div className={styles.infoRow}>
                 <span>Entrada:</span>
                 <span className={styles.infoVal}>
-                    ${(trade.entryPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                    ${formatPrice(trade.entryPrice)}
                     <span style={{ fontSize: '0.7rem', color: '#94A3B8', marginLeft: '6px', fontWeight: 'normal' }}>
                         ({new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                     </span>
@@ -110,7 +125,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
                         <span style={{ fontSize: '0.65rem', color: '#A7F3D0' }}>({tpDist > 0 ? '+' : ''}{tpDist.toFixed(1)}%)</span>
                     </div>
                     <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        ${(tpPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                        ${formatPrice(tpPrice)}
                     </span>
                 </div>
 
@@ -121,7 +136,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
                     </div>
                     <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: slPrice > 0 ? '#fff' : '#94A3B8' }}>
                         {trade.isTrailing
-                            ? <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)' }}>⛓️ TS: ${(slPrice || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            ? <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)' }}>⛓️ TS: ${formatPrice(slPrice)}</span>
                             : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN S/L')
                         }
                     </span>
