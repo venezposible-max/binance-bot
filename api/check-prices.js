@@ -1,17 +1,14 @@
 
 import axios from 'axios';
-import { RSI, EMA, BollingerBands } from 'technicalindicators';
-import * as analysis from '../src/utils/analysis.js';
 import redis from './utils/redisClient.js';
 import binanceClient from './utils/binance-client.js';
-import { authenticatedRequest } from './utils/binance-client.js';
-import { v4 as uuidv4 } from 'uuid';
-import { sendRawTelegram } from '../src/utils/telegram.js';
 import { runWithLock } from './utils/locker.js';
 
-// --- Shared Logic ---
-let lastWorkingSource = null;
+// --- IMPORT CORE MODULES ---
+import { monitorActiveTrades } from './core/trade-monitor.js';
+import { scanMarketOpportunities } from './core/market-scanner.js';
 
+// --- Shared Helper ---
 async function getDynamicTopPairs() {
     const sources = [
         { url: 'https://api.binance.com/api/v3/ticker/24hr', label: 'EU' }
@@ -54,29 +51,14 @@ async function fetchGlobalPrice(symbol, cache = null) {
     for (const src of sources) {
         try {
             const res = await axios.get(src.url, { timeout: 3000 });
-            lastWorkingSource = src.label.includes('US') ? 'USA' : 'EU';
             return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: src.label };
         } catch (e) { continue; }
     }
     return null;
 }
 
-async function fetchGlobalKlines(symbol, interval, limit = 250) {
-    const sources = [
-        { url: `https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'EU_GCP' },
-        { url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'GLOBAL' }
-    ];
-    for (const src of sources) {
-        try {
-            const res = await axios.get(src.url, { timeout: 5000 });
-            if (res.data && Array.isArray(res.data)) { lastWorkingSource = src.label; return res.data; }
-        } catch (e) { if (!e.response || e.response.status !== 403) break; }
-    }
-    return null;
-}
-
-// --- ⚡ CORE ENGINE ---
-async function processMode(mode, marketPairs, marketCache, marketRegime, manualOpportunities = null) {
+// --- ⚡ CORE ORCHESTRATOR ---
+async function processMode(mode, marketPairs, marketCache) {
     const suffix = mode === 'LIVE' ? '_real' : '_sim';
     const configKey = mode === 'LIVE' ? 'sentinel_wallet_config_real' : 'sentinel_wallet_config_sim';
     const activeKey = `sentinel_active_trades${suffix}`;
@@ -85,16 +67,9 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
     // 1. READ INITIAL STATE (Snapshot)
     const [activeTradesStr, winHistoryStr, walletConfigStr, globalLockdown] = await redis.mget([activeKey, historyKey, configKey, 'sentinel_lockdown']);
 
-    if (globalLockdown === 'true') {
-        // console.log(`[${mode}] ⛔ GLOBAL LOCKDOWN ACTIVE. SKIPPING CYCLE.`);
-        // return { activeAccount: 0, active: [], history: [] };
-        // FIXED: We do NOT return early. We continue to monitor active trades.
-    }
-
     let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
     let winHistory = winHistoryStr ? JSON.parse(winHistoryStr) : [];
     let wallet = walletConfigStr ? JSON.parse(walletConfigStr) : {
-        initialBalance: 1000,
         currentBalance: 1000,
         riskPercentage: 10,
         maxTrades: 3,
@@ -112,272 +87,114 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
         } catch (e) { }
     }
 
-    // --- SNAPSHOT ID LIST for Race Condition Logic ---
-    const snapshotIds = activeTrades.map(t => t.id);
-
-    // 2. MONITOR ACTIVE TRADES (Parallel Price Checks - No Lock)
-    const monitorPromises = activeTrades.map(async (trade) => {
-        try {
-            const symbol = trade.symbol;
-
-            // Auto Clean Invalid
-            if (!/^[A-Z0-9]+$/.test(symbol) || symbol.includes('ZAMA')) return { status: 'CLOSED', win: { ...trade, pnl: 0, profitUsd: 0, strategy: 'PURGE' }, id: trade.id };
-
-            const marketData = await fetchGlobalPrice(symbol, marketCache);
-            if (!marketData || !marketData.price) return { status: 'KEEP', trade };
-
-            const currentPrice = marketData.price;
-            const currentBid = marketData.bid;
-            const currentAsk = marketData.ask;
-            let pnl = trade.type === 'SHORT' ? ((trade.entryPrice - currentAsk) / trade.entryPrice) * 100 : ((currentBid - trade.entryPrice) / trade.entryPrice) * 100;
-
-            // TRAILING STOP LOGIC (Memory only first)
-            let updatedTrade = { ...trade };
-            let isExit = false;
-
-            if (pnl >= 0.7) {
-                const trailMargin = 0.002;
-                let newTrailingSL = 0;
-                let trailingTriggered = false;
-
-                if (trade.type === 'SHORT') {
-                    newTrailingSL = currentPrice * (1 + trailMargin);
-                    if (!trade.stopLoss || newTrailingSL < trade.stopLoss) {
-                        updatedTrade.stopLoss = newTrailingSL;
-                        trailingTriggered = true;
-                    }
-                } else {
-                    newTrailingSL = currentPrice * (1 - trailMargin);
-                    if (!trade.stopLoss || newTrailingSL > trade.stopLoss) {
-                        updatedTrade.stopLoss = newTrailingSL;
-                        trailingTriggered = true;
-                    }
-                }
-
-                if (trailingTriggered || trade.isTrailing) {
-                    updatedTrade.isTrailing = true;
-                    if (trailingTriggered) console.log(`[${mode}] ⛓️ TRAILING STOP: ${symbol} @ +${pnl.toFixed(2)}%`);
-                }
-            }
-
-            // CHECK EXIT CONDITIONS
-            const hasSpecificSL = updatedTrade.stopLoss !== null && updatedTrade.stopLoss !== undefined;
-            const effectiveTP = wallet.takeProfit || 1.5;
-            let tradeTP = effectiveTP;
-            if (trade.takeProfit) {
-                tradeTP = Math.abs(trade.type === 'SHORT' ? ((trade.entryPrice - trade.takeProfit) / trade.entryPrice) * 100 : ((trade.takeProfit - trade.entryPrice) / trade.entryPrice) * 100);
-            }
-
-            if (hasSpecificSL) {
-                if (trade.type === 'LONG' && currentPrice <= updatedTrade.stopLoss) isExit = true;
-                else if (trade.type === 'SHORT' && currentPrice >= updatedTrade.stopLoss) isExit = true;
-            }
-            if (pnl >= tradeTP) isExit = true;
-
-            if (isExit) {
-                const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
-                console.log(`[${mode}] 📉 CLOSING POSITION: ${symbol} ...`);
-
-                let netProfit = 0, finalPnl = 0, executionPrice = currentPrice;
-                try {
-                    const order = await binanceClient.executeOrder(symbol, 'SELL', qty, currentPrice, 'MARKET', mode === 'LIVE');
-                    const received = parseFloat(order.cummulativeQuoteQty);
-                    const fee = received * 0.001;
-                    netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
-                    finalPnl = (netProfit / trade.investedAmount) * 100;
-                    executionPrice = received / parseFloat(order.executedQty) || currentPrice;
-                } catch (err) {
-                    if (err.message && (err.message.includes('-2010') || err.message.includes('insufficient'))) {
-                        netProfit = 0; finalPnl = 0; // Force Close
-                    } else { throw err; }
-                }
-
-                if (mode === 'SIMULATION') {
-                    // Correct Simulation Math
-                    const simQty = trade.quantity || (trade.investedAmount / trade.entryPrice);
-                    const entryFee = trade.investedAmount * 0.001;
-                    const exitFee = (currentPrice * simQty) * 0.001;
-                    const totalFee = entryFee + exitFee;
-
-                    let grossProfit = 0;
-                    if (trade.type === 'SHORT') {
-                        grossProfit = (trade.entryPrice - currentPrice) * simQty;
-                    } else {
-                        grossProfit = (currentPrice - trade.entryPrice) * simQty;
-                    }
-
-                    netProfit = grossProfit - totalFee;
-                    finalPnl = (netProfit / trade.investedAmount) * 100;
-                    executionPrice = currentPrice;
-
-                    wallet.currentBalance += (trade.investedAmount + netProfit);
-                }
-
-                const win = {
-                    ...trade,
-                    pnl: finalPnl || 0,
-                    profitUsd: netProfit || 0,
-                    timestamp: new Date().toISOString(),
-                    entryTimestamp: trade.timestamp,
-                    exitPrice: executionPrice
-                };
-                const emoji = netProfit >= 0 ? '🟢' : '🔴';
-                await sendRawTelegram(`🚨 **[${mode}] AUTO CLOSE: ${symbol}**\n${emoji} ROI: ${finalPnl.toFixed(2)}%\n💰 $${netProfit.toFixed(2)}`);
-
-                return { status: 'CLOSED', win, id: trade.id };
-            }
-
-            return { status: 'KEEP', trade: updatedTrade };
-        } catch (e) {
-            console.error(`Status Monitor Error ${trade.symbol}`, e.message);
-            return { status: 'KEEP', trade }; // Keep on error
-        }
-    });
-
-    const monitorResults = await Promise.all(monitorPromises);
-
-    // 3. SCAN NEW (Parallel - No Lock)
-    let newScanTrades = [];
-
-    // 🔥 LOCKDOWN CHECK: Only block NEW trades
-    const isLockdown = globalLockdown === 'true';
-    if (isLockdown) {
-        console.log(`[${mode}] ⛔ LOCKDOWN: Monitoring Active Trades Only. No new entries.`);
+    // --- STEP 0: PRE-FETCH PRICES FOR ACTIVE TRADES ---
+    // Ensure the Monitor has data to work with
+    if (activeTrades.length > 0) {
+        const pricePromises = activeTrades.map(t => fetchGlobalPrice(t.symbol));
+        const prices = await Promise.all(pricePromises);
+        prices.forEach((p, index) => {
+            if (p) marketCache[activeTrades[index].symbol] = p;
+        });
     }
 
-    if (wallet.isBotActive && !isLockdown) {
-        const currentlyActive = monitorResults.filter(r => r.status === 'KEEP').length;
-        if (currentlyActive < (wallet.maxTrades || 3)) {
-            const currentPairs = await getDynamicTopPairs();
+    // --- STEP 1: MONITOR ACTIVE TRADES (The Bodyguard) ---
+    // (Always runs, extremely fast, no external scanning)
+    const monitorResult = await monitorActiveTrades(activeTrades, marketCache, mode, wallet);
+
+    // Check if we need to purge invalid trades or simply update statuses
+    const updatedActiveTrades = monitorResult.active;
+    const closedTrades = monitorResult.history; // New closures from this cycle
+
+    // --- STEP 2: SCAN NEW OPPORTUNITIES (The Explorer) ---
+    let newScanTrades = [];
+
+    // Lockdown Check
+    const isLockdown = globalLockdown === 'true';
+    if (isLockdown) {
+        console.log(`[${mode}] ⛔ LOCKDOWN ACTIVE: No new entries.`);
+    } else if (wallet.isBotActive) {
+        const slotsAvailable = (wallet.maxTrades || 3) - updatedActiveTrades.length;
+
+        if (slotsAvailable > 0) {
+            // Filter Candidates
             const occupied = activeTrades.map(t => t.symbol);
 
-            // COOLDOWN LOGIC (15 Minutes for all) ❄️
+            // COOLDOWN LOGIC (15 Mins)
             const COOLDOWN_MS = 15 * 60 * 1000;
             const now = Date.now();
-
             const recentCloses = winHistory
                 .filter(w => (now - new Date(w.timestamp).getTime()) < COOLDOWN_MS)
                 .map(w => w.symbol);
 
+            // Also append newly closed trades to cooldown immediately
+            closedTrades.forEach(c => recentCloses.push(c.symbol));
             const excludedSymbols = [...new Set(recentCloses)];
 
-            if (excludedSymbols.length > 0) {
-                console.log(`❄️ EXCLUSION ACTIVE: ${excludedSymbols.join(', ')}`);
-            }
+            // Candidates list
+            const candidates = marketPairs.filter(s => !occupied.includes(s) && !excludedSymbols.includes(s));
 
-            const candidates = currentPairs.filter(s => !occupied.includes(s) && !excludedSymbols.includes(s));
-
-            // LOG: Show what we are scanning
             if (candidates.length > 0) {
-                console.log(`📡 [${mode}] SCANNING ${candidates.length} COINS: ${candidates.join(', ')}`);
+                // 🔥 CALL THE SCANNER MODULE
+                newScanTrades = await scanMarketOpportunities(candidates, mode, wallet, marketCache);
             } else {
-                console.log(`💤 [${mode}] NO CANDIDATES TO SCAN (All occupied or blacklisted)`);
-            }
-
-            for (const symbol of candidates) {
-                if (newScanTrades.length + currentlyActive >= (wallet.maxTrades || 3)) break;
-                // Quick Check
-                try {
-                    const candles = await fetchGlobalKlines(symbol, '5m', 150);
-                    if (candles) {
-                        const analysisRes = analysis.analyzeBlitz(null, candles);
-                        if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 30) {
-                            const pd = await fetchGlobalPrice(symbol);
-                            if (pd) {
-                                const risk = wallet.riskPercentage || 10;
-                                const invest = wallet.currentBalance * (risk / 100);
-                                let qty = invest / pd.price;
-                                let realInvest = invest;
-
-                                // 🧬 HYBRID FILTER CHECK
-                                // If config says "useHybrid" (default true for safety now), check odds
-                                const strategyConfig = wallet.strategyConfig?.HYBRID_BLITZ || {};
-                                const useHybrid = strategyConfig.useHybrid !== false; // Default ON
-                                const minOdds = parseFloat(strategyConfig.minOdds || 67); // Default 67%
-
-                                const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
-
-                                if (useHybrid && odds < minOdds) {
-                                    console.log(`[${mode}] 🧬 HYBRID PROTECT: Skipping ${symbol} (Odds: ${odds}% < ${minOdds}%)`);
-                                    continue; // SKIP THIS TRADE
-                                }
-
-                                if (mode === 'LIVE') {
-                                    const order = await binanceClient.executeOrder(symbol, 'BUY', invest, pd.price, 'MARKET', true);
-                                    qty = parseFloat(order.executedQty);
-                                    realInvest = parseFloat(order.cummulativeQuoteQty);
-                                } else {
-                                    wallet.currentBalance -= invest;
-                                }
-
-                                newScanTrades.push({
-                                    id: uuidv4(),
-                                    symbol,
-                                    entryPrice: realInvest / qty,
-                                    investedAmount: realInvest,
-                                    quantity: qty,
-                                    type: 'LONG',
-                                    timestamp: new Date().toISOString(),
-                                    strategy: 'BLITZ',
-                                    mode: mode,
-                                    isManual: false,
-                                    stopLoss: analysisRes.obZone?.sl || null,
-                                    takeProfit: analysisRes.obZone?.tp || null
-                                });
-                                console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol}`);
-                                await sendRawTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 ${symbol}`);
-                            }
-                        }
-                    }
-                } catch (e) { }
+                console.log(`💤 [${mode}] NO CANDIDATES (Slots: ${slotsAvailable}, but all occupied or cooldown)`);
             }
         }
     }
 
-    // 4. ATOMIC SAVE (LOCK)
+    // --- STEP 3: ATOMIC SAVE (The Vault) ---
     try {
         await runWithLock(`trades_${mode}`, async () => {
-            // A. RE-READ STATE
+            // A. RE-READ STATE (To avoid race conditions with Manual Trades)
             const [finalFreshTradesStr, finalFreshHistStr] = await redis.mget([activeKey, historyKey]);
             const dbTrades = finalFreshTradesStr ? JSON.parse(finalFreshTradesStr) : [];
             let dbHistory = finalFreshHistStr ? JSON.parse(finalFreshHistStr) : [];
 
-            // B. MERGE
+            // B. MERGE LOGIC
             const nextActiveList = [];
 
-            // Loop through what the DB currently has
+            // 1. Process Surviving Trades
             for (const dbTrade of dbTrades) {
-                // Was this trade Monitored in this cycle?
-                const res = monitorResults.find(r => r.id === dbTrade.id);
-
-                if (res) {
-                    // Yes, we tracked it.
-                    if (res.status === 'CLOSED') {
-                        // We decided to close it. Add to history.
-                        dbHistory.unshift(res.win);
-
-                        // 💀 PAIN MEMORY REMOVED: Just standard logging
-                        if (res.win.profitUsd < 0) {
-                            console.log(`📉 LOSS DETECTED on ${dbTrade.symbol}. No Blacklist (Standard Cooldown only).`);
-                        }
-                        // Do NOT add to nextActiveList
-                    } else {
-                        // We decided to keep it.
-                        // Update it with new calculated props (SL change)
-                        // But preserve any props changed in DB (unlikely if locked, but safety)
-                        nextActiveList.push({ ...dbTrade, ...res.trade });
-                    }
+                // Find corresponding update from Monitor
+                const updated = updatedActiveTrades.find(u => u.id === dbTrade.id);
+                if (updated) {
+                    // It survived the monitor. Keep it (with updated SL/TP if modified).
+                    nextActiveList.push(updated);
                 } else {
-                    // No, this trade wasn't in our snapshot.
-                    // It must have been added Manually WHILE we were checking prices.
-                    // KEEP IT SAFE.
-                    nextActiveList.push(dbTrade);
+                    // It was NOT in our 'updatedActiveTrades' list?
+                    // It implies either:
+                    // a) It was CLOSED by monitor (so it's in closedTrades list conceptually)
+                    // b) It was just added MANUALLY while we were processing? (Race condition)
+
+                    // Check if it was explicitly closed in this cycle
+                    const wasClosedHere = closedTrades.find(c => c.id === dbTrade.id);
+                    if (!wasClosedHere) {
+                        // It wasn't closed by us. It must be a new manual trade added mid-cycle. Keep it.
+                        nextActiveList.push(dbTrade);
+                    }
                 }
             }
 
-            // Add New Scan Trades
-            if (newScanTrades.length > 0) {
+            // 2. Add New Auto-Entries
+            if (newScanTrades && newScanTrades.length > 0) {
                 nextActiveList.push(...newScanTrades);
+                // Deduct Balance for SIM
+                if (mode === 'SIMULATION') {
+                    newScanTrades.forEach(t => {
+                        wallet.currentBalance -= t.investedAmount;
+                    });
+                }
+            }
+
+            // 3. Add New Closures to History
+            if (closedTrades.length > 0) {
+                dbHistory.unshift(...closedTrades);
+                // Credit Balance for SIM
+                if (mode === 'SIMULATION') {
+                    closedTrades.forEach(t => {
+                        wallet.currentBalance += (t.investedAmount + t.profitUsd);
+                    });
+                }
             }
 
             // Cap History
@@ -389,8 +206,10 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             await redis.set(configKey, JSON.stringify(wallet));
 
             console.log(`✅ [${mode}] Cycle Complete. Active: ${nextActiveList.length}`);
-            activeTrades = nextActiveList; // for display return
-        }, 10000);
+            activeTrades = nextActiveList; // For return display
+            winHistory = dbHistory;
+
+        }, 10000); // 10s Lock
 
     } catch (lockError) {
         console.error(`❌ LOCK FAILED [${mode}]:`, lockError.message);
@@ -400,23 +219,28 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
 }
 
 export default async function handler(req, res) {
-    // 🛡️ SECURITY LOCKDOWN (CRON_SECRET)
-    // CRITICAL: We also check if CRON_SECRET is set in ENV. If not, we BLOCK EVERYTHING to prevent "undefined === undefined" bypass.
     if (!process.env.CRON_SECRET || req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
-        console.warn(`⛔ UNAUTHORIZED ACCESS ATTEMPT to check-prices from ${req.headers['x-forwarded-for'] || 'unknown'}`);
-        return res.status(401).json({ error: '⛔ UNAUTHORIZED: Access Denied. Security Handshake Failed.' });
+        return res.status(401).json({ error: '⛔ UNAUTHORIZED' });
     }
 
     console.log('🚀 [DUAL ENGINE] check-prices START');
     try {
-        const marketCache = {};
+        const marketCache = {}; // Could be populated by market-worker if we link it later
+
+        // Populate cache slightly for efficiency (Top pairs prices)
         const marketPairs = await getDynamicTopPairs();
+        // We could pre-fetch prices here, but market-scanner does its own checks for now.
+        // Let's at least get checking prices for active management in Monitor.
+        // For simple Orchestration, we let modules fetch what they need or pass a basic cache.
+        // To keep it simple in Refactor Phase 1, we pass empty cache and let Monitor fetch if needed 
+        // (Monitor code I wrote handles missing cache by skipping or blindly keeping, 
+        // BUT wait, Monitor needs prices. I should pre-fetch prices for ACTIVE trades at least.)
 
         const tasks = [];
-        tasks.push(processMode('SIMULATION', marketPairs, marketCache, null, null));
+        tasks.push(processMode('SIMULATION', marketPairs, marketCache));
 
         if (process.env.BINANCE_API_KEY) {
-            tasks.push(processMode('LIVE', marketPairs, marketCache, null, null));
+            tasks.push(processMode('LIVE', marketPairs, marketCache));
         }
 
         await Promise.all(tasks);
