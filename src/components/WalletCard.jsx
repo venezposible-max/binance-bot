@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { API_BASE } from '../config/api';
 import styles from './WalletCard.module.css';
 
 const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode, readOnly }, ref) => {
@@ -17,13 +18,13 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             // ... (rest of fetch logic)
             // 1. Parallel Fetch of Critical Data
             const promises = [
-                fetch(`/api/wallet/config?mode=${modeParam}`).then(r => r.json()),
-                fetch(`/api/get-status`).then(r => r.json())
+                fetch(`${API_BASE}/api/wallet/config?mode=${modeParam}`).then(r => r.json()),
+                fetch(`${API_BASE}/api/get-status`).then(r => r.json())
             ];
 
             // 2. Conditional Fetch for Real Balance
             if (tradingMode === 'LIVE') {
-                promises.push(fetch(`/api/wallet/balance`).then(r => r.json()));
+                promises.push(fetch(`${API_BASE}/api/wallet/balance`).then(r => r.json()));
             } else {
                 promises.push(Promise.resolve({ available: 0, total: 0 })); // Dummy for Sim
             }
@@ -136,7 +137,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             if (onConfigChange) onConfigChange(null, null, optimisticUpdate); // Propagate up
 
             try {
-                const res = await fetch(`/api/wallet/config?mode=${tradingMode}`, {
+                const res = await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -240,7 +241,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
         try {
             setWallet(prev => ({ ...prev, isBotActive: newState }));
-            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
+            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isBotActive: newState, tradingMode })
@@ -268,7 +269,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         try {
             // Update state and also select this strategy to sync the main button
             setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, strategy: strategyName }));
-            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
+            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ strategyConfig: newStrategyConfig, strategy: strategyName, tradingMode })
@@ -305,7 +306,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             if (onConfigChange) onConfigChange(newWallet); // Propagate up
 
             // Server Update
-            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
+            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -340,7 +341,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             setWallet(newWallet);
             if (onConfigChange) onConfigChange(newWallet); // Propagate
 
-            await fetch(`/api/wallet/config?mode=${tradingMode}`, {
+            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
