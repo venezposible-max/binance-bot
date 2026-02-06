@@ -278,7 +278,7 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
                 if (newScanTrades.length + currentlyActive >= (wallet.maxTrades || 3)) break;
                 // Quick Check
                 try {
-                    const candles = await fetchGlobalKlines(symbol, '5m', 60);
+                    const candles = await fetchGlobalKlines(symbol, '5m', 150);
                     if (candles) {
                         const analysisRes = analysis.analyzeBlitz(null, candles);
                         if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 30) {
