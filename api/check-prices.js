@@ -215,7 +215,19 @@ async function processMode(mode, marketPairs, marketCache, marketRegime, manualO
             // For brevity/safety in this rewrite, I will reimplement the basic logic
             const currentPairs = await getDynamicTopPairs();
             const occupied = activeTrades.map(t => t.symbol);
-            const candidates = currentPairs.filter(s => !occupied.includes(s));
+
+            // COOLDOWN LOGIC (15 Minutes) ❄️
+            const COOLDOWN_MS = 15 * 60 * 1000;
+            const now = Date.now();
+            const recentCloses = winHistory
+                .filter(w => (now - new Date(w.timestamp).getTime()) < COOLDOWN_MS)
+                .map(w => w.symbol);
+
+            if (recentCloses.length > 0) {
+                console.log(`❄️ COOLDOWN ACTIVE (Skiping): ${recentCloses.join(', ')}`);
+            }
+
+            const candidates = currentPairs.filter(s => !occupied.includes(s) && !recentCloses.includes(s));
 
             for (const symbol of candidates) {
                 if (newScanTrades.length + currentlyActive >= (wallet.maxTrades || 3)) break;
