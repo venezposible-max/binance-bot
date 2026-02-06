@@ -174,12 +174,22 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
               <h2 className={styles.sectionTitle} style={{ color: '#10B981', opacity: 1, margin: 0 }}>🏆 HISTORIAL DE OPERACIONES</h2>
               {/* <button onClick={async () => { ... }} style={{ ... }}>🗑️ BORRAR HISTORIAL</button> (Simplified for brevity, can restore action if needed) */}
-              <button
-                onClick={() => setIsHistoryOpen(true)}
-                style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3B82F6', color: '#60A5FA', padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <History size={14} /> DETALLADO
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    if (window.confirm('¿Borrar historial?')) handleManualAction('CLEAR_HISTORY', {});
+                  }}
+                  style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px dashed #EF4444', color: '#EF4444', padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  🗑️
+                </button>
+                <button
+                  onClick={() => setIsHistoryOpen(true)}
+                  style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid #3B82F6', color: '#60A5FA', padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <History size={14} /> DETALLADO
+                </button>
+              </div>
             </div>
             {/* Short History Grid (Visual Only) */}
             <div className={styles.tradeGrid}>
