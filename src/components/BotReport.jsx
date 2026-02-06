@@ -30,14 +30,7 @@ const BotReport = ({ config, cloudStatus }) => {
                     <div className={styles.statValue}>+{minOdds}% Prob.</div>
                 </div>
 
-                <div className={styles.statItem}>
-                    <div className={styles.statLabel}>
-                        <History size={12} /> BLACKLIST
-                    </div>
-                    <div className={styles.statValue} style={{ color: blacklistCount > 0 ? '#EF4444' : '#10B981' }}>
-                        {blacklistCount} Monedas
-                    </div>
-                </div>
+
 
                 <div className={styles.statItem}>
                     <div className={styles.statLabel}>
