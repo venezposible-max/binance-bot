@@ -179,8 +179,21 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     }));
 
 
-    if (loading) return null;
-    if (!wallet) return null;
+    if (loading) {
+        return (
+            <div className={styles.card} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', opacity: 0.5 }}>
+                <span>🔄 Conectando con Railway Neural Core...</span>
+            </div>
+        );
+    }
+
+    // Fallback for failed fetch (shows empty wallet instead of nothing)
+    if (!wallet) return (
+        <div className={styles.card} style={{ border: '1px solid #EF4444', padding: '20px', textAlign: 'center' }}>
+            <h3 style={{ color: '#EF4444' }}>⚠️ Connection Error</h3>
+            <p style={{ fontSize: '0.8rem', color: '#ccc' }}>No se pudo sincronizar la billetera.</p>
+        </div>
+    );
 
     // Defensive defaults for fresh/empty database
     const isLive = tradingMode === 'LIVE';
