@@ -8,6 +8,45 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // 📅 FILTER STATE (MT5 Style)
+    const [filter, setFilter] = useState('ALL'); // ALL, TODAY, YESTERDAY, WEEK, MONTH, CUSTOM
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
+
+    // Derived Filtered Data
+    const filteredHistory = React.useMemo(() => {
+        if (!history || history.length === 0) return [];
+
+        const now = new Date();
+        // Reset time to midnight for clean comparison
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+        return history.filter(t => {
+            const tTime = new Date(t.timestamp).getTime();
+
+            switch (filter) {
+                case 'TODAY':
+                    return tTime >= todayStart;
+                case 'YESTERDAY':
+                    return tTime >= (todayStart - 86400000) && tTime < todayStart;
+                case 'WEEK':
+                    // Last 7 days
+                    return tTime >= (todayStart - (7 * 86400000));
+                case 'MONTH':
+                    // Current Month (1st to now)
+                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+                    return tTime >= monthStart;
+                case 'CUSTOM':
+                    if (!customStart) return true;
+                    const start = new Date(customStart).getTime();
+                    const end = customEnd ? new Date(customEnd).getTime() + 86400000 : Infinity; // End of day
+                    return tTime >= start && tTime < end;
+                default:
+                    return true;
+            }
+        });
+    }, [history, filter, customStart, customEnd]);
+
     const fetchHistory = async () => {
         setLoading(true);
         try {
@@ -44,10 +83,40 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                         HISTORIAL DE TRADES ({mode})
                     </h1>
 
+                    {/* FILTER TOOLBAR */}
+                    <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {['ALL', 'TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'CUSTOM'].map(f => (
+                            <button
+                                key={f}
+                                onClick={() => setFilter(f)}
+                                style={{
+                                    padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                                    fontSize: '0.8rem', fontWeight: 'bold',
+                                    background: filter === f ? '#10B981' : 'rgba(255,255,255,0.1)',
+                                    color: filter === f ? '#fff' : '#94A3B8'
+                                }}
+                            >
+                                {{
+                                    'ALL': 'TODO', 'TODAY': 'HOY', 'YESTERDAY': 'AYER',
+                                    'WEEK': 'SEMANA', 'MONTH': 'MES', 'CUSTOM': 'RANGO'
+                                }[f]}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* CUSTOM DATE PICKERS */}
+                    {filter === 'CUSTOM' && (
+                        <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ background: '#334155', border: 'none', padding: '6px', color: '#fff', borderRadius: '4px' }} />
+                            <span style={{ color: '#94A3B8' }}>➜</span>
+                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ background: '#334155', border: 'none', padding: '6px', color: '#fff', borderRadius: '4px' }} />
+                        </div>
+                    )}
+
                     {/* NEW: SUMMARY HEADER */}
-                    {!loading && history.length > 0 && (() => {
-                        const totalUsd = history.reduce((acc, t) => acc + (t.profitUsd || 0), 0);
-                        const totalPct = history.reduce((acc, t) => acc + (t.pnl || 0), 0); // Simple sum as requested
+                    {!loading && filteredHistory.length > 0 && (() => {
+                        const totalUsd = filteredHistory.reduce((acc, t) => acc + (t.profitUsd || 0), 0);
+                        const totalPct = filteredHistory.reduce((acc, t) => acc + (t.pnl || 0), 0); // Simple sum as requested
 
                         return (
                             <div style={{
@@ -74,13 +143,13 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                     <div className={styles.section}>
                         {loading ? (
                             <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Cargando historial...</div>
-                        ) : history.length === 0 ? (
+                        ) : filteredHistory.length === 0 ? (
                             <div style={{ padding: '20px', textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
-                                No hay trades cerrados en este historial.
+                                No hay trades en este periodo.
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {history.map((trade, idx) => (
+                                {filteredHistory.map((trade, idx) => (
                                     <div key={idx} style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                         padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
