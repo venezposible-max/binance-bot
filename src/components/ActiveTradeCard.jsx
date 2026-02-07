@@ -166,11 +166,13 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
 };
 
 // Optimization: Only re-render if Price or Config changes meaningfully
+// Optimization: Only re-render if key props change
 export default React.memo(ActiveTradeCard, (prevProps, nextProps) => {
     return (
         prevProps.currentPrice === nextProps.currentPrice &&
         prevProps.trade.id === nextProps.trade.id &&
-        prevProps.trade.entryPrice === nextProps.trade.entryPrice && // Trade updates (rare)
+        prevProps.trade.stopLoss === nextProps.trade.stopLoss && // 👈 WATCH THIS (Trailing updates)
+        prevProps.trade.isTrailing === nextProps.trade.isTrailing &&
         prevProps.walletConfig.useStopLoss === nextProps.walletConfig.useStopLoss &&
         prevProps.walletConfig.stopLoss === nextProps.walletConfig.stopLoss &&
         prevProps.walletConfig.takeProfit === nextProps.walletConfig.takeProfit
