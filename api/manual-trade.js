@@ -3,7 +3,7 @@ import redis from './utils/redisClient.js';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import binanceClient from './utils/binance-client.js';
-import { sendRawTelegram } from '../src/utils/telegram.js';
+import { sendServerTelegram } from './utils/telegram-server.js';
 import { calculateNetProfit } from '../src/utils/finance.js';
 import { runWithLock } from './utils/locker.js';
 
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
                 }
                 const telegramHeader = isLive ? `👆 **LIVE MANUAL ENTRY** ✅` : `👆 **MANUAL ENTRY** ✍️`;
                 const feesMsg = isLive ? "" : `\n📉 Fee: -$${openFee.toFixed(3)}`;
-                await sendRawTelegram(`${telegramHeader}\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type || 'LONG'}\n💰 Precio: $${executionPrice.toFixed(4)}\n💸 **Inversión:** $${actualSpentUsd.toFixed(2)}${feesMsg}${targetMsg}`);
+                await sendServerTelegram(`${telegramHeader}\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type || 'LONG'}\n💰 Precio: $${executionPrice.toFixed(4)}\n💸 **Inversión:** $${actualSpentUsd.toFixed(2)}${feesMsg}${targetMsg}`);
             }
 
             // --- ACTION: CLOSE TRADE ---
@@ -231,7 +231,7 @@ export default async function handler(req, res) {
                     const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
                     const label = (req.body.source === 'user') ? 'MANUAL CLOSE' : 'AUTO CLOSE';
                     const closureMsg = `🚨 **[${activeMode}] ${label}: ${trade.symbol}**\n${emoji} ROI: ${finalRoi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
-                    await sendRawTelegram(closureMsg);
+                    await sendServerTelegram(closureMsg);
                 }
             }
 
