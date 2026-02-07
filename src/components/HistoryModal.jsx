@@ -56,13 +56,13 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                 border: '1px solid rgba(16, 185, 129, 0.2)'
                             }}>
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>GANANCIA TOTAL</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>Utilidad Neta (USD)</div>
                                     <div style={{ fontSize: '1.4rem', color: totalUsd >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {totalUsd >= 0 ? '+' : ''}${totalUsd.toFixed(2)}
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>ACUMULADO %</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>Rendimiento de Estrategia</div>
                                     <div style={{ fontSize: '1.4rem', color: totalPct >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(2)}%
                                     </div>
