@@ -108,10 +108,31 @@ async function processMode(mode, marketPairs, marketCache) {
     // --- STEP 2: SCAN NEW OPPORTUNITIES (The Explorer) ---
     let newScanTrades = [];
 
-    // Lockdown Check
+    // 🛡️ BTC GUARD CHECK
+    const useBtcGuard = wallet.strategyConfig?.HYBRID_BLITZ?.useBtcGuard === true;
+    let btcVeto = false;
+
+    if (useBtcGuard) {
+        try {
+            const btcStats = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT', { timeout: 2000 });
+            const btcChange = parseFloat(btcStats.data.priceChangePercent);
+
+            // CRASH CRITERIA: -1.5% drop (Adjustable)
+            if (btcChange < -1.5) {
+                btcVeto = true;
+                console.log(`🛡️ [BTC GUARD] ⛔ VETO ACTIVE: Bitcoin is erratic (${btcChange.toFixed(2)}%). Pausing entries.`);
+            } else {
+                // Optional: Log BTC is safe? No, too noisy.
+            }
+        } catch (err) {
+            console.warn(`🛡️ [BTC GUARD] ⚠️ Failed to check BTC health: ${err.message}. Proceeding with caution.`);
+        }
+    }
+
+    // Lockdown Check OR BTC Veto
     const isLockdown = globalLockdown === 'true';
-    if (isLockdown) {
-        console.log(`[${mode}] ⛔ LOCKDOWN ACTIVE: No new entries.`);
+    if (isLockdown || btcVeto) {
+        console.log(`[${mode}] ⛔ NO ENTRIES: ${isLockdown ? 'Emergency Lockdown' : 'BTC Guard Veto'}`);
     } else if (wallet.isBotActive) {
         const slotsAvailable = (wallet.maxTrades || 3) - updatedActiveTrades.length;
 

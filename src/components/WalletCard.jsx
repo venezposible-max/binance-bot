@@ -351,6 +351,35 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         finally { isSaving.current = false; } // 🔓 UNLOCK
     };
 
+    const toggleBtcGuard = async () => {
+        if (readOnly) return; // Security Guard
+        if (!wallet) return;
+        const currentStrategies = wallet.strategyConfig || {};
+        const config = currentStrategies['HYBRID_BLITZ'] || { useBtcGuard: false };
+        const newState = !config.useBtcGuard;
+
+        const newStrategies = {
+            ...currentStrategies,
+            HYBRID_BLITZ: { ...config, useBtcGuard: newState }
+        };
+
+        try {
+            isSaving.current = true; // 🔒 LOCK
+
+            const newWallet = { ...wallet, strategyConfig: newStrategies };
+            setWallet(newWallet);
+            if (onConfigChange) onConfigChange(newWallet); // Propagate
+
+            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
+            });
+            console.log(`🛡️ BTC GUARD Set to: ${newState ? 'ON' : 'OFF'}`);
+        } catch (e) { console.error(e); }
+        finally { isSaving.current = false; } // 🔓 UNLOCK
+    };
+
     return (
         <div className={styles.card}>
             {/* ... Header & Left Panel (Unchanged) ... */}
@@ -440,6 +469,36 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                     </div>
                                     <div style={{ fontSize: '0.55rem', color: isHybridOn ? '#fff' : '#64748B', marginTop: '2px' }}>
                                         {isHybridOn ? 'STATS' : 'DISABLED'}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* 3. BTC GUARD TOGGLE */}
+                        {(() => {
+                            const isGuardOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useBtcGuard === true; // Default OFF
+                            return (
+                                <div
+                                    onClick={readOnly ? null : toggleBtcGuard}
+                                    title="Activar/Desactivar Protección contra BTC Crash"
+                                    style={{
+                                        flex: 1,
+                                        background: isGuardOn ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: isGuardOn ? '1px solid #EF4444' : '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                        cursor: readOnly ? 'default' : 'pointer',
+                                        padding: '8px',
+                                        transition: 'all 0.2s ease',
+                                        userSelect: 'none',
+                                        opacity: readOnly ? 0.7 : 1
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.9rem', color: isGuardOn ? '#F87171' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        🛡️ GUARD
+                                    </div>
+                                    <div style={{ fontSize: '0.55rem', color: isGuardOn ? '#fff' : '#64748B', marginTop: '2px' }}>
+                                        {isGuardOn ? 'PROTECTED' : 'DISABLED'}
                                     </div>
                                 </div>
                             );
