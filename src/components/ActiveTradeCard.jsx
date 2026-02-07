@@ -136,7 +136,9 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
                     </div>
                     <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: slPrice > 0 ? '#fff' : '#94A3B8' }}>
                         {trade.isTrailing
-                            ? <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)' }}>⛓️ TS: ${formatPrice(slPrice)}</span>
+                            ? <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)' }}>
+                                ⛓️ TS: {slPrice > 0 ? `$${formatPrice(slPrice)}` : <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>CALC...</span>}
+                            </span>
                             : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN S/L')
                         }
                     </span>

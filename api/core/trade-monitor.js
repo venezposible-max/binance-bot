@@ -51,6 +51,15 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
             let isExit = false;
             let exitReason = '';
 
+            // 🩹 SELF-HEALING: Fix Zombie Trades (Trailing but no SL)
+            if (trade.isTrailing && (!trade.stopLoss || trade.stopLoss <= 0)) {
+                // If we lost the SL value but flag is true, restore it safely below current price
+                const healMargin = 0.005; // 0.5% buffer
+                if (trade.type === 'SHORT') updatedTrade.stopLoss = currentPrice * (1 + healMargin);
+                else updatedTrade.stopLoss = currentPrice * (1 - healMargin);
+                console.log(`[${mode}] 🩹 HEALING ${symbol}: Restored missing TS to ${updatedTrade.stopLoss.toFixed(4)}`);
+            }
+
             // Dynamic Trailing: Activates after +0.7% profit
             if (pnl >= 0.7) {
                 const trailMargin = 0.002; // 0.2% distance
