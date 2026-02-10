@@ -16,6 +16,7 @@ import getStatus from './api/get-status.js';
 import walletConfig from './api/wallet/config.js';
 import candles from './api/candles.js';
 import ticker from './api/ticker.js';
+import walletBalance from './api/wallet/balance.js'; // Restored Import ✅
 import portfolioHandler from './api/olga/portfolio.js'; // Olga is back!
 import activeMode from './api/wallet/active-mode.js';
 import traderOracle from './api/wallet/trader-oracle.js';
