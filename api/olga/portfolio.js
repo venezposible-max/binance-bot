@@ -1,5 +1,5 @@
-
 import binanceClient from '../utils/binance-client.js';
+import redis from '../utils/redisClient.js'; // NEW: To fetch active bot trades
 import axios from 'axios';
 
 export default async function handler(req, res) {
@@ -8,13 +8,52 @@ export default async function handler(req, res) {
 
         const responseData = {
             total_usd: "0.00",
-            pnl_today: "0.00",
+            pnl_today: "0.00", // Will be updated with realized + unrealized
             positions_count: 0,
             positions: [],
+            active_trades: [], // NEW: Detailed bot trades
             spot_details: []
         };
 
-        // 1. SPOT ACCOUNT SNAPSHOT
+        // 1. FETCH ACTIVE BOT TRADES FROM REDIS
+        let botUnrealizedPnL = 0;
+        try {
+            const activeTradesStr = await redis.get('sentinel_active_trades_real');
+            if (activeTradesStr) {
+                const activeTrades = JSON.parse(activeTradesStr);
+
+                responseData.active_trades = activeTrades.map(t => {
+                    const currentPrice = parseFloat(t.currentPrice || t.entryPrice); // Use entry if current not updated yet
+                    const entryPrice = parseFloat(t.entryPrice);
+                    const quantity = parseFloat(t.quantity);
+
+                    // Simple PnL Calc (Long only for now as bot handles spot mostly)
+                    const pnlRaw = (currentPrice - entryPrice) * quantity;
+                    const roi = ((currentPrice - entryPrice) / entryPrice) * 100;
+
+                    botUnrealizedPnL += pnlRaw;
+
+                    return {
+                        symbol: t.symbol,
+                        entry: entryPrice.toFixed(4),
+                        current: currentPrice.toFixed(4),
+                        quantity: quantity,
+                        pnl_usd: pnlRaw.toFixed(2),
+                        roi_percent: roi.toFixed(2),
+                        strategy: t.strategy || 'MANUAL'
+                    };
+                });
+
+                responseData.positions_count = activeTrades.length;
+                // Initial PnL for today from bot trades
+                responseData.pnl_today = botUnrealizedPnL.toFixed(2);
+            }
+        } catch (redisErr) {
+            console.warn('⚠️ Redis Trade Fetch Failed:', redisErr.message);
+        }
+
+
+        // 2. SPOT ACCOUNT SNAPSHOT
         // We use the account endpoint to get all balances
         const spotData = await binanceClient.authenticatedRequest('/api/v3/account');
 
@@ -53,7 +92,7 @@ export default async function handler(req, res) {
 
         responseData.spot_details = significantBalances;
 
-        // 2. FUTURES ACCOUNT (If enabled/accessible)
+        // 3. FUTURES ACCOUNT (If enabled/accessible)
         // We need to sign a request to FAPI. binance-client might default to Spot URL base.
         // We need to construct a custom FAPI request manually or extend the client.
         // For simplicity, let's try to reuse the signing logic but force the FAPI domain if possible.
@@ -81,12 +120,14 @@ export default async function handler(req, res) {
                 const futBal = parseFloat(fData.totalWalletBalance || 0);
                 const futUnrealized = parseFloat(fData.totalUnrealizedProfit || 0);
 
-                responseData.pnl_today = futUnrealized.toFixed(2);
+                // Add futures unrealized PnL to bot PnL
+                responseData.pnl_today = (parseFloat(responseData.pnl_today) + futUnrealized).toFixed(2);
 
                 // Get Positions
                 if (fData.positions) {
                     const activePos = fData.positions.filter(p => parseFloat(p.positionAmt) !== 0);
-                    responseData.positions_count = activePos.length;
+                    // If bot trades exist, add futures positions to the count, otherwise set it
+                    responseData.positions_count = responseData.positions_count + activePos.length;
                     responseData.positions = activePos.map(p => ({
                         symbol: p.symbol,
                         size: p.positionAmt,
