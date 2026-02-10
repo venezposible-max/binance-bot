@@ -15,6 +15,18 @@ export default async function handler(req, res) {
             spot_details: []
         };
 
+        // 0. FETCH REAL-TIME PRICES FIRST 🚀
+        const prices = {};
+        try {
+            // Using a public endpoint to get latest prices for accurate PnL
+            const tickerRes = await axios.get('https://api.binance.com/api/v3/ticker/price', { timeout: 3000 });
+            tickerRes.data.forEach(t => {
+                prices[t.symbol] = parseFloat(t.price);
+            });
+        } catch (e) {
+            console.warn('⚠️ Portfolio Price Fetch Failed:', e.message);
+        }
+
         // 1. FETCH ACTIVE BOT TRADES FROM REDIS
         let botUnrealizedPnL = 0;
         try {
@@ -23,11 +35,12 @@ export default async function handler(req, res) {
                 const activeTrades = JSON.parse(activeTradesStr);
 
                 responseData.active_trades = activeTrades.map(t => {
-                    const currentPrice = parseFloat(t.currentPrice || t.entryPrice); // Use entry if current not updated yet
+                    // REAL-TIME PRICE FIX 🚀
+                    const currentPrice = prices[t.symbol] || parseFloat(t.currentPrice || t.entryPrice);
                     const entryPrice = parseFloat(t.entryPrice);
                     const quantity = parseFloat(t.quantity);
 
-                    // Simple PnL Calc (Long only for now as bot handles spot mostly)
+                    // PnL & ROI Calculation
                     const pnlRaw = (currentPrice - entryPrice) * quantity;
                     const roi = ((currentPrice - entryPrice) / entryPrice) * 100;
 
@@ -60,14 +73,7 @@ export default async function handler(req, res) {
         let spotTotalUSDT = 0;
         const significantBalances = [];
 
-        // Simple estimation: Sum USDT + BUSD + USDC directly.
-        // For BTC/ETH, we would need current prices.
-        // Let's try to fetch ticker prices for major assets to be more accurate.
-        const prices = {};
-        try {
-            const tickerRes = await axios.get('https://api.binance.com/api/v3/ticker/price');
-            tickerRes.data.forEach(t => { prices[t.symbol] = parseFloat(t.price); });
-        } catch (e) { console.warn('Price fetch failed, using raw balances'); }
+        // (Prices already fetched at top for global use)
 
         spotData.balances.forEach(b => {
             const total = parseFloat(b.free) + parseFloat(b.locked);
