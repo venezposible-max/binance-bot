@@ -119,24 +119,27 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
             if (isExit) {
                 console.log(`[${mode}] 📉 CLOSING POSITION: ${symbol} (${exitReason}) PnL: ${pnl.toFixed(2)}%`);
 
-                const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                const qty = trade.quantity || (trade.investedAmount / (trade.entryPrice || 1));
                 let netProfit = 0, finalPercent = 0, executionPrice = currentPrice;
 
                 if (mode === 'LIVE') {
                     try {
                         const order = await binanceClient.executeOrder(symbol, 'SELL', qty, currentPrice, 'MARKET', true);
-                        const received = parseFloat(order.cummulativeQuoteQty);
+                        const received = parseFloat(order.cummulativeQuoteQty) || 0;
+                        const executed = parseFloat(order.executedQty) || 0;
                         const fee = received * 0.001; // Approx fee
-                        netProfit = received - trade.investedAmount - (trade.entryFee || 0) - fee;
-                        finalPercent = (netProfit / trade.investedAmount) * 100;
-                        executionPrice = received / parseFloat(order.executedQty) || currentPrice;
+                        
+                        netProfit = received - (trade.investedAmount || 0) - (trade.entryFee || 0) - fee;
+                        finalPercent = trade.investedAmount > 0 ? (netProfit / trade.investedAmount) * 100 : 0;
+                        executionPrice = executed > 0 ? (received / executed) : currentPrice;
                     } catch (err) {
                         console.error(`❌ LIVE EXIT FAILED for ${symbol}:`, err.message);
-                        // Emergency fallback: If error is strictly about balance/filters, we might force close locally
-                        // but for 'LIVE', we usually retry. For now, we assume successful close in DB to avoid stuck loop if it's a "dust" issue.
-                        if (err.message.includes('LOT_SIZE') || err.message.includes('insufficient')) {
-                            // Force close in DB, assume partial fill or dust loss
-                            netProfit = 0; finalPercent = 0;
+                        // Emergency fallback: If error is strictly about balance/filters/dust, we must force close locally
+                        // to prevent "Ghost Trades" that stick in the UI but don't exist in Binance 
+                        // OR cannot be sold (Dust).
+                        if (err.message.includes('LOT_SIZE') || err.message.includes('insufficient') || err.message.includes('MIN_NOTIONAL')) {
+                            console.warn(`🛡️ FORCE CLOSING GHOST/DUST TRADE: ${symbol}`);
+                            netProfit = 0; finalPercent = 0; executionPrice = currentPrice;
                         } else {
                             // Network error? Keep trade active to retry next cycle
                             updates.push(updatedTrade);
@@ -145,30 +148,35 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                     }
                 } else {
                     // SIMULATION MATH
-                    const simQty = trade.quantity || (trade.investedAmount / trade.entryPrice);
-                    const entryFee = trade.investedAmount * 0.001;
+                    const simQty = trade.quantity || (trade.investedAmount / (trade.entryPrice || 1));
+                    const entryFee = (trade.investedAmount || 0) * 0.001;
                     const exitFee = (currentPrice * simQty) * 0.001;
                     const totalFee = entryFee + exitFee;
 
                     let grossProfit = 0;
                     if (trade.type === 'SHORT') {
-                        grossProfit = (trade.entryPrice - currentPrice) * simQty;
+                        grossProfit = ((trade.entryPrice || 0) - currentPrice) * simQty;
                     } else {
-                        grossProfit = (currentPrice - trade.entryPrice) * simQty;
+                        grossProfit = (currentPrice - (trade.entryPrice || 0)) * simQty;
                     }
 
                     netProfit = grossProfit - totalFee;
-                    finalPercent = (netProfit / trade.investedAmount) * 100;
+                    finalPercent = trade.investedAmount > 0 ? (netProfit / trade.investedAmount) * 100 : 0;
                     executionPrice = currentPrice;
                 }
+
+                // --- SANITIZE NUMBERS (Prevents JSON null/NaN corruption) ---
+                if (isNaN(netProfit) || !isFinite(netProfit)) netProfit = 0;
+                if (isNaN(finalPercent) || !isFinite(finalPercent)) finalPercent = 0;
+                if (isNaN(executionPrice) || !isFinite(executionPrice)) executionPrice = currentPrice;
 
                 // Create Win Record
                 const winRecord = {
                     ...trade,
-                    pnl: finalPercent || 0,
-                    profitUsd: netProfit || 0,
+                    pnl: finalPercent,
+                    profitUsd: netProfit,
                     timestamp: new Date().toISOString(), // Exit Time
-                    entryTimestamp: trade.timestamp,
+                    entryTimestamp: trade.entryTimestamp || trade.timestamp,
                     exitPrice: executionPrice,
                     exitReason: exitReason
                 };

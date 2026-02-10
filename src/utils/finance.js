@@ -50,10 +50,13 @@ export const calculateNetProfit = (entryPrice, exitPrice, amount, type = 'LONG',
     const netProfit = netReturn - amount;
     const netRoi = (netProfit / amount) * 100;
 
+    const netProfitVal = isNaN(netProfit) || !isFinite(netProfit) ? 0 : netProfit;
+    const netRoiVal = isNaN(netRoi) || !isFinite(netRoi) ? 0 : netRoi;
+
     return {
-        netProfit: parseFloat(netProfit.toFixed(2)),
-        roi: parseFloat(netRoi.toFixed(2)), // Net Return %
-        grossProfit: parseFloat(grossProfit.toFixed(2)),
-        fees: parseFloat(totalFees.toFixed(3))
+        netProfit: parseFloat(netProfitVal.toFixed(2)),
+        roi: parseFloat(netRoiVal.toFixed(2)), // Net Return %
+        grossProfit: parseFloat((grossProfit || 0).toFixed(2)),
+        fees: parseFloat((totalFees || 0).toFixed(3))
     };
 };

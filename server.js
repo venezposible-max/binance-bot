@@ -16,7 +16,7 @@ import getStatus from './api/get-status.js';
 import walletConfig from './api/wallet/config.js';
 import candles from './api/candles.js';
 import ticker from './api/ticker.js';
-import walletBalance from './api/wallet/balance.js';
+import portfolioHandler from './api/olga/portfolio.js'; // Olga is back!
 import activeMode from './api/wallet/active-mode.js';
 import traderOracle from './api/wallet/trader-oracle.js';
 import marketWorker from './api/stream/market-worker.js';
@@ -93,10 +93,11 @@ app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle));
 
 app.post('/api/lockdown', vercelAdapter(lockdown)); // NEW: Emergency
 app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
-app.post('/api/telegram-proxy', vercelAdapter(telegramProxy)); // Telegram Proxy
+app.get('/api/telegram-proxy', vercelAdapter(telegramProxy)); // Telegram Proxy
 
 app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
 app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
+app.get('/api/olga/portfolio', vercelAdapter(portfolioHandler)); // NEW: Olga Safe Endpoint 👩‍💼
 
 // Phase 1: High-Speed Market Cache
 app.get('/api/market-cache', (req, res) => {

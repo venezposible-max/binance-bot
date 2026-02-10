@@ -107,13 +107,23 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 if (mode === 'LIVE') {
                     try {
                         const order = await binanceClient.executeOrder(symbol, 'BUY', invest, currentPrice, 'MARKET', true);
-                        qty = parseFloat(order.executedQty);
-                        realInvest = parseFloat(order.cummulativeQuoteQty);
+                        qty = parseFloat(order.executedQty) || 0;
+                        realInvest = parseFloat(order.cummulativeQuoteQty) || invest;
                     } catch (err) {
                         console.error(`❌ ENTRY FAILED [${symbol}]:`, err.message);
                         continue; // Abort entry, continue loop
                     }
                 }
+
+                // --- SANITIZE NUMBERS (CRITICAL for Ghost Trade Prevention) ---
+                if (qty <= 0) {
+                    console.error(`❌ EXECUTED QTY IS 0 for ${symbol}. Skipping trade record.`);
+                    continue;
+                }
+
+                let entryPrice = realInvest / qty;
+                if (isNaN(entryPrice) || !isFinite(entryPrice)) entryPrice = currentPrice;
+                if (isNaN(realInvest) || !isFinite(realInvest)) realInvest = invest;
 
                 // Determine Dynamic Strategy Label
                 let strategyLabel = 'BLITZ';
@@ -124,7 +134,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 const tradeRecord = {
                     id: uuidv4(),
                     symbol,
-                    entryPrice: realInvest / qty,
+                    entryPrice: entryPrice,
                     investedAmount: realInvest,
                     quantity: qty,
                     type: 'LONG',

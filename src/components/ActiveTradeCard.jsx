@@ -16,15 +16,19 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
         // Realism: Deduct 0.1% Entry Fee
         const netPnL = rawPnL - 0.1;
 
-        const quantity = trade.investedAmount / trade.entryPrice;
+        const quantity = (trade.investedAmount || 0) / (trade.entryPrice || 1);
         const currentVal = quantity * currentPrice;
-        const profitUsd = currentVal - trade.investedAmount;
+        const profitUsd = currentVal - (trade.investedAmount || 0);
+
+        // Final Sanity Check
+        const safePnL = isNaN(netPnL) || !isFinite(netPnL) ? 0 : netPnL;
+        const safeProfit = isNaN(profitUsd) || !isFinite(profitUsd) ? 0 : profitUsd;
 
         return {
-            pnl: netPnL,
-            profitUsd,
-            isWin: netPnL >= 0,
-            currentVal
+            pnl: safePnL,
+            profitUsd: safeProfit,
+            isWin: safePnL >= 0,
+            currentVal: isNaN(currentVal) || !isFinite(currentVal) ? 0 : currentVal
         };
     }, [trade.entryPrice, trade.type, trade.investedAmount, currentPrice]);
 

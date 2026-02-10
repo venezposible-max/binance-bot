@@ -115,8 +115,8 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
 
                     {/* NEW: SUMMARY HEADER */}
                     {!loading && filteredHistory.length > 0 && (() => {
-                        const totalUsd = filteredHistory.reduce((acc, t) => acc + (t.profitUsd || 0), 0);
-                        const totalPct = filteredHistory.reduce((acc, t) => acc + (t.pnl || 0), 0); // Simple sum as requested
+                        const totalUsd = filteredHistory.reduce((acc, t) => acc + (parseFloat(t.profitUsd) || 0), 0);
+                        const totalPct = filteredHistory.reduce((acc, t) => acc + (parseFloat(t.pnl) || 0), 0); // Simple sum as requested
 
                         return (
                             <div style={{
@@ -197,10 +197,10 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                                         fontWeight: 'bold', fontSize: '1.1rem',
                                                         color: trade.profitUsd >= 0 ? '#10B981' : '#EF4444'
                                                     }}>
-                                                        {trade.profitUsd >= 0 ? '+' : ''}${trade.profitUsd.toFixed(2)}
+                                                        {(trade.profitUsd || 0) >= 0 ? '+' : ''}${(trade.profitUsd || 0).toFixed(2)}
                                                     </div>
-                                                    <div style={{ fontSize: '0.8rem', color: trade.pnl >= 0 ? '#A7F3D0' : '#FECACA' }}>
-                                                        {trade.pnl.toFixed(2)}%
+                                                    <div style={{ fontSize: '0.8rem', color: (trade.pnl || 0) >= 0 ? '#A7F3D0' : '#FECACA' }}>
+                                                        {(trade.pnl || 0).toFixed(2)}%
                                                     </div>
                                                 </div>
                                             </div>

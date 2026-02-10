@@ -80,12 +80,13 @@ export default async function handler(req, res) {
                     }
 
                     orderId = order.orderId;
-                    executedQty = parseFloat(order.executedQty);
+                    executedQty = parseFloat(order.executedQty) || 0;
                     actualSpentUsd = parseFloat(order.cummulativeQuoteQty) || investedAmount;
 
                     if (executedQty <= 0) throw new Error('CRITICAL: Executed Qty is 0. Trade failed.');
 
-                    executionPrice = actualSpentUsd / executedQty || price;
+                    executionPrice = actualSpentUsd / executedQty;
+                    if (isNaN(executionPrice) || !isFinite(executionPrice)) executionPrice = price;
                 } else {
                     wallet.currentBalance -= (investedAmount + openFee);
                 }
@@ -195,8 +196,13 @@ export default async function handler(req, res) {
 
                         // Update Balance: Return Init + NetProfit (which includes fee deduction)
                         wallet.currentBalance += (trade.investedAmount + netProfit);
-                        finalRoi = (netProfit / trade.investedAmount) * 100;
+                        finalRoi = (trade.investedAmount > 0) ? (netProfit / trade.investedAmount) * 100 : 0;
                     }
+
+                    // --- SANITIZE NUMBERS (CRITICAL for Redis Persistence) ---
+                    if (isNaN(netProfit) || !isFinite(netProfit)) netProfit = 0;
+                    if (isNaN(finalRoi) || !isFinite(finalRoi)) finalRoi = 0;
+                    if (isNaN(executionPrice) || !isFinite(executionPrice)) executionPrice = currentPrice;
 
                     // Archive
                     winHistory.unshift({
