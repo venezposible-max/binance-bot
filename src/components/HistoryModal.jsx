@@ -145,8 +145,8 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
                         // Metric 1: Account Growth (on Equity vs Base)
                         const roeAccount = (totalUsd / accountBase) * 100;
 
-                        // Metric 2: Strategy Efficiency (on money actually used)
-                        const roiStrategy = totalInvestedVolume > 0 ? (totalUsd / totalInvestedVolume) * 100 : 0;
+                        // Metric 2: Strategy Efficiency (Profit per 1 USD)
+                        const profitPerDollar = totalInvestedVolume > 0 ? (totalUsd / totalInvestedVolume) : 0;
 
                         return (
                             <div style={{
@@ -169,11 +169,11 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
                                     <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>BASE: ${accountBase.toFixed(2)}</div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>ROI x Rotación</div>
-                                    <div style={{ fontSize: '1.2rem', color: roiStrategy >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                                        {roiStrategy >= 0 ? '+' : ''}{roiStrategy.toFixed(2)}%
+                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Ganancia x $1 USD</div>
+                                    <div style={{ fontSize: '1.2rem', color: profitPerDollar >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                        ${profitPerDollar.toFixed(4)}
                                     </div>
-                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>SOBRE $ OPERADO</div>
+                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>RENDIMIENTO VIVO</div>
                                 </div>
                             </div>
                         );
