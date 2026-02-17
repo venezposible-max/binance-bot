@@ -7,9 +7,21 @@ import { runWithLock } from './utils/locker.js';
 // --- IMPORT CORE MODULES ---
 import { monitorActiveTrades } from './core/trade-monitor.js';
 import { scanMarketOpportunities } from './core/market-scanner.js';
+import { checkBTCGuardStatus } from '../lib/core/btc-guard.js';
+import marketWorker from './stream/market-worker.js';
 
-// --- Shared Helper ---
+// --- Shared Helper (With 15-Min Cache) ---
+let lastTopPairs = [];
+let lastPairSync = 0;
+let lastBalanceSync = 0; // New: Global tracker for balance sync rate limit safety
+
 async function getDynamicTopPairs() {
+    const now = Date.now();
+    // Only refresh top pairs list every 15 minutes (900000ms)
+    if (lastTopPairs.length > 0 && (now - lastPairSync) < 900000) {
+        return lastTopPairs;
+    }
+
     const sources = [
         { url: 'https://api.binance.com/api/v3/ticker/24hr', label: 'EU' }
     ];
@@ -27,6 +39,9 @@ async function getDynamicTopPairs() {
                 });
                 relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
                 const finalPairs = relevant.slice(0, 12).map(p => p.symbol);
+
+                lastTopPairs = finalPairs;
+                lastPairSync = now;
 
                 try {
                     await redis.set('sentinel_active_pairs', JSON.stringify(finalPairs));
@@ -76,13 +91,16 @@ async function processMode(mode, marketPairs, marketCache) {
         strategy: 'HYBRID_BLITZ'
     };
 
-    // SYNC BALANCE LIVE
-    if (mode === 'LIVE') {
+    // SYNC BALANCE LIVE (Slowed down to 60s for Rate Limit Safety)
+    const now = Date.now();
+    if (mode === 'LIVE' && (now - lastBalanceSync) > 60000) {
         try {
             const usdt = await binanceClient.getAccountBalance('USDT');
             if (usdt && !usdt.error) {
                 wallet.currentBalance = usdt.total;
                 await redis.set(configKey, JSON.stringify(wallet));
+                lastBalanceSync = now;
+                console.log(`⚖️ [LIVE] Wallet Balance Synced: $${wallet.currentBalance}`);
             }
         } catch (e) { }
     }
@@ -114,19 +132,23 @@ async function processMode(mode, marketPairs, marketCache) {
 
     if (useBtcGuard) {
         try {
-            const btcStats = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT', { timeout: 2000 });
-            const btcChange = parseFloat(btcStats.data.priceChangePercent);
+            const guard = await checkBTCGuardStatus();
+            const btcChange = guard.btcChange;
 
-            // CRASH CRITERIA: -1.5% drop (Adjustable)
-            if (btcChange < -1.5) {
+            // Save to Redis for UI
+            await redis.set('sentinel_btc_change', btcChange.toFixed(2));
+
+            // CRASH CRITERIA: -1.5% drop (From lib/core/btc-guard)
+            if (guard.status === 'DANGER') {
                 btcVeto = true;
                 console.log(`🛡️ [BTC GUARD] ⛔ VETO ACTIVE: Bitcoin is erratic (${btcChange.toFixed(2)}%). Pausing entries.`);
-            } else {
-                // Optional: Log BTC is safe? No, too noisy.
             }
         } catch (err) {
             console.warn(`🛡️ [BTC GUARD] ⚠️ Failed to check BTC health: ${err.message}. Proceeding with caution.`);
         }
+    } else {
+        // Clear value if guard is off (optional, but keeps UI clean)
+        await redis.del('sentinel_btc_change');
     }
 
     // Lockdown Check OR BTC Veto
@@ -246,7 +268,8 @@ export default async function handler(req, res) {
 
     console.log('🚀 [DUAL ENGINE] check-prices START');
     try {
-        const marketCache = {}; // Could be populated by market-worker if we link it later
+        // Phase 1: High-Speed Cache Sync (Use WebSocket data for monitoring)
+        const marketCache = marketWorker.getAllMarketData() || {};
 
         // Populate cache slightly for efficiency (Top pairs prices)
         const marketPairs = await getDynamicTopPairs();

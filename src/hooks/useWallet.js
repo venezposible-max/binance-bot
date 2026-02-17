@@ -4,7 +4,7 @@ import { API_BASE } from '../config/api';
 
 export function useWallet() {
     const [tradingMode, setTradingMode] = useState('SIMULATION');
-    const [activeStrategy, setActiveStrategy] = useState('BLITZ');
+    const [activeStrategy, setActiveStrategy] = useState('VORTEX');
     const [timeframe, setTimeframe] = useState('5m');
     const [walletConfig, setWalletConfig] = useState({});
 
@@ -16,6 +16,7 @@ export function useWallet() {
     // Other Global States from backend
     const [lockdown, setLockdown] = useState(false);
     const [apiConfigured, setApiConfigured] = useState(false);
+    const [btcChange, setBtcChange] = useState(null); // NEW: BTC Guard Trend
     const [binanceBalance, setBinanceBalance] = useState(null);
 
     // Wrapper to sync Ref
@@ -46,10 +47,10 @@ export function useWallet() {
                 if (data.strategy && data.strategy !== activeStrategy) {
                     setActiveStrategy(data.strategy);
                     localStorage.setItem('sentinel_strategy', data.strategy);
-                    if (data.strategy.includes('BLITZ') || data.strategy === 'SCALP') setTimeframe('5m');
+                    if (data.strategy.includes('VORTEX') || data.strategy === 'SCALP') setTimeframe('5m');
                     else if (data.strategy === 'TRIPLE') setTimeframe('15m');
                 } else {
-                    if (data.strategy && data.strategy.includes('BLITZ') && timeframe !== '5m') setTimeframe('5m');
+                    if (data.strategy && data.strategy.includes('VORTEX') && timeframe !== '5m') setTimeframe('5m');
                 }
             }
         } catch (err) {
@@ -71,6 +72,7 @@ export function useWallet() {
                 });
                 setLockdown(data.lockdown || false);
                 setApiConfigured(data.isApiConfigured || false);
+                setBtcChange(data.btcChange || null); // Sync BTC Guard value
             }
         } catch (err) {
             console.error('Cloud Status Sync Error:', err);
@@ -182,6 +184,7 @@ export function useWallet() {
         cloudStatus,
         lockdown,
         apiConfigured,
+        btcChange, // Exposed
         binanceBalance,
 
         // Actions

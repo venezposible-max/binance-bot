@@ -25,6 +25,7 @@ import debug from './api/debug.js';
 import cleanup from './api/cleanup.js';
 import getMarketPairs from './api/get-market-pairs.js'; // NEW: Sync Endpoint
 import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
+import removeTrade from './api/remove-trade.js'; // NEW: Manual Trade Removal
 
 // --- LOG CAPTURE HOOK ---
 // Capture logs for the frontend console
@@ -95,6 +96,7 @@ app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle));
 app.post('/api/lockdown', vercelAdapter(lockdown)); // NEW: Emergency
 app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
 app.get('/api/telegram-proxy', vercelAdapter(telegramProxy)); // Telegram Proxy
+app.get('/api/remove-trade', vercelAdapter(removeTrade)); // NEW: Manual Trade Removal
 
 app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
 app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
@@ -177,8 +179,8 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
 });
 
-// Loop every 30 seconds (High Frequency Patrol)
-setInterval(() => runInternalScan('HEARTBEAT'), 30000);
+// Loop every 3 seconds (Extreme Fast Monitoring for Trailing Stop)
+setInterval(() => runInternalScan('HEARTBEAT'), 3000);
 
 // --- KEEPALIVE LOG (Every 2 minutes) ---
 setInterval(() => {

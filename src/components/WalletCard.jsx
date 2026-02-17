@@ -2,7 +2,7 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'rea
 import { API_BASE } from '../config/api';
 import styles from './WalletCard.module.css';
 
-const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode, readOnly }, ref) => {
+const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode, readOnly, btcChange }, ref) => {
     // ... (state and fetch logic remains same)
     const [wallet, setWallet] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -93,8 +93,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         // 5. [NEW] Strategy Modules Configuration
         const currentConfig = wallet.strategyConfig?.HYBRID_BLITZ || {};
 
-        // Blitz Toggle
-        const useBlitz = confirm(`⚡ MODULO TÉCNICO (BLITZ)\n\n¿Activar análisis de Dips y Velas?\nEstado Actual: ${currentConfig.useBlitz !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+        // Vortex Toggle
+        const useBlitz = confirm(`⚡ MODULO TÉCNICO (VORTEX)\n\n¿Activar análisis de Agotamiento y Velas Heikin Ashi?\nEstado Actual: ${currentConfig.useBlitz !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
 
         // Hybrid Toggle
         const useHybrid = confirm(`🧬 MODULO ESTADÍSTICO (HYBRID)\n\n¿Activar filtro de Probabilidades?\nEstado Actual: ${currentConfig.useHybrid !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
@@ -107,8 +107,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         }
 
         const confirmMsg = isLive
-            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Blitz: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
-            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Blitz: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]`;
+            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Vortex: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
+            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Vortex: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]`;
 
         if (confirm(confirmMsg)) {
             // OPTIMISTIC UPDATE: Update UI immediately
@@ -226,8 +226,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     }
 
 
-    // REFACTORED: Only BLITZ Strategy supported
-    const currentStrategy = 'BLITZ';
+    // REFACTORED: Only VORTEX Strategy supported
+    const currentStrategy = 'VORTEX';
 
     // REMOVED: handleCycleStrategy
     // REMOVED: getStrategyColor (Not used in new UI)
@@ -251,7 +251,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
             console.error(e);
         }
     };
-    // REMOVED: handleToggleStrategyActive (Only BLITZ now)
+    // REMOVED: handleToggleStrategyActive (Only VORTEX now)
     // REMOVED: handleSetHybridMode
 
     const handleToggleStrategyActive = async (strategyName) => {
@@ -435,7 +435,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                     }}
                                 >
                                     <div style={{ fontSize: '0.9rem', color: isBlitzOn ? '#22D3EE' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        ⚡ BLITZ
+                                        ⚡ VORTEX
                                     </div>
                                     <div style={{ fontSize: '0.55rem', color: isBlitzOn ? '#fff' : '#64748B', marginTop: '2px' }}>
                                         {isBlitzOn ? 'TECHNICAL' : 'DISABLED'}
@@ -497,8 +497,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                     <div style={{ fontSize: '0.9rem', color: isGuardOn ? '#F87171' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         🛡️ GUARD
                                     </div>
-                                    <div style={{ fontSize: '0.55rem', color: isGuardOn ? '#fff' : '#64748B', marginTop: '2px' }}>
-                                        {isGuardOn ? 'PROTECTED' : 'DISABLED'}
+                                    <div style={{ fontSize: '0.55rem', color: isGuardOn ? '#fff' : '#64748B', marginTop: '2px', fontWeight: 'bold' }}>
+                                        {isGuardOn
+                                            ? (btcChange !== null ? `${btcChange > 0 ? '+' : ''}${btcChange}% (2h)` : 'PROTECTED')
+                                            : 'DISABLED'}
                                     </div>
                                 </div>
                             );

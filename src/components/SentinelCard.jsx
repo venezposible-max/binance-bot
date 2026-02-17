@@ -113,15 +113,15 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
 
             {/* COLUMN 3: TRAFFIC LIGHT STATUS */}
             <div className={styles.statusSection} style={{ flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                {/* 1. DIP INDICATOR */}
+                {/* 1. VORTEX INDICATOR */}
                 {showDip !== false && (
                     <div style={{
                         fontSize: '0.7rem', fontWeight: 'bold',
-                        color: indicators.isDip ? '#10B981' : '#64748B',
+                        color: parseFloat(indicators.rsi2) < 5 ? '#10B981' : '#64748B',
                         display: 'flex', alignItems: 'center', gap: '4px'
                     }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.isDip ? '#10B981' : '#334155', boxShadow: indicators.isDip ? '0 0 5px #10B981' : 'none' }}></div>
-                        {indicators.isDip ? '📉 DIP: SI' : '➖ DIP: NO'}
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: parseFloat(indicators.rsi2) < 5 ? '#10B981' : '#334155', boxShadow: parseFloat(indicators.rsi2) < 5 ? '0 0 5px #10B981' : 'none' }}></div>
+                        {parseFloat(indicators.rsi2) < 5 ? '🌪️ VORTEX: SI' : '➖ VORTEX: NO'}
                     </div>
                 )}
 

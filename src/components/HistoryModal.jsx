@@ -116,7 +116,8 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                     {/* NEW: SUMMARY HEADER */}
                     {!loading && filteredHistory.length > 0 && (() => {
                         const totalUsd = filteredHistory.reduce((acc, t) => acc + (parseFloat(t.profitUsd) || 0), 0);
-                        const totalPct = filteredHistory.reduce((acc, t) => acc + (parseFloat(t.pnl) || 0), 0); // Simple sum as requested
+                        const accountCapital = 100; // Fixed Capital as per User
+                        const roeTotal = (totalUsd / accountCapital) * 100;
 
                         return (
                             <div style={{
@@ -131,9 +132,9 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>Rendimiento de Estrategia</div>
-                                    <div style={{ fontSize: '1.4rem', color: totalPct >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                                        {totalPct >= 0 ? '+' : ''}{totalPct.toFixed(2)}%
+                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>ROE (Total Cuenta)</div>
+                                    <div style={{ fontSize: '1.4rem', color: roeTotal >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                        {roeTotal >= 0 ? '+' : ''}{roeTotal.toFixed(2)}%
                                     </div>
                                 </div>
                             </div>
@@ -149,85 +150,111 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {filteredHistory.map((trade, idx) => (
-                                    <div key={idx} style={{
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                        padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
-                                        borderLeft: `4px solid ${trade.profitUsd >= 0 ? '#10B981' : '#EF4444'}`
-                                    }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                                            {/* TOP ROW: Main Info */}
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff' }}>
-                                                        {trade.symbol.replace('USDT', '')}
-                                                    </div>
-                                                    <div style={{
-                                                        fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px',
-                                                        background: 'rgba(255,255,255,0.1)', color: '#ccc'
-                                                    }}>
-                                                        {trade.strategy || 'MANUAL'}
-                                                    </div>
+                                {filteredHistory.map((trade, idx) => {
+                                    const pnlPct = trade.pnl || 0;
+                                    const profit = trade.profitUsd || 0;
+                                    const invested = pnlPct !== 0 ? (Math.abs(profit) / (Math.abs(pnlPct) / 100)) : 0;
 
-                                                    {/* DURATION PILL (New Location) */}
-                                                    {trade.entryTimestamp && (
-                                                        <div style={{
-                                                            fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px',
-                                                            background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', fontWeight: 'bold'
-                                                        }}>
-                                                            ⏱️ {(() => {
-                                                                const start = new Date(trade.entryTimestamp);
-                                                                const end = new Date(trade.timestamp);
-                                                                if (isNaN(start.getTime()) || isNaN(end.getTime())) return "--";
-
-                                                                const diff = end - start;
-                                                                const h = Math.floor(diff / 3600000);
-                                                                const m = Math.floor((diff % 3600000) / 60000);
-                                                                const s = Math.floor((diff % 60000) / 1000);
-                                                                if (h > 0) return `${h}h ${m}m`;
-                                                                if (m > 0) return `${m}m ${s}s`;
-                                                                return `${s}s`;
-                                                            })()}
+                                    return (
+                                        <div key={idx} style={{
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
+                                            borderLeft: `4px solid ${profit >= 0 ? '#10B981' : '#EF4444'}`
+                                        }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                                {/* TOP ROW: Main Info */}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#fff' }}>
+                                                            {trade.symbol.replace('USDT', '')}
                                                         </div>
+                                                        <div style={{
+                                                            fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',
+                                                            background: 'rgba(255,255,255,0.1)', color: '#ccc', fontWeight: 'bold'
+                                                        }}>
+                                                            {trade.strategy || 'MANUAL'}
+                                                        </div>
+
+                                                        {/* CLOSE TYPE BADGE (NEW) */}
+                                                        <div style={{
+                                                            fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',
+                                                            background: trade.exitReason?.includes('MANUAL') ? 'rgba(59, 130, 246, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                                                            color: trade.exitReason?.includes('MANUAL') ? '#60A5FA' : '#FBBF24',
+                                                            border: `1px solid ${trade.exitReason?.includes('MANUAL') ? '#3B82F6' : '#F59E0B'}`,
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            {trade.exitReason?.includes('MANUAL') ? 'MANUAL' : 'AUTO'}
+                                                        </div>
+
+                                                        {/* INVESTED CAPITAL PILL (NEW) */}
+                                                        <div style={{
+                                                            fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px',
+                                                            background: 'rgba(0, 217, 255, 0.1)', color: '#00D9FF', border: '1px solid rgba(0, 217, 255, 0.3)',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            INVERTIDO: ${invested.toFixed(2)}
+                                                        </div>
+
+                                                        {/* DURATION PILL (New Location) */}
+                                                        {trade.entryTimestamp && (
+                                                            <div style={{
+                                                                fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',
+                                                                background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', fontWeight: 'bold'
+                                                            }}>
+                                                                ⏱️ {(() => {
+                                                                    const start = new Date(trade.entryTimestamp);
+                                                                    const end = new Date(trade.timestamp);
+                                                                    if (isNaN(start.getTime()) || isNaN(end.getTime())) return "--";
+
+                                                                    const diff = end - start;
+                                                                    const h = Math.floor(diff / 3600000);
+                                                                    const m = Math.floor((diff % 3600000) / 60000);
+                                                                    const s = Math.floor((diff % 60000) / 1000);
+                                                                    if (h > 0) return `${h}h ${m}m`;
+                                                                    if (m > 0) return `${m}m ${s}s`;
+                                                                    return `${s}s`;
+                                                                })()}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <div style={{
+                                                            fontWeight: 'bold', fontSize: '1.1rem',
+                                                            color: profit >= 0 ? '#10B981' : '#EF4444'
+                                                        }}>
+                                                            {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.8rem', color: pnlPct >= 0 ? '#A7F3D0' : '#FECACA', fontWeight: 'bold' }}>
+                                                            {pnlPct.toFixed(2)}%
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* BOTTOM ROW: Time Details */}
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center', gap: '15px',
+                                                    fontSize: '0.75rem', color: '#94A3B8',
+                                                    background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '6px'
+                                                }}>
+                                                    {trade.entryTimestamp ? (
+                                                        <>
+                                                            <span>
+                                                                OPEN: <span style={{ color: '#fff' }}>{new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            </span>
+                                                            <span>➜</span>
+                                                            <span>
+                                                                CLOSE: <span style={{ color: '#fff' }}>{new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span>📅 {new Date(trade.timestamp).toLocaleString()} (Old Trade)</span>
                                                     )}
                                                 </div>
-
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <div style={{
-                                                        fontWeight: 'bold', fontSize: '1.1rem',
-                                                        color: trade.profitUsd >= 0 ? '#10B981' : '#EF4444'
-                                                    }}>
-                                                        {(trade.profitUsd || 0) >= 0 ? '+' : ''}${(trade.profitUsd || 0).toFixed(2)}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.8rem', color: (trade.pnl || 0) >= 0 ? '#A7F3D0' : '#FECACA' }}>
-                                                        {(trade.pnl || 0).toFixed(2)}%
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* BOTTOM ROW: Time Details */}
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', gap: '15px',
-                                                fontSize: '0.75rem', color: '#94A3B8',
-                                                background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '6px'
-                                            }}>
-                                                {trade.entryTimestamp ? (
-                                                    <>
-                                                        <span>
-                                                            OPEN: <span style={{ color: '#fff' }}>{new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </span>
-                                                        <span>➜</span>
-                                                        <span>
-                                                            CLOSE: <span style={{ color: '#fff' }}>{new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </span>
-                                                    </>
-                                                ) : (
-                                                    <span>📅 {new Date(trade.timestamp).toLocaleString()} (Old Trade)</span>
-                                                )}
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

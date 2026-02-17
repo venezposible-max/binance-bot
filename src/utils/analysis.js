@@ -217,195 +217,102 @@ export const analyzeFlow = (depth, candles) => {
 };
 
 /**
- * STRATEGY: BLITZ (The Only Strategy)
- * Fast, Aggressive, Logic-based entry.
+ * STRATEGY: SENTINEL VORTEX (Evolution of Blitz)
+ * Accuracy focalized on Extreme Exhaustion (RSI 2) + Heikin Ashi Confirmation.
  * @param { Object } depth - Order Book depth
-        * @param { Array } candles - Price history
-            */
+ * @param { Array } candles - Price history
+ */
 export const analyzeBlitz = (depth, candles) => {
-    // 1. Run Core Analysis (Order Block + Trend)
-    // We inline the relevant parts of analyzeOB here for simplicity/efficiency
     const closes = candles.map(c => c.close || parseFloat(c[4]));
-    const lastPrice = closes[closes.length - 1];
-
-    // Indicators
-    const emaValues = EMA.calculate({ period: 200, values: closes }) || [];
-    const currentEMA = emaValues.length > 0 ? emaValues[emaValues.length - 1] : null;
-    const currentRSI = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
-
-    // ATR for TP calculation
+    const opens = candles.map(c => c.open || parseFloat(c[1]));
     const highs = candles.map(c => c.high || parseFloat(c[2]));
     const lows = candles.map(c => c.low || parseFloat(c[3]));
+    const lastPrice = closes[closes.length - 1];
+
+    // --- INDICATORS: VORTEX CORE ---
+    // 1. RSI 2 (Sensitivity Extreme)
+    const rsi2Values = RSI.calculate({ values: closes, period: 2 }) || [];
+    const currentRSI2 = rsi2Values.length > 0 ? rsi2Values[rsi2Values.length - 1] : 50;
+
+    // 2. HEIKIN ASHI CALCULATION
+    const haCandles = [];
+    for (let i = 0; i < candles.length; i++) {
+        const o = opens[i];
+        const h = highs[i];
+        const l = lows[i];
+        const c = closes[i];
+
+        const haClose = (o + h + l + c) / 4;
+        let haOpen = 0;
+
+        if (i === 0) {
+            haOpen = (o + c) / 2;
+        } else {
+            const prevHa = haCandles[i - 1];
+            haOpen = (prevHa.open + prevHa.close) / 2;
+        }
+
+        const haHigh = Math.max(h, haOpen, haClose);
+        const haLow = Math.min(l, haOpen, haClose);
+
+        haCandles.push({ open: haOpen, close: haClose, high: haHigh, low: haLow });
+    }
+
+    const lastHA = haCandles[haCandles.length - 1];
+    const prevHA = haCandles[haCandles.length - 2];
+
+    // 3. ATR for Dynamic TP
     const atrValues = ATR.calculate({ high: highs, low: lows, close: closes, period: 14 }) || [];
     const currentATR = atrValues.length > 0 ? atrValues[atrValues.length - 1] : lastPrice * 0.02;
 
-    // --- LOGIC: ORDER BLOCK SCAN ---
-    let obZone = null;
-    let foundOB = false;
-    let obSignal = 'NEUTRAL';
+    // --- LOGIC: VORTEX SIGNALS ---
+    // EXHAUSTION = RSI(2) < 5
+    // CONFIRMATION = Green Heikin Ashi (Close > Open) + No Lower Wick (Low == Open)
+    const isExhausted = currentRSI2 < 5;
+    const isHAConfirmation = lastHA.close > lastHA.open && (Math.abs(lastHA.low - lastHA.open) < (lastHA.high - lastHA.low) * 0.05);
 
-    // Scan backwards (last 30 candles)
-    for (let i = candles.length - 2; i > candles.length - 30 && i > 0; i--) {
-        const candle = candles[i];
-        const prevCandle = candles[i - 1];
-        const close = parseFloat(candle.close || candle[4]);
-        const prevOpen = parseFloat(prevCandle.open || prevCandle[1]);
-        const prevClose = parseFloat(prevCandle.close || prevCandle[4]);
-        const prevHigh = parseFloat(prevCandle.high || prevCandle[2]);
-        const prevLow = parseFloat(prevCandle.low || prevCandle[3]);
-
-        // Bullish Impulse?
-        const impulse = ((close - prevOpen) / prevOpen) * 100;
-        const isBearish = prevClose < prevOpen;
-
-        // BLITZ Threshold: > 0.5% impulse is enough
-        if (impulse >= 0.5 && isBearish) {
-            const obMid = (prevLow + prevHigh) / 2;
-
-            // BLITZ TARGETS & FEE SHIELD
-            // TP: 2.5x ATR
-            // FEE SHIELD: Minimum +0.6% ROI is REQUIRED to pay fees (0.2%) and profit.
-            let rawTarget = lastPrice + (currentATR * 2.5);
-            const minPrice = lastPrice * 1.006; // +0.6% Minimum Floor
-
-            // USER STRATEGY: "Force Success"
-            // If technical target is small, stretch it to the minimum profitable level (0.45%).
-            // Calculation: 0.45% Gross - 0.20% Fees = 0.25% NET Profit (Safe)
-            // 0.30% would be too risky (0.10% Net).
-            let targetPrice = Math.max(rawTarget, lastPrice * 1.0045);
-
-            // Note: This disables the 'Skip' logic. We always trade, but with a floor.
-
-            obZone = {
-                low: prevLow,
-                high: prevHigh,
-                mid: obMid,
-                impulse: impulse,
-                tp: targetPrice,
-                sl: null
-            };
-
-            // Signal Logic
-            // If price is near OB High or retracing
-            if (lastPrice <= obZone.high * 1.01) {
-                obSignal = 'BUY';
-                foundOB = true;
-            }
-            break;
-        }
-    }
-
-    // --- LOGIC: FLOW (Order Book) ---
-    // Simplified Flow check
-    let flowSignal = 'NEUTRAL';
-    let bidPercent = 50;
-    let wallPrice = 0;
-
-    if (depth && depth.bids && depth.asks) {
-        const topBids = depth.bids.slice(0, 20);
-        const bidVol = topBids.reduce((acc, [p, q]) => acc + parseFloat(q), 0);
-        const askVol = depth.asks.slice(0, 20).reduce((acc, [p, q]) => acc + parseFloat(q), 0);
-        const totalVol = bidVol + askVol;
-
-        bidPercent = totalVol > 0 ? (bidVol / totalVol) * 100 : 50;
-
-        // BLITZ FLOW: Needs > 1.1 ratio (mild buy pressure)
-        const ratio = askVol > 0 ? bidVol / askVol : 1;
-        if (ratio >= 1.1) flowSignal = 'BUY';
-
-        const masterWall = topBids.sort((a, b) => parseFloat(b[1]) - parseFloat(a[1]))[0];
-        wallPrice = masterWall ? parseFloat(masterWall[0]) : 0;
-    }
-
-    // --- HYBRID STATISTICAL LAYER 🧬 ---
-    // If enabled, we check pattern probabilities
-    let hybridPermission = true; // Default Allow
-    let reboundOdds = 50;
-
-    // Pattern Learning (Real-Time)
-    // We scan the provided candles to build a probability map
-    if (candles.length > 50) {
-        const memory = {};
-
-        // Helper to safely get Open/Close regardless of format (Object or Raw Array)
-        const getCandleData = (c) => {
-            if (!c) return { open: 0, close: 0 };
-            const open = c.open !== undefined ? c.open : (c[1] !== undefined ? parseFloat(c[1]) : 0);
-            const close = c.close !== undefined ? c.close : (c[4] !== undefined ? parseFloat(c[4]) : 0);
-            return { open, close };
-        };
-
-        const isGreen = (c) => {
-            const { open, close } = getCandleData(c);
-            return close > open;
-        };
-
-        const getColor = (c) => isGreen(c) ? 'G' : 'R';
-
-        for (let i = 20; i < candles.length - 1; i++) {
-            const p2 = getColor(candles[i - 2]);
-            const p1 = getColor(candles[i - 1]);
-            const p0 = getColor(candles[i]);
-            const key = p2 + p1 + p0;
-
-            const nextIsGreen = isGreen(candles[i + 1]);
-
-            if (!memory[key]) memory[key] = { total: 0, green: 0 };
-            memory[key].total++;
-            if (nextIsGreen) memory[key].green++;
-        }
-
-        // What is the current pattern?
-        const cLen = candles.length;
-        const curP2 = getColor(candles[cLen - 3]);
-        const curP1 = getColor(candles[cLen - 2]);
-        const curP0 = getColor(candles[cLen - 1]); // Last closed candle
-        const currentPattern = curP2 + curP1 + curP0;
-
-        if (memory[currentPattern]) {
-            reboundOdds = (memory[currentPattern].green / memory[currentPattern].total) * 100;
-        }
-    }
-
-    // --- FINAL CONFLUENCE ---
     let signal = 'NEUTRAL';
     let label = 'ESPERANDO';
     let color = '#94A3B8';
     let intensity = 0;
 
-    // 1. Trend Filter (Relaxed for Blitz: Just allows if not crash)
-    // Actually, Blitz is mean reversion too. Checks if price > EMA usually good.
-    // User wants simplistic "Blitz".
+    // TP Calculation (ATR based from Blitz)
+    // 2.5x ATR with 0.6% ROI protective floor for fees
+    let rawTarget = lastPrice + (currentATR * 2.5);
+    let targetPrice = Math.max(rawTarget, lastPrice * 1.006);
 
-    if (foundOB) {
+    const vortexZone = {
+        tp: targetPrice,
+        sl: null, // No SL as requested for Spot
+        rsi2: currentRSI2,
+        isHA: isHAConfirmation
+    };
+
+    if (isExhausted) {
         signal = 'BUY';
-        label = 'BLITZ (OB ONLY)';
+        label = `VORTEX AGOTAMIENTO (${currentRSI2.toFixed(1)}%)`;
         color = '#10B981';
         intensity = 60;
-
-        // HYBRID OVERRIDE 🧬
-        // If Hybrid is requested (via config passed implicitly or we output the odds for decision maker)
-        // We will output the odds, and the decision maker (check-prices) will filter.
     }
 
-    if (foundOB && flowSignal === 'BUY') {
+    if (isExhausted && isHAConfirmation) {
         signal = 'STRONG_BUY';
-        label = `⚡ BLITZ ENTRY (${bidPercent.toFixed(0)}%)`;
-        color = '#F59E0B'; // Amber
-        intensity = 90;
+        label = `⚡ SENTINEL VORTEX ⚡`;
+        color = '#F59E0B';
+        intensity = 100;
     }
+
+    // Standard RSI 14 for context only
+    const currentRSI14 = RSI.calculate({ values: closes, period: 14 }).slice(-1)[0] || 50;
 
     return {
         price: lastPrice,
-        wallPrice,
-        obZone,
-        chartData: { ema: emaValues.slice(-50) },
+        obZone: vortexZone, // Reusing key to avoid breaking scanner
         indicators: {
-            rsi: currentRSI.toFixed(1),
-            ema: currentEMA ? currentEMA.toFixed(1) : '---',
+            rsi: currentRSI14.toFixed(1),
+            rsi2: currentRSI2.toFixed(1),
             volatility: ((currentATR / lastPrice) * 100).toFixed(2),
-            flow: { bidPercent: bidPercent.toFixed(1) },
-            hybrid: { odds: reboundOdds.toFixed(1) } // 🧬 Export Odds
+            hybrid: { odds: 50 } // Hybrid logic can be kept or removed, keeping for compact
         },
         prediction: {
             signal,

@@ -23,7 +23,7 @@ function App() {
   // 1. Initialize Wallet (User State)
   const {
     tradingMode, activeStrategy, timeframe, walletConfig, cloudStatus,
-    lockdown, apiConfigured, binanceBalance,
+    lockdown, apiConfigured, btcChange, binanceBalance,
     setWalletConfig, toggleTradingMode, toggleLockdown, handleManualAction, refreshConfig
   } = useWallet();
 
@@ -62,7 +62,7 @@ function App() {
     let takeProfit = null;
     let stopLoss = null;
 
-    if (activeStrategy.includes('BLITZ') && marketData[symbol]?.obZone) {
+    if (activeStrategy.includes('VORTEX') && marketData[symbol]?.obZone) {
       takeProfit = marketData[symbol].obZone.tp;
       stopLoss = marketData[symbol].obZone.sl;
       console.log(`🚀 Capturing ATR Targets for ${symbol}: TP ${takeProfit}, SL ${stopLoss}`);
@@ -147,6 +147,7 @@ function App() {
             tradingMode={tradingMode}
             onToggleMode={onScanToggleMode}
             readOnly={isReadOnly}
+            btcChange={btcChange} // NEW
           />
 
           <BotReport config={walletConfig} cloudStatus={cloudStatus} />

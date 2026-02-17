@@ -15,9 +15,11 @@ export default async function handler(req, res) {
 
         const activeTradesStr = await redis.get(activeKey);
         const winHistoryStr = await redis.get(historyKey);
+        const btcChangeStr = await redis.get('sentinel_btc_change');
 
         let activeTrades = activeTradesStr ? JSON.parse(activeTradesStr) : [];
         let history = winHistoryStr ? JSON.parse(winHistoryStr) : [];
+        let btcChange = btcChangeStr ? parseFloat(btcChangeStr) : null;
 
         // 💀 PAIN MEMORY: Disabled
         const blacklist = [];
@@ -47,6 +49,7 @@ export default async function handler(req, res) {
             timestamp: new Date().toISOString(),
             lockdown: lockdownStr === 'true', // NEW
             isApiConfigured, // NEW
+            btcChange, // NEW: For BTC Guard UI
             mode: activeMode,
             blacklist
         });

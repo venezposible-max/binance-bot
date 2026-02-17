@@ -65,6 +65,54 @@ export default async function handler(req, res) {
             console.warn('⚠️ Redis Trade Fetch Failed:', redisErr.message);
         }
 
+        // 1.5 FETCH HISTORY (TODAY'S METRICS) 📜
+        try {
+            const historyStr = await redis.get('sentinel_win_history');
+            const history = historyStr ? JSON.parse(historyStr) : [];
+
+            // Filter TODAY
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+            const todayTrades = history.filter(t => {
+                const exitTime = new Date(t.timestamp).getTime();
+                return exitTime >= startOfDay;
+            });
+
+            const totalProfitUsd = todayTrades.reduce((sum, t) => sum + (parseFloat(t.profitUsd) || 0), 0);
+            const totalRoi = todayTrades.reduce((sum, t) => sum + (parseFloat(t.pnl) || 0), 0);
+            const uniqueStrategies = [...new Set(todayTrades.map(t => t.strategy || 'MANUAL'))];
+
+            // Duration Calc
+            let totalDurationMs = 0;
+            todayTrades.forEach(t => {
+                if (t.entryTimestamp && t.timestamp) {
+                    totalDurationMs += (new Date(t.timestamp) - new Date(t.entryTimestamp));
+                }
+            });
+            const avgDurationMs = todayTrades.length > 0 ? totalDurationMs / todayTrades.length : 0;
+            const hours = Math.floor(avgDurationMs / (1000 * 60 * 60));
+            const minutes = Math.floor((avgDurationMs % (1000 * 60 * 60)) / (1000 * 60));
+
+            responseData.history_metrics = {
+                count: todayTrades.length,
+                net_profit: totalProfitUsd.toFixed(2),
+                strategy_roi: totalRoi.toFixed(2),
+                strategies: uniqueStrategies,
+                avg_duration: `${hours}h ${minutes}m`
+            };
+
+            // Update Net PnL to include Realized Profit from today
+            // Note: responseData.pnl_today previously only had unrealized. 
+            // We'll rename the previous to 'unrealized_today' mentally or just sum them.
+            // Let's sum them for a "Total Daily PnL" view (Realized + Unrealized)
+            responseData.pnl_today = (parseFloat(responseData.pnl_today) + totalProfitUsd).toFixed(2);
+
+        } catch (histErr) {
+            console.warn('⚠️ History Fetch Failed:', histErr.message);
+            responseData.history_metrics = { count: 0, net_profit: "0.00", strategy_roi: "0.00", strategies: [], avg_duration: "0m" };
+        }
+
 
         // 2. SPOT ACCOUNT SNAPSHOT
         // We use the account endpoint to get all balances
