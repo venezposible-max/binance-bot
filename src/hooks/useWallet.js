@@ -62,9 +62,19 @@ export function useWallet() {
     const fetchCloudStatus = async (explicitMode = null) => {
         try {
             const modeToFetch = explicitMode || tradingMode;
-            const res = await fetch(`${API_BASE}/api/get-status?mode=${modeToFetch}`);
-            if (res.ok) {
-                const data = await res.json();
+            const isLive = modeToFetch === 'LIVE';
+
+            const promises = [
+                fetch(`${API_BASE}/api/get-status?mode=${modeToFetch}`).then(r => r.json())
+            ];
+
+            if (isLive) {
+                promises.push(fetch(`${API_BASE}/api/wallet/balance`).then(r => r.json()));
+            }
+
+            const [data, balance] = await Promise.all(promises);
+
+            if (data) {
                 setCloudStatus({
                     active: data.active || [],
                     history: data.history || [],
@@ -72,8 +82,10 @@ export function useWallet() {
                 });
                 setLockdown(data.lockdown || false);
                 setApiConfigured(data.isApiConfigured || false);
-                setBtcChange(data.btcChange || null); // Sync BTC Guard value
+                setBtcChange(data.btcChange || null);
             }
+            if (balance) setBinanceBalance(balance);
+
         } catch (err) {
             console.error('Cloud Status Sync Error:', err);
         }

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE } from '../config/api';
-
 import styles from './DocumentationModal.module.css'; // Re-use styles for consistency
-import { X, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
 
-const HistoryModal = ({ isOpen, onClose, mode }) => {
+const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -18,7 +17,6 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
         if (!history || history.length === 0) return [];
 
         const now = new Date();
-        // Reset time to midnight for clean comparison
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
         return history.filter(t => {
@@ -30,16 +28,14 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                 case 'YESTERDAY':
                     return tTime >= (todayStart - 86400000) && tTime < todayStart;
                 case 'WEEK':
-                    // Last 7 days
                     return tTime >= (todayStart - (7 * 86400000));
                 case 'MONTH':
-                    // Current Month (1st to now)
                     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
                     return tTime >= monthStart;
                 case 'CUSTOM':
                     if (!customStart) return true;
                     const start = new Date(customStart).getTime();
-                    const end = customEnd ? new Date(customEnd).getTime() + 86400000 : Infinity; // End of day
+                    const end = customEnd ? new Date(customEnd).getTime() + 86400000 : Infinity;
                     return tTime >= start && tTime < end;
                 default:
                     return true;
@@ -53,7 +49,6 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
             const res = await fetch(`${API_BASE}/api/get-status?mode=${mode}`);
             if (res.ok) {
                 const data = await res.json();
-                // Sort by newest first
                 const sorted = (data.history || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 setHistory(sorted);
             }
@@ -113,10 +108,12 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                         </div>
                     )}
 
-                    {/* NEW: SUMMARY HEADER */}
+                    {/* SUMMARY HEADER WITH REAL CAPITAL */}
                     {!loading && filteredHistory.length > 0 && (() => {
                         const totalUsd = filteredHistory.reduce((acc, t) => acc + (parseFloat(t.profitUsd) || 0), 0);
-                        const accountCapital = 100; // Fixed Capital as per User
+                        const isLive = mode === 'LIVE';
+                        // REALISMO: Balance de Binance si es Live, sino Capital de Simulación
+                        const accountCapital = isLive ? (binanceBalance?.total || 57.23) : (walletConfig?.currentBalance || 1000);
                         const roeTotal = (totalUsd / accountCapital) * 100;
 
                         return (
@@ -132,7 +129,7 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>ROE (Total Cuenta)</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>ROE (Balance Real)</div>
                                     <div style={{ fontSize: '1.4rem', color: roeTotal >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {roeTotal >= 0 ? '+' : ''}{roeTotal.toFixed(2)}%
                                     </div>
@@ -175,7 +172,7 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                                             {trade.strategy || 'MANUAL'}
                                                         </div>
 
-                                                        {/* CLOSE TYPE BADGE (NEW) */}
+                                                        {/* CLOSE TYPE BADGE */}
                                                         <div style={{
                                                             fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',
                                                             background: trade.exitReason?.includes('MANUAL') ? 'rgba(59, 130, 246, 0.2)' : 'rgba(245, 158, 11, 0.2)',
@@ -186,7 +183,7 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                                             {trade.exitReason?.includes('MANUAL') ? 'MANUAL' : 'AUTO'}
                                                         </div>
 
-                                                        {/* INVESTED CAPITAL PILL (NEW) */}
+                                                        {/* INVESTED CAPITAL PILL */}
                                                         <div style={{
                                                             fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px',
                                                             background: 'rgba(0, 217, 255, 0.1)', color: '#00D9FF', border: '1px solid rgba(0, 217, 255, 0.3)',
@@ -195,7 +192,7 @@ const HistoryModal = ({ isOpen, onClose, mode }) => {
                                                             INVERTIDO: ${invested.toFixed(2)}
                                                         </div>
 
-                                                        {/* DURATION PILL (New Location) */}
+                                                        {/* DURATION PILL */}
                                                         {trade.entryTimestamp && (
                                                             <div style={{
                                                                 fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',

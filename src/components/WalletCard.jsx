@@ -9,33 +9,27 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     const isSaving = React.useRef(false);
 
     const fetchWallet = async () => {
-        // Block updates if we are in the middle of a manual save to preven jitter
         if (isSaving.current) return;
 
         try {
             const modeParam = tradingMode || 'SIMULATION';
+            const isLive = modeParam === 'LIVE';
 
-            // ... (rest of fetch logic)
-            // 1. Parallel Fetch of Critical Data
             const promises = [
                 fetch(`${API_BASE}/api/wallet/config?mode=${modeParam}`).then(r => r.json()),
-                fetch(`${API_BASE}/api/get-status`).then(r => r.json())
+                fetch(`${API_BASE}/api/get-status?mode=${modeParam}`).then(r => r.json())
             ];
 
-            // 2. Conditional Fetch for Real Balance
-            if (tradingMode === 'LIVE') {
+            if (isLive) {
                 promises.push(fetch(`${API_BASE}/api/wallet/balance`).then(r => r.json()));
             } else {
-                promises.push(Promise.resolve({ available: 0, total: 0 })); // Dummy for Sim
+                promises.push(Promise.resolve({ available: 0, total: 0 }));
             }
 
             const [configData, statusData, balanceData] = await Promise.all(promises);
 
-            // Double check lock before setting state
             if (configData && !isSaving.current) {
                 setWallet(configData);
-
-                // 3. Sync Upstream to App.jsx (Signature: status, balance, config)
                 if (onConfigChange) {
                     onConfigChange(
                         { active: statusData.active || [], history: statusData.history || [] },
