@@ -137,12 +137,10 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
                             });
                         }
 
-                        // Base de comparación (Lo que el usuario tiene o lo que asignó)
-                        const accountBase = isLive
-                            ? (walletConfig?.allocatedCapital || currentEquity || 100)
-                            : (walletConfig?.initialBalance || 1000);
+                        // BASE DE VERDAD: Para el crecimiento diario, usamos el Equity actual.
+                        const accountBase = isLive ? currentEquity : (walletConfig?.initialBalance || 1000);
 
-                        // Metric 1: Account Growth (on Equity vs Base)
+                        // Metric 1: Account Growth (on REAL EQUITY)
                         const roeAccount = (totalUsd / accountBase) * 100;
 
                         // Metric 2: Strategy Efficiency (Profit per 1 USD)
