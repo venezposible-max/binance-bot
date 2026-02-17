@@ -122,9 +122,12 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig }) =
                         }, { totalUsd: 0, totalInvestedVolume: 0 });
 
                         const isLive = mode === 'LIVE';
-                        const accountCapital = isLive ? (binanceBalance?.total || 57.23) : (walletConfig?.currentBalance || 1000);
+                        // REALISMO: Usamos el capital asignado por el usuario (Allocated) como base del ROE
+                        const accountCapital = isLive
+                            ? (walletConfig?.allocatedCapital || binanceBalance?.total || 100)
+                            : (walletConfig?.initialBalance || 1000);
 
-                        // Metric 1: Account Growth (on total balance)
+                        // Metric 1: Account Growth (on total allocated assets)
                         const roeAccount = (totalUsd / accountCapital) * 100;
 
                         // Metric 2: Strategy Efficiency (on money actually used)
