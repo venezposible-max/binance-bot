@@ -108,30 +108,50 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig }) =
                         </div>
                     )}
 
-                    {/* SUMMARY HEADER WITH REAL CAPITAL */}
+                    {/* NEW: DUAL SUMMARY HEADER (ACCOUNT vs STRATEGY) */}
                     {!loading && filteredHistory.length > 0 && (() => {
-                        const totalUsd = filteredHistory.reduce((acc, t) => acc + (parseFloat(t.profitUsd) || 0), 0);
+                        const { totalUsd, totalInvestedVolume } = filteredHistory.reduce((acc, t) => {
+                            const profit = parseFloat(t.profitUsd) || 0;
+                            const pnlPct = parseFloat(t.pnl) || 0;
+                            // Re-calculate invested amount for this specific trade
+                            const invested = pnlPct !== 0 ? (Math.abs(profit) / (Math.abs(pnlPct) / 100)) : 0;
+                            return {
+                                totalUsd: acc.totalUsd + profit,
+                                totalInvestedVolume: acc.totalInvestedVolume + invested
+                            };
+                        }, { totalUsd: 0, totalInvestedVolume: 0 });
+
                         const isLive = mode === 'LIVE';
-                        // REALISMO: Balance de Binance si es Live, sino Capital de Simulación
                         const accountCapital = isLive ? (binanceBalance?.total || 57.23) : (walletConfig?.currentBalance || 1000);
-                        const roeTotal = (totalUsd / accountCapital) * 100;
+
+                        // Metric 1: Account Growth (on total balance)
+                        const roeAccount = (totalUsd / accountCapital) * 100;
+
+                        // Metric 2: Strategy Efficiency (on money actually used)
+                        const roiStrategy = totalInvestedVolume > 0 ? (totalUsd / totalInvestedVolume) * 100 : 0;
 
                         return (
                             <div style={{
-                                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px',
+                                display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '10px', marginBottom: '20px',
                                 padding: '15px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px',
                                 border: '1px solid rgba(16, 185, 129, 0.2)'
                             }}>
                                 <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>Utilidad Neta (USD)</div>
-                                    <div style={{ fontSize: '1.4rem', color: totalUsd >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Utilidad Neta</div>
+                                    <div style={{ fontSize: '1.2rem', color: totalUsd >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {totalUsd >= 0 ? '+' : ''}${totalUsd.toFixed(2)}
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px' }}>ROE (Balance Real)</div>
-                                    <div style={{ fontSize: '1.4rem', color: roeTotal >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                                        {roeTotal >= 0 ? '+' : ''}{roeTotal.toFixed(2)}%
+                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Crecimiento Cuenta</div>
+                                    <div style={{ fontSize: '1.2rem', color: roeAccount >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                        {roeAccount >= 0 ? '+' : ''}{roeAccount.toFixed(2)}%
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Eficiencia Bot (ROI)</div>
+                                    <div style={{ fontSize: '1.2rem', color: roiStrategy >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                        {roiStrategy >= 0 ? '+' : ''}{roiStrategy.toFixed(2)}%
                                     </div>
                                 </div>
                             </div>
