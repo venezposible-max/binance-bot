@@ -149,7 +149,7 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig }) =
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Eficiencia Bot (ROI)</div>
+                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>ROI x Rotación de Capital</div>
                                     <div style={{ fontSize: '1.2rem', color: roiStrategy >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {roiStrategy >= 0 ? '+' : ''}{roiStrategy.toFixed(2)}%
                                     </div>
