@@ -287,6 +287,8 @@ function App() {
         mode={tradingMode}
         binanceBalance={binanceBalance}
         walletConfig={walletConfig}
+        activeTrades={cloudStatus.active}
+        marketData={marketData}
       />
       {isLogOpen && <LogConsole onClose={() => setIsLogOpen(false)} />}
       <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />

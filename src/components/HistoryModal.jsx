@@ -3,7 +3,7 @@ import { API_BASE } from '../config/api';
 import styles from './DocumentationModal.module.css'; // Re-use styles for consistency
 import { X, Clock } from 'lucide-react';
 
-const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig }) => {
+const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, activeTrades, marketData }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -122,13 +122,28 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig }) =
                         }, { totalUsd: 0, totalInvestedVolume: 0 });
 
                         const isLive = mode === 'LIVE';
-                        // REALISMO: Usamos el capital asignado por el usuario (Allocated) como base del ROE
-                        const accountCapital = isLive
-                            ? (walletConfig?.allocatedCapital || binanceBalance?.total || 100)
+
+                        // CALCULO DE EQUITY REAL (Efectivo + Valor de Activos en juego)
+                        let currentEquity = isLive ? (binanceBalance?.total || 0) : (walletConfig?.currentBalance || 1000);
+                        if (isLive && activeTrades && marketData) {
+                            activeTrades.forEach(t => {
+                                const currentPrice = marketData[t.symbol]?.price;
+                                if (currentPrice && t.investedAmount) {
+                                    const pnlPct = (t.type === 'SHORT' ? (t.entryPrice - currentPrice) / t.entryPrice : (currentPrice - t.entryPrice) / t.entryPrice);
+                                    currentEquity += t.investedAmount * (1 + pnlPct);
+                                } else if (t.investedAmount) {
+                                    currentEquity += t.investedAmount;
+                                }
+                            });
+                        }
+
+                        // Base de comparación (Lo que el usuario tiene o lo que asignó)
+                        const accountBase = isLive
+                            ? (walletConfig?.allocatedCapital || currentEquity || 100)
                             : (walletConfig?.initialBalance || 1000);
 
-                        // Metric 1: Account Growth (on total allocated assets)
-                        const roeAccount = (totalUsd / accountCapital) * 100;
+                        // Metric 1: Account Growth (on Equity vs Base)
+                        const roeAccount = (totalUsd / accountBase) * 100;
 
                         // Metric 2: Strategy Efficiency (on money actually used)
                         const roiStrategy = totalInvestedVolume > 0 ? (totalUsd / totalInvestedVolume) * 100 : 0;
@@ -144,18 +159,21 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig }) =
                                     <div style={{ fontSize: '1.2rem', color: totalUsd >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {totalUsd >= 0 ? '+' : ''}${totalUsd.toFixed(2)}
                                     </div>
+                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>DEL PERIODO</div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
                                     <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Crecimiento Cuenta</div>
                                     <div style={{ fontSize: '1.2rem', color: roeAccount >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {roeAccount >= 0 ? '+' : ''}{roeAccount.toFixed(2)}%
                                     </div>
+                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>BASE: ${accountBase.toFixed(2)}</div>
                                 </div>
                                 <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>ROI x Rotación de Capital</div>
+                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>ROI x Rotación</div>
                                     <div style={{ fontSize: '1.2rem', color: roiStrategy >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
                                         {roiStrategy >= 0 ? '+' : ''}{roiStrategy.toFixed(2)}%
                                     </div>
+                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>SOBRE $ OPERADO</div>
                                 </div>
                             </div>
                         );
