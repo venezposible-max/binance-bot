@@ -6,39 +6,27 @@ import { X, Clock } from 'lucide-react';
 const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, activeTrades, marketData }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
-
-    // 📅 FILTER STATE (MT5 Style)
-    const [filter, setFilter] = useState('ALL'); // ALL, TODAY, YESTERDAY, WEEK, MONTH, CUSTOM
+    const [filter, setFilter] = useState('ALL');
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
 
-    // Derived Filtered Data
     const filteredHistory = React.useMemo(() => {
         if (!history || history.length === 0) return [];
-
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-
         return history.filter(t => {
             const tTime = new Date(t.timestamp).getTime();
-
             switch (filter) {
-                case 'TODAY':
-                    return tTime >= todayStart;
-                case 'YESTERDAY':
-                    return tTime >= (todayStart - 86400000) && tTime < todayStart;
-                case 'WEEK':
-                    return tTime >= (todayStart - (7 * 86400000));
-                case 'MONTH':
-                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-                    return tTime >= monthStart;
+                case 'TODAY': return tTime >= todayStart;
+                case 'YESTERDAY': return tTime >= (todayStart - 86400000) && tTime < todayStart;
+                case 'WEEK': return tTime >= (todayStart - (7 * 86400000));
+                case 'MONTH': return tTime >= new Date(now.getFullYear(), now.getMonth(), 1).getTime();
                 case 'CUSTOM':
                     if (!customStart) return true;
                     const start = new Date(customStart).getTime();
                     const end = customEnd ? new Date(customEnd).getTime() + 86400000 : Infinity;
                     return tTime >= start && tTime < end;
-                default:
-                    return true;
+                default: return true;
             }
         });
     }, [history, filter, customStart, customEnd]);
@@ -49,252 +37,202 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
             const res = await fetch(`${API_BASE}/api/get-status?mode=${mode}`);
             if (res.ok) {
                 const data = await res.json();
-                const sorted = (data.history || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                setHistory(sorted);
+                setHistory((data.history || []).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
             }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
+        } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
-    useEffect(() => {
-        if (isOpen) fetchHistory();
-    }, [isOpen, mode]);
+    useEffect(() => { if (isOpen) fetchHistory(); }, [isOpen, mode]);
 
     if (!isOpen) return null;
 
+    // --- CÁLCULOS DINÁMICOS ---
+    const { totalUsd, totalInvestedVolume } = filteredHistory.reduce((acc, t) => {
+        const profit = parseFloat(t.profitUsd) || 0;
+        const pnlPct = parseFloat(t.pnl) || 0;
+        const invested = pnlPct !== 0 ? (Math.abs(profit) / (Math.abs(pnlPct) / 100)) : 0;
+        return { totalUsd: acc.totalUsd + profit, totalInvestedVolume: acc.totalInvestedVolume + invested };
+    }, { totalUsd: 0, totalInvestedVolume: 0 });
+
+    const isLive = mode === 'LIVE';
+    let currentEquity = isLive ? (binanceBalance?.total || 0) : (walletConfig?.currentBalance || 1000);
+    if (isLive && activeTrades && marketData) {
+        activeTrades.forEach(t => {
+            const currentPrice = marketData[t.symbol]?.price;
+            if (currentPrice && t.investedAmount) {
+                const pnlPct = (t.type === 'SHORT' ? (t.entryPrice - currentPrice) / t.entryPrice : (currentPrice - t.entryPrice) / t.entryPrice);
+                currentEquity += t.investedAmount * (1 + pnlPct);
+            } else if (t.investedAmount) { currentEquity += t.investedAmount; }
+        });
+    }
+    const accountBase = isLive ? currentEquity : (walletConfig?.initialBalance || 1000);
+    const roeAccount = (totalUsd / accountBase) * 100;
+    const profitPerDollar = totalInvestedVolume > 0 ? (totalUsd / totalInvestedVolume) : 0;
+
     return (
-        <div className={styles.overlay} onClick={onClose} style={{ zIndex: 1000200 }}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: '800px' }}>
-                <button className={styles.closeButton} onClick={onClose}>
-                    <X size={24} />
-                </button>
+        <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000200
+        }} onClick={onClose}>
 
-                <div className={styles.content}>
-                    <h1 className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Clock size={28} color="var(--neon-cyan)" />
-                        HISTORIAL DE TRADES ({mode})
-                    </h1>
+            <div style={{
+                width: '100%', maxWidth: '420px', height: '90vh',
+                backgroundColor: 'rgba(23, 23, 33, 0.7)',
+                borderRadius: '40px', border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(20px)', position: 'relative', overflow: 'hidden',
+                display: 'flex', flexDirection: 'column', color: '#fff',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }} onClick={e => e.stopPropagation()}>
 
-                    {/* FILTER TOOLBAR */}
-                    <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {['ALL', 'TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'CUSTOM'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                style={{
-                                    padding: '6px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                                    fontSize: '0.8rem', fontWeight: 'bold',
-                                    background: filter === f ? '#10B981' : 'rgba(255,255,255,0.1)',
-                                    color: filter === f ? '#fff' : '#94A3B8'
-                                }}
-                            >
-                                {{
-                                    'ALL': 'TODO', 'TODAY': 'HOY', 'YESTERDAY': 'AYER',
-                                    'WEEK': 'SEMANA', 'MONTH': 'MES', 'CUSTOM': 'RANGO'
-                                }[f]}
+                {/* --- MOCK STATUS BAR (iOS Style for Premium Feel) --- */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 30px 10px', fontSize: '13px', color: '#fff', fontWeight: '600' }}>
+                    <span>9:41</span>
+                    <div style={{ display: 'flex', gap: '5px' }}>📶 🔋</div>
+                </div>
+
+                {/* --- HEADER SUMMARY CARD --- */}
+                <div style={{
+                    margin: '10px 20px', padding: '15px 20px',
+                    background: 'rgba(255,255,255,0.05)', borderRadius: '25px',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                    <div>
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Balance</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>${currentEquity.toFixed(2)}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>ROE Mensual</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: roeAccount >= 0 ? '#10B981' : '#EF4444' }}>
+                            {roeAccount >= 0 ? '+' : ''}{roeAccount.toFixed(2)}% ↗
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- MOCK NAVIGATION (Static from image) --- */}
+                <div style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    {['🏠', '📊', '⇄', '🕒', '👤'].map((icon, i) => (
+                        <div key={i} style={{
+                            fontSize: '20px', padding: '10px', borderRadius: '15px',
+                            background: i === 3 ? 'rgba(255,255,255,0.1)' : 'transparent',
+                            cursor: 'pointer'
+                        }}>{icon}</div>
+                    ))}
+                </div>
+
+                {/* --- TRADE HISTORY TITLE --- */}
+                <div style={{ padding: '20px 25px 10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '5px', borderRadius: '8px' }}>
+                        <Clock size={18} color="#10B981" />
+                    </div>
+                    <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Historial Operativo</span>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '5px' }}>
+                        {['TODAY', 'WEEK', 'ALL'].map(f => (
+                            <button key={f} onClick={() => setFilter(f)} style={{
+                                background: filter === f ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                                border: 'none', color: filter === f ? '#10B981' : 'rgba(255,255,255,0.4)',
+                                fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '5px', cursor: 'pointer'
+                            }}>
+                                {f}
                             </button>
                         ))}
                     </div>
+                </div>
 
-                    {/* CUSTOM DATE PICKERS */}
-                    {filter === 'CUSTOM' && (
-                        <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ background: '#334155', border: 'none', padding: '6px', color: '#fff', borderRadius: '4px' }} />
-                            <span style={{ color: '#94A3B8' }}>➜</span>
-                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ background: '#334155', border: 'none', padding: '6px', color: '#fff', borderRadius: '4px' }} />
-                        </div>
-                    )}
-
-                    {/* NEW: DUAL SUMMARY HEADER (ACCOUNT vs STRATEGY) */}
-                    {!loading && filteredHistory.length > 0 && (() => {
-                        const { totalUsd, totalInvestedVolume } = filteredHistory.reduce((acc, t) => {
-                            const profit = parseFloat(t.profitUsd) || 0;
-                            const pnlPct = parseFloat(t.pnl) || 0;
-                            // Re-calculate invested amount for this specific trade
+                {/* --- SCROLLABLE CONTENT --- */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    {loading ? (
+                        <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,0.3)' }}>Sincronizando...</div>
+                    ) : filteredHistory.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>Sin operaciones registradas</div>
+                    ) : (
+                        filteredHistory.map((trade, i) => {
+                            const pnlPct = trade.pnl || 0;
+                            const profit = trade.profitUsd || 0;
+                            const isWin = profit >= 0;
+                            const symbol = trade.symbol.replace('USDT', '');
                             const invested = pnlPct !== 0 ? (Math.abs(profit) / (Math.abs(pnlPct) / 100)) : 0;
-                            return {
-                                totalUsd: acc.totalUsd + profit,
-                                totalInvestedVolume: acc.totalInvestedVolume + invested
-                            };
-                        }, { totalUsd: 0, totalInvestedVolume: 0 });
 
-                        const isLive = mode === 'LIVE';
+                            // Determinamos color de la moneda (para el glow de la imagen)
+                            const coinColor = symbol === 'DOGE' ? '#E1B31E' : symbol === 'ORCA' ? '#00D9FF' : symbol === 'ETH' ? '#627EEA' : '#10B981';
 
-                        // CALCULO DE EQUITY REAL (Efectivo + Valor de Activos en juego)
-                        let currentEquity = isLive ? (binanceBalance?.total || 0) : (walletConfig?.currentBalance || 1000);
-                        if (isLive && activeTrades && marketData) {
-                            activeTrades.forEach(t => {
-                                const currentPrice = marketData[t.symbol]?.price;
-                                if (currentPrice && t.investedAmount) {
-                                    const pnlPct = (t.type === 'SHORT' ? (t.entryPrice - currentPrice) / t.entryPrice : (currentPrice - t.entryPrice) / t.entryPrice);
-                                    currentEquity += t.investedAmount * (1 + pnlPct);
-                                } else if (t.investedAmount) {
-                                    currentEquity += t.investedAmount;
-                                }
-                            });
-                        }
-
-                        // BASE DE VERDAD: Para el crecimiento diario, usamos el Equity actual.
-                        const accountBase = isLive ? currentEquity : (walletConfig?.initialBalance || 1000);
-
-                        // Metric 1: Account Growth (on REAL EQUITY)
-                        const roeAccount = (totalUsd / accountBase) * 100;
-
-                        // Metric 2: Strategy Efficiency (Profit per 1 USD)
-                        const profitPerDollar = totalInvestedVolume > 0 ? (totalUsd / totalInvestedVolume) : 0;
-
-                        return (
-                            <div style={{
-                                display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: '10px', marginBottom: '20px',
-                                padding: '15px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px',
-                                border: '1px solid rgba(16, 185, 129, 0.2)'
-                            }}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Utilidad Neta</div>
-                                    <div style={{ fontSize: '1.2rem', color: totalUsd >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                                        {totalUsd >= 0 ? '+' : ''}${totalUsd.toFixed(2)}
-                                    </div>
-                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>DEL PERIODO</div>
-                                </div>
-                                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Crecimiento Cuenta</div>
-                                    <div style={{ fontSize: '1.2rem', color: roeAccount >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                                        {roeAccount >= 0 ? '+' : ''}{roeAccount.toFixed(2)}%
-                                    </div>
-                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>BASE: ${accountBase.toFixed(2)}</div>
-                                </div>
-                                <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
-                                    <div style={{ fontSize: '0.65rem', color: '#A7F3D0', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase' }}>Ganancia x $1 USD</div>
-                                    <div style={{ fontSize: '1.2rem', color: profitPerDollar >= 0 ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
-                                        ${profitPerDollar.toFixed(4)}
-                                    </div>
-                                    <div style={{ fontSize: '0.55rem', color: '#94A3B8' }}>RENDIMIENTO VIVO</div>
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    <div className={styles.section}>
-                        {loading ? (
-                            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>Cargando historial...</div>
-                        ) : filteredHistory.length === 0 ? (
-                            <div style={{ padding: '20px', textAlign: 'center', color: '#666', fontStyle: 'italic' }}>
-                                No hay trades en este periodo.
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {filteredHistory.map((trade, idx) => {
-                                    const pnlPct = trade.pnl || 0;
-                                    const profit = trade.profitUsd || 0;
-                                    const invested = pnlPct !== 0 ? (Math.abs(profit) / (Math.abs(pnlPct) / 100)) : 0;
-
-                                    return (
-                                        <div key={idx} style={{
-                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                            padding: '15px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
-                                            borderLeft: `4px solid ${profit >= 0 ? '#10B981' : '#EF4444'}`
+                            return (
+                                <div key={i} style={{
+                                    background: 'rgba(255,255,255,0.03)', borderRadius: '25px', padding: '15px',
+                                    border: '1px solid rgba(255,255,255,0.05)', position: 'relative'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                        {/* Icon Container with Coin Specific Glow */}
+                                        <div style={{
+                                            width: '45px', height: '45px', borderRadius: '15px',
+                                            background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                            boxShadow: `0 0 15px ${coinColor}33`, border: `1px solid ${coinColor}44`, fontSize: '20px'
                                         }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                                                {/* TOP ROW: Main Info */}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                                        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#fff' }}>
-                                                            {trade.symbol.replace('USDT', '')}
-                                                        </div>
-                                                        <div style={{
-                                                            fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',
-                                                            background: 'rgba(255,255,255,0.1)', color: '#ccc', fontWeight: 'bold'
-                                                        }}>
-                                                            {trade.strategy || 'MANUAL'}
-                                                        </div>
+                                            {symbol === 'DOGE' ? '🐶' : symbol === 'ETH' ? '💠' : symbol === 'NEAR' ? 'Ⓝ' : '💎'}
+                                        </div>
 
-                                                        {/* CLOSE TYPE BADGE */}
-                                                        <div style={{
-                                                            fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',
-                                                            background: trade.exitReason?.includes('MANUAL') ? 'rgba(59, 130, 246, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                                                            color: trade.exitReason?.includes('MANUAL') ? '#60A5FA' : '#FBBF24',
-                                                            border: `1px solid ${trade.exitReason?.includes('MANUAL') ? '#3B82F6' : '#F59E0B'}`,
-                                                            fontWeight: 'bold'
-                                                        }}>
-                                                            {trade.exitReason?.includes('MANUAL') ? 'MANUAL' : 'AUTO'}
-                                                        </div>
-
-                                                        {/* INVESTED CAPITAL PILL */}
-                                                        <div style={{
-                                                            fontSize: '0.65rem', padding: '2px 8px', borderRadius: '4px',
-                                                            background: 'rgba(0, 217, 255, 0.1)', color: '#00D9FF', border: '1px solid rgba(0, 217, 255, 0.3)',
-                                                            fontWeight: 'bold'
-                                                        }}>
-                                                            INVERTIDO: ${invested.toFixed(2)}
-                                                        </div>
-
-                                                        {/* DURATION PILL */}
-                                                        {trade.entryTimestamp && (
-                                                            <div style={{
-                                                                fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px',
-                                                                background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', fontWeight: 'bold'
-                                                            }}>
-                                                                ⏱️ {(() => {
-                                                                    const start = new Date(trade.entryTimestamp);
-                                                                    const end = new Date(trade.timestamp);
-                                                                    if (isNaN(start.getTime()) || isNaN(end.getTime())) return "--";
-
-                                                                    const diff = end - start;
-                                                                    const h = Math.floor(diff / 3600000);
-                                                                    const m = Math.floor((diff % 3600000) / 60000);
-                                                                    const s = Math.floor((diff % 60000) / 1000);
-                                                                    if (h > 0) return `${h}h ${m}m`;
-                                                                    if (m > 0) return `${m}m ${s}s`;
-                                                                    return `${s}s`;
-                                                                })()}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div style={{ textAlign: 'right' }}>
-                                                        <div style={{
-                                                            fontWeight: 'bold', fontSize: '1.1rem',
-                                                            color: profit >= 0 ? '#10B981' : '#EF4444'
-                                                        }}>
-                                                            {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
-                                                        </div>
-                                                        <div style={{ fontSize: '0.8rem', color: pnlPct >= 0 ? '#A7F3D0' : '#FECACA', fontWeight: 'bold' }}>
-                                                            {pnlPct.toFixed(2)}%
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* BOTTOM ROW: Time Details */}
-                                                <div style={{
-                                                    display: 'flex', alignItems: 'center', gap: '15px',
-                                                    fontSize: '0.75rem', color: '#94A3B8',
-                                                    background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '6px'
-                                                }}>
-                                                    {trade.entryTimestamp ? (
-                                                        <>
-                                                            <span>
-                                                                OPEN: <span style={{ color: '#fff' }}>{new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                            </span>
-                                                            <span>➜</span>
-                                                            <span>
-                                                                CLOSE: <span style={{ color: '#fff' }}>{new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                            </span>
-                                                        </>
-                                                    ) : (
-                                                        <span>📅 {new Date(trade.timestamp).toLocaleString()} (Old Trade)</span>
-                                                    )}
-                                                </div>
+                                        <div>
+                                            <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{symbol}</div>
+                                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <Clock size={10} /> {(() => {
+                                                    const diff = new Date(trade.timestamp) - new Date(trade.entryTimestamp);
+                                                    const m = Math.floor(diff / 60000);
+                                                    return m > 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+                                                })()}
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+
+                                        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                                            <div style={{ fontSize: '18px', fontWeight: 'bold', color: isWin ? '#10B981' : '#EF4444' }}>
+                                                {isWin ? '+' : ''}${profit.toFixed(2)}
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: isWin ? '#10B981' : '#EF4444', fontWeight: '600' }}>
+                                                {pnlPct.toFixed(2)}%
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Invested Label (Box at the bottom matching image) */}
+                                    <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                                        <div style={{
+                                            background: 'rgba(255,255,255,0.05)', padding: '6px 15px', borderRadius: '12px',
+                                            fontSize: '11px', fontWeight: 'bold', color: 'rgba(255,255,255,0.7)',
+                                            borderBottom: `2px solid ${coinColor}`, display: 'flex', gap: '10px'
+                                        }}>
+                                            <span>Invested: ${invested.toFixed(2)}</span>
+                                            <span style={{ color: coinColor }}>↗</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* --- FOOTER BUTTON --- */}
+                <div style={{ padding: '20px', background: 'rgba(23, 23, 33, 0.9)', backdropFilter: 'blur(5px)' }}>
+                    <button style={{
+                        width: '100%', padding: '16px', borderRadius: '20px',
+                        background: 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
+                        color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '16px',
+                        boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)', cursor: 'pointer'
+                    }}>
+                        New Trade
+                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', padding: '0 10px' }}>
+                        <span style={{ cursor: 'pointer' }}>⚙️</span>
+                        <span style={{ cursor: 'pointer' }}>❓</span>
                     </div>
                 </div>
+
+                {/* Close Button (Floating) */}
+                <button onClick={onClose} style={{
+                    position: 'absolute', top: '15px', right: '15px',
+                    background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
+                    width: '30px', height: '30px', borderRadius: '50%', cursor: 'pointer', zIndex: 10
+                }}>✕</button>
+
             </div>
         </div>
     );
