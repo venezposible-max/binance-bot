@@ -72,22 +72,22 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(5, 5, 10, 0.5)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(15px)',
+            WebkitBackdropFilter: 'blur(15px)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000200
         }} onClick={onClose}>
 
             <div style={{
                 width: '100%', maxWidth: '440px', height: '90vh',
-                background: 'rgba(15, 15, 25, 0.4)',
+                background: 'rgba(255, 255, 255, 0.05)',
                 borderRadius: '40px',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                backdropFilter: 'blur(40px)',
-                WebkitBackdropFilter: 'blur(40px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(50px)',
+                WebkitBackdropFilter: 'blur(50px)',
                 position: 'relative', overflow: 'hidden',
                 display: 'flex', flexDirection: 'column', color: '#fff',
-                boxShadow: '0 20px 80px rgba(0, 0, 0, 0.8)'
+                boxShadow: '0 30px 100px rgba(0, 0, 0, 0.7)'
             }} onClick={e => e.stopPropagation()}>
 
                 {/* --- HEADER --- */}
@@ -196,16 +196,17 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
 
                             return (
                                 <div key={i} style={{
-                                    background: 'rgba(255, 255, 255, 0.04)',
+                                    background: 'rgba(255, 255, 255, 0.03)',
                                     borderRadius: '25px',
                                     padding: '20px',
                                     marginBottom: '15px',
-                                    border: '1px solid rgba(255,255,255,0.08)',
-                                    backdropFilter: 'blur(25px)',
-                                    WebkitBackdropFilter: 'blur(25px)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    backdropFilter: 'blur(30px)',
+                                    WebkitBackdropFilter: 'blur(30px)',
                                     position: 'relative',
                                     overflow: 'hidden',
-                                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+                                    transition: 'all 0.3s'
                                 }}>
                                     {/* Glass Highlight Line */}
                                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
