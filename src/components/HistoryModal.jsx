@@ -167,9 +167,33 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
                             const symbol = trade.symbol.replace('USDT', '');
                             const invested = (Math.abs(profit) / (Math.abs(trade.pnl || 1) / 100)) || 0;
 
-                            // Colores de resplandor por moneda
-                            const coinColor = symbol === 'DOGE' ? '#E1B31E' : symbol === 'ORCA' ? '#00D9FF' : symbol === 'ETH' ? '#627EEA' : '#10B981';
-                            const coinEmoji = symbol === 'DOGE' ? '🐶' : symbol === 'ETH' ? '💠' : symbol === 'ORCA' ? '🐋' : '💎';
+                            // --- MOTOR DE IDENTIDAD VISUAL (TOP 20 + FAVORITOS) ---
+                            const coinThemes = {
+                                'BTC': { icon: '₿', color: '#F7931A' },
+                                'ETH': { icon: '💠', color: '#627EEA' },
+                                'BNB': { icon: '🔶', color: '#F3BA2F' },
+                                'SOL': { icon: '☀️', color: '#14F195' },
+                                'DOGE': { icon: '🐶', color: '#E1B31E' },
+                                'ORCA': { icon: '🐋', color: '#00D9FF' },
+                                'MATIC': { icon: 'Ⓜ️', color: '#8247E5' },
+                                'XRP': { icon: '✕', color: '#23292F' },
+                                'ADA': { icon: '₳', color: '#0033AD' },
+                                'NEAR': { icon: 'Ⓝ', color: '#000000' },
+                                'PEPE': { icon: '🐸', color: '#00FF00' },
+                                'SHIB': { icon: '🐕', color: '#FFA500' },
+                                'AVAX': { icon: '🔺', color: '#E84142' },
+                                'DOT': { icon: '⚪', color: '#E6007A' },
+                                'LINK': { icon: '🔗', color: '#2A5ADA' },
+                                'TRX': { icon: '💎', color: '#EF0011' },
+                                'LTC': { icon: 'Ł', color: '#BEBEBE' },
+                                'WIF': { icon: '🎩', color: '#A52A2A' },
+                                'ARB': { icon: '🔵', color: '#28A0F0' },
+                                'OP': { icon: '🔴', color: '#FF0420' }
+                            };
+
+                            const theme = coinThemes[symbol] || { icon: '💎', color: '#10B981' };
+                            const coinColor = theme.color;
+                            const coinEmoji = theme.icon;
 
                             return (
                                 <div key={i} style={{
