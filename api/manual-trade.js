@@ -108,15 +108,14 @@ export default async function handler(req, res) {
                 };
                 activeTrades.push(newTrade);
 
-                // Notify Telegram
-                let targetMsg = `\n_Vigilando objetivo +1% en la nube..._`;
+                let targetMsg = `\n<i>Vigilando objetivo +1% en la nube...</i>`;
                 if (takeProfit) {
                     const pnl = ((takeProfit - executionPrice) / executionPrice) * 100;
-                    targetMsg = `\n🎯 **Objetivo (ATR):** $${takeProfit.toFixed(4)} (+${pnl.toFixed(2)}%)`;
+                    targetMsg = `\n🎯 <b>Objetivo (ATR):</b> $${takeProfit.toFixed(4)} (+${pnl.toFixed(2)}%)`;
                 }
-                const telegramHeader = isLive ? `👆 **LIVE MANUAL ENTRY** ✅` : `👆 **MANUAL ENTRY** ✍️`;
+                const telegramHeader = isLive ? `👆 <b>LIVE MANUAL ENTRY</b> ✅` : `👆 <b>MANUAL ENTRY</b> ✍️`;
                 const feesMsg = isLive ? "" : `\n📉 Fee: -$${openFee.toFixed(3)}`;
-                await sendServerTelegram(`${telegramHeader}\n\n💎 **Moneda:** ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type || 'LONG'}\n💰 Precio: $${executionPrice.toFixed(4)}\n💸 **Inversión:** $${actualSpentUsd.toFixed(2)}${feesMsg}${targetMsg}`);
+                await sendServerTelegram(`${telegramHeader}\n\n💎 <b>Moneda:</b> ${symbol.replace('USDT', '')}\n🎯 Tipo: ${type || 'LONG'}\n💰 Precio: $${executionPrice.toFixed(4)}\n💸 <b>Inversión:</b> $${actualSpentUsd.toFixed(2)}${feesMsg}${targetMsg}`);
             }
 
             // --- ACTION: CLOSE TRADE ---
@@ -236,7 +235,7 @@ export default async function handler(req, res) {
                     const mins = Math.floor((diffMs % 3600000) / 60000);
                     const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
                     const label = (req.body.source === 'user') ? 'MANUAL CLOSE' : 'AUTO CLOSE';
-                    const closureMsg = `🚨 **[${activeMode}] ${label}: ${trade.symbol}**\n${emoji} ROI: ${finalRoi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
+                    const closureMsg = `🚨 <b>[${activeMode}] ${label}: ${trade.symbol}</b>\n${emoji} ROI: ${finalRoi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
                     await sendServerTelegram(closureMsg);
                 }
             }

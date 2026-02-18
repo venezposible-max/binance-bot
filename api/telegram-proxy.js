@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
             chat_id: CHAT_ID,
             text: text,
-            parse_mode: 'Markdown'
+            parse_mode: 'HTML'
         });
 
         return res.json({ success: true, result: response.data });

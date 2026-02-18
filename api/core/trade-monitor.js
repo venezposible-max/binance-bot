@@ -203,7 +203,7 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
 
                 // Notification - USING SERVER DIRECT SEND
                 const emoji = netProfit >= 0 ? '🟢' : '🔴';
-                await sendServerTelegram(`🚨 **[${mode}] AUTO CLOSE: ${symbol}**\n${emoji} ROI: ${finalPercent.toFixed(2)}%\n💰 $${netProfit.toFixed(2)} (${exitReason})`);
+                await sendServerTelegram(`🚨 <b>[${mode}] AUTO CLOSE: ${symbol}</b>\n${emoji} ROI: ${finalPercent.toFixed(2)}%\n💰 $${netProfit.toFixed(2)} (${exitReason})`);
 
                 history.push(winRecord);
 

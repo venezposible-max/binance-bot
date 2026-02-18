@@ -22,7 +22,7 @@ export const sendServerTelegram = async (text) => {
         await axios.post(url, {
             chat_id: CHAT_ID,
             text: text,
-            parse_mode: 'Markdown'
+            parse_mode: 'HTML'
         });
         console.log("✅ Telegram Alert Sent (Server Direct)");
         return true;

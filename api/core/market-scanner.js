@@ -151,7 +151,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
 
                 console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%)`);
                 console.log(`🚀 [${mode}] AUTO-ENTRY: ${symbol} (Odds: ${odds.toFixed(1)}%)`);
-                await sendServerTelegram(`🤖 **[${mode}] AUTO ENTRY**\n🚀 ${symbol}\n🏷️ ${strategyLabel}\n🧬 Odds: ${odds.toFixed(1)}%`);
+                await sendServerTelegram(`🤖 <b>[${mode}] AUTO ENTRY</b>\n🚀 ${symbol}\n🏷️ ${strategyLabel}\n🧬 Odds: ${odds.toFixed(1)}%`);
             }
 
         } catch (e) {

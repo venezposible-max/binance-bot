@@ -22,12 +22,12 @@ export const sendTelegramAlert = async (symbol, price, signalData) => {
     const coin = symbol.replace('USDT', '');
 
     const message = `
-${emoji} **${coin} ALERTA SENTINEL**
+${emoji} <b>${coin} ALERTA SENTINEL</b>
 
-💎 **Señal:** ${label}
-💰 **Precio:** $${price.toLocaleString()}
+💎 <b>Señal:</b> ${label}
+💰 <b>Precio:</b> $${price.toLocaleString()}
 
-_Verificar en Gráfico antes de operar._
+<i>Verificar en Gráfico antes de operar.</i>
     `;
 
     // 3. Send via Proxy
