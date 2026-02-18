@@ -72,167 +72,135 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000200
         }} onClick={onClose}>
 
             <div style={{
-                width: '100%', maxWidth: '420px', height: '90vh',
-                backgroundColor: 'rgba(23, 23, 33, 0.7)',
-                borderRadius: '40px', border: '1px solid rgba(255,255,255,0.1)',
+                width: '100%', maxWidth: '440px', height: '90vh',
+                backgroundColor: 'rgba(15, 15, 20, 0.95)',
+                borderRadius: '35px', border: '1px solid rgba(255,255,255,0.1)',
                 backdropFilter: 'blur(20px)', position: 'relative', overflow: 'hidden',
-                display: 'flex', flexDirection: 'column', color: '#fff',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                display: 'flex', flexDirection: 'column', color: '#fff'
             }} onClick={e => e.stopPropagation()}>
 
-                {/* --- MOCK STATUS BAR (iOS Style for Premium Feel) --- */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 30px 10px', fontSize: '13px', color: '#fff', fontWeight: '600' }}>
-                    <span>9:41</span>
-                    <div style={{ display: 'flex', gap: '5px' }}>📶 🔋</div>
-                </div>
+                {/* --- HEADER --- */}
+                <div style={{ padding: '25px 25px 15px' }}>
+                    <button onClick={onClose} style={{
+                        width: '35px', height: '35px', borderRadius: '50%', background: '#fff',
+                        border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                        cursor: 'pointer', marginBottom: '15px'
+                    }}>
+                        <X size={20} color="#000" />
+                    </button>
 
-                {/* --- HEADER SUMMARY CARD --- */}
-                <div style={{
-                    margin: '10px 20px', padding: '15px 20px',
-                    background: 'rgba(255,255,255,0.05)', borderRadius: '25px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}>
-                    <div>
-                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>Balance</div>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>${currentEquity.toFixed(2)}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginBottom: '4px' }}>ROE Mensual</div>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: roeAccount >= 0 ? '#10B981' : '#EF4444' }}>
-                            {roeAccount >= 0 ? '+' : ''}{roeAccount.toFixed(2)}% ↗
-                        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                        <Clock size={28} color="#10B981" />
+                        <h1 style={{ fontSize: '1.4rem', fontWeight: '900', color: '#FCD34D', margin: 0 }}>
+                            HISTORIAL DE TRADES ({mode})
+                        </h1>
                     </div>
                 </div>
 
-                {/* --- MOCK NAVIGATION (Static from image) --- */}
-                <div style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    {['🏠', '📊', '⇄', '🕒', '👤'].map((icon, i) => (
-                        <div key={i} style={{
-                            fontSize: '20px', padding: '10px', borderRadius: '15px',
-                            background: i === 3 ? 'rgba(255,255,255,0.1)' : 'transparent',
-                            cursor: 'pointer'
-                        }}>{icon}</div>
+                {/* --- FILTER SLIDER --- */}
+                <div style={{ padding: '0 25px 15px', display: 'flex', gap: '8px', overflowX: 'auto', whiteSpace: 'nowrap' }} className="no-scrollbar">
+                    {['ALL', 'TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'CUSTOM'].map(f => (
+                        <button key={f} onClick={() => setFilter(f)} style={{
+                            padding: '8px 16px', borderRadius: '10px', border: 'none',
+                            fontSize: '0.75rem', fontWeight: '900', cursor: 'pointer',
+                            background: filter === f ? '#10B981' : 'rgba(255,255,255,0.08)',
+                            color: filter === f ? '#fff' : '#94A3B8',
+                            transition: '0.2s all'
+                        }}>
+                            {{
+                                'ALL': 'TODO', 'TODAY': 'HOY', 'YESTERDAY': 'AYER',
+                                'WEEK': 'SEMANA', 'MONTH': 'MES', 'CUSTOM': 'RANGO'
+                            }[f]}
+                        </button>
                     ))}
                 </div>
 
-                {/* --- TRADE HISTORY TITLE --- */}
-                <div style={{ padding: '20px 25px 10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.2)', padding: '5px', borderRadius: '8px' }}>
-                        <Clock size={18} color="#10B981" />
+                {/* --- SUMMARY BOX --- */}
+                <div style={{
+                    margin: '0 25px 20px', padding: '15px',
+                    background: 'rgba(16, 185, 129, 0.05)', borderRadius: '15px',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px'
+                }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 'bold' }}>UTILIDAD NETA</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#10B981' }}>+${totalUsd.toFixed(2)}</div>
+                        <div style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.3)' }}>DEL PERIODO</div>
                     </div>
-                    <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Historial Operativo</span>
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '5px' }}>
-                        {['TODAY', 'WEEK', 'ALL'].map(f => (
-                            <button key={f} onClick={() => setFilter(f)} style={{
-                                background: filter === f ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
-                                border: 'none', color: filter === f ? '#10B981' : 'rgba(255,255,255,0.4)',
-                                fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '5px', cursor: 'pointer'
-                            }}>
-                                {f}
-                            </button>
-                        ))}
+                    <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 'bold' }}>CRECIMIENTO</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#10B981' }}>+{roeAccount.toFixed(2)}%</div>
+                        <div style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.3)' }}>BASE: ${accountBase.toFixed(2)}</div>
+                    </div>
+                    <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+                        <div style={{ fontSize: '0.6rem', color: '#10B981', fontWeight: 'bold' }}>GANANCIA X $1</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#10B981' }}>${profitPerDollar.toFixed(4)}</div>
+                        <div style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.3)' }}>RENDIMIENTO VIVO</div>
                     </div>
                 </div>
 
-                {/* --- SCROLLABLE CONTENT --- */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                {/* --- HISTORY LIST --- */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '0 25px 25px' }} className="no-scrollbar">
                     {loading ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,0.3)' }}>Sincronizando...</div>
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Cargando...</div>
                     ) : filteredHistory.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>Sin operaciones registradas</div>
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Sin registros</div>
                     ) : (
                         filteredHistory.map((trade, i) => {
-                            const pnlPct = trade.pnl || 0;
                             const profit = trade.profitUsd || 0;
                             const isWin = profit >= 0;
                             const symbol = trade.symbol.replace('USDT', '');
-                            const invested = pnlPct !== 0 ? (Math.abs(profit) / (Math.abs(pnlPct) / 100)) : 0;
-
-                            // Determinamos color de la moneda (para el glow de la imagen)
-                            const coinColor = symbol === 'DOGE' ? '#E1B31E' : symbol === 'ORCA' ? '#00D9FF' : symbol === 'ETH' ? '#627EEA' : '#10B981';
+                            const invested = (Math.abs(profit) / (Math.abs(trade.pnl || 1) / 100)) || 0;
 
                             return (
                                 <div key={i} style={{
-                                    background: 'rgba(255,255,255,0.03)', borderRadius: '25px', padding: '15px',
-                                    border: '1px solid rgba(255,255,255,0.05)', position: 'relative'
+                                    background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '18px',
+                                    borderLeft: `4px solid ${isWin ? '#10B981' : '#EF4444'}`,
+                                    marginBottom: '15px', border: '1px solid rgba(255,255,255,0.05)'
                                 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                        {/* Icon Container with Coin Specific Glow */}
-                                        <div style={{
-                                            width: '45px', height: '45px', borderRadius: '15px',
-                                            background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-                                            boxShadow: `0 0 15px ${coinColor}33`, border: `1px solid ${coinColor}44`, fontSize: '20px'
-                                        }}>
-                                            {symbol === 'DOGE' ? '🐶' : symbol === 'ETH' ? '💠' : symbol === 'NEAR' ? 'Ⓝ' : '💎'}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontSize: '1.2rem', fontWeight: '900' }}>{symbol}</span>
+                                            <span style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', color: '#94A3B8' }}>VORTEX</span>
+                                            <span style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'rgba(245,158,11,0.1)', border: '1px solid #F59E0B', borderRadius: '4px', color: '#F59E0B' }}>AUTO</span>
                                         </div>
-
-                                        <div>
-                                            <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{symbol}</div>
-                                            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Clock size={10} /> {(() => {
-                                                    const diff = new Date(trade.timestamp) - new Date(trade.entryTimestamp);
-                                                    const m = Math.floor(diff / 60000);
-                                                    return m > 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
-                                                })()}
-                                            </div>
-                                        </div>
-
-                                        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                                            <div style={{ fontSize: '18px', fontWeight: 'bold', color: isWin ? '#10B981' : '#EF4444' }}>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: '900', color: isWin ? '#10B981' : '#EF4444' }}>
                                                 {isWin ? '+' : ''}${profit.toFixed(2)}
                                             </div>
-                                            <div style={{ fontSize: '12px', color: isWin ? '#10B981' : '#EF4444', fontWeight: '600' }}>
-                                                {pnlPct.toFixed(2)}%
-                                            </div>
+                                            <div style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{(trade.pnl || 0).toFixed(2)}%</div>
                                         </div>
                                     </div>
 
-                                    {/* Invested Label (Box at the bottom matching image) */}
-                                    <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-                                        <div style={{
-                                            background: 'rgba(255,255,255,0.05)', padding: '6px 15px', borderRadius: '12px',
-                                            fontSize: '11px', fontWeight: 'bold', color: 'rgba(255,255,255,0.7)',
-                                            borderBottom: `2px solid ${coinColor}`, display: 'flex', gap: '10px'
-                                        }}>
-                                            <span>Invested: ${invested.toFixed(2)}</span>
-                                            <span style={{ color: coinColor }}>↗</span>
+                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                                        <div style={{ background: 'rgba(0,217,255,0.1)', color: '#00D9FF', fontSize: '0.65rem', padding: '4px 10px', borderRadius: '6px', fontWeight: 'bold', border: '1px solid rgba(0,217,255,0.2)' }}>
+                                            INVERTIDO: ${invested.toFixed(2)}
                                         </div>
+                                        <div style={{ background: 'rgba(255,255,255,0.05)', color: '#10B981', fontSize: '0.65rem', padding: '4px 10px', borderRadius: '6px', fontWeight: 'bold' }}>
+                                            ⏱️ {(() => {
+                                                const diff = new Date(trade.timestamp) - new Date(trade.entryTimestamp);
+                                                const h = Math.floor(diff / 3600000);
+                                                const m = Math.floor((diff % 3600000) / 60000);
+                                                return h > 0 ? `${h}h ${m}m` : `${m}m ${Math.floor((diff % 60000) / 1000)}s`;
+                                            })()}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '8px', display: 'flex', justifyContent: 'center', gap: '10px', fontSize: '0.7rem', color: '#94A3B8' }}>
+                                        <span>OPEN: <b style={{ color: '#fff' }}>{new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</b></span>
+                                        <span>➜</span>
+                                        <span>CLOSE: <b style={{ color: '#fff' }}>{new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</b></span>
                                     </div>
                                 </div>
                             );
                         })
                     )}
                 </div>
-
-                {/* --- FOOTER BUTTON --- */}
-                <div style={{ padding: '20px', background: 'rgba(23, 23, 33, 0.9)', backdropFilter: 'blur(5px)' }}>
-                    <button style={{
-                        width: '100%', padding: '16px', borderRadius: '20px',
-                        background: 'linear-gradient(90deg, #10B981 0%, #059669 100%)',
-                        color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '16px',
-                        boxShadow: '0 10px 20px rgba(16, 185, 129, 0.3)', cursor: 'pointer'
-                    }}>
-                        New Trade
-                    </button>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', padding: '0 10px' }}>
-                        <span style={{ cursor: 'pointer' }}>⚙️</span>
-                        <span style={{ cursor: 'pointer' }}>❓</span>
-                    </div>
-                </div>
-
-                {/* Close Button (Floating) */}
-                <button onClick={onClose} style={{
-                    position: 'absolute', top: '15px', right: '15px',
-                    background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
-                    width: '30px', height: '30px', borderRadius: '50%', cursor: 'pointer', zIndex: 10
-                }}>✕</button>
-
             </div>
         </div>
     );
