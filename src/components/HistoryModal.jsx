@@ -157,43 +157,82 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
                             const symbol = trade.symbol.replace('USDT', '');
                             const invested = (Math.abs(profit) / (Math.abs(trade.pnl || 1) / 100)) || 0;
 
+                            // Colores de resplandor por moneda
+                            const coinColor = symbol === 'DOGE' ? '#E1B31E' : symbol === 'ORCA' ? '#00D9FF' : symbol === 'ETH' ? '#627EEA' : '#10B981';
+                            const coinEmoji = symbol === 'DOGE' ? '🐶' : symbol === 'ETH' ? '💠' : symbol === 'ORCA' ? '🐋' : '💎';
+
                             return (
                                 <div key={i} style={{
-                                    background: 'rgba(255,255,255,0.03)', borderRadius: '20px', padding: '18px',
-                                    borderLeft: `4px solid ${isWin ? '#10B981' : '#EF4444'}`,
-                                    marginBottom: '15px', border: '1px solid rgba(255,255,255,0.05)'
+                                    background: 'rgba(255,255,255,0.03)',
+                                    borderRadius: '25px',
+                                    padding: '18px',
+                                    marginBottom: '15px',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    backdropFilter: 'blur(10px)',
+                                    position: 'relative',
+                                    overflow: 'hidden'
                                 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <span style={{ fontSize: '1.2rem', fontWeight: '900' }}>{symbol}</span>
-                                            <span style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', color: '#94A3B8' }}>VORTEX</span>
-                                            <span style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'rgba(245,158,11,0.1)', border: '1px solid #F59E0B', borderRadius: '4px', color: '#F59E0B' }}>AUTO</span>
+                                    {/* Glass Highlight Line */}
+                                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
+                                        {/* CIRCLE ICON WITH GLOW */}
+                                        <div style={{
+                                            width: '45px', height: '45px', borderRadius: '15px',
+                                            background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                            boxShadow: `0 0 15px ${coinColor}33`, border: `1px solid ${coinColor}44`,
+                                            fontSize: '20px'
+                                        }}>
+                                            {coinEmoji}
                                         </div>
+
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                <span style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '-0.5px' }}>{symbol}</span>
+                                                <span style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'rgba(255,255,255,0.1)', borderRadius: '6px', color: '#94A3B8', fontWeight: 'bold' }}>VORTEX</span>
+                                                <span style={{ fontSize: '0.6rem', padding: '2px 6px', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '6px', color: '#F59E0B', fontWeight: 'bold' }}>AUTO</span>
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: isWin ? '#10B981' : '#EF4444', fontWeight: 'bold' }}>
+                                                {isWin ? '↗' : '↘'} {Math.abs(trade.pnl || 0).toFixed(2)}%
+                                            </div>
+                                        </div>
+
                                         <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '1.1rem', fontWeight: '900', color: isWin ? '#10B981' : '#EF4444' }}>
+                                            <div style={{ fontSize: '1.3rem', fontWeight: '900', color: isWin ? '#10B981' : '#EF4444' }}>
                                                 {isWin ? '+' : ''}${profit.toFixed(2)}
                                             </div>
-                                            <div style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{(trade.pnl || 0).toFixed(2)}%</div>
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                                        <div style={{ background: 'rgba(0,217,255,0.1)', color: '#00D9FF', fontSize: '0.65rem', padding: '4px 10px', borderRadius: '6px', fontWeight: 'bold', border: '1px solid rgba(0,217,255,0.2)' }}>
-                                            INVERTIDO: ${invested.toFixed(2)}
-                                        </div>
-                                        <div style={{ background: 'rgba(255,255,255,0.05)', color: '#10B981', fontSize: '0.65rem', padding: '4px 10px', borderRadius: '6px', fontWeight: 'bold' }}>
-                                            ⏱️ {(() => {
-                                                const diff = new Date(trade.timestamp) - new Date(trade.entryTimestamp);
-                                                const h = Math.floor(diff / 3600000);
-                                                const m = Math.floor((diff % 3600000) / 60000);
-                                                return h > 0 ? `${h}h ${m}m` : `${m}m ${Math.floor((diff % 60000) / 1000)}s`;
-                                            })()}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ background: 'rgba(0,217,255,0.1)', color: '#00D9FF', fontSize: '0.65rem', padding: '5px 12px', borderRadius: '10px', fontWeight: 'bold', border: '1px solid rgba(0,217,255,0.1)' }}>
+                                                INVERTIDO: ${invested.toFixed(2)}
+                                            </div>
+                                            <div style={{ background: 'rgba(255,255,255,0.05)', color: '#10B981', fontSize: '0.65rem', padding: '5px 12px', borderRadius: '10px', fontWeight: 'bold' }}>
+                                                ⏱️ {(() => {
+                                                    const diff = new Date(trade.timestamp) - new Date(trade.entryTimestamp);
+                                                    const h = Math.floor(diff / 3600000);
+                                                    const m = Math.floor((diff % 3600000) / 60000);
+                                                    return h > 0 ? `${h}h ${m}m` : `${m}m ${Math.floor((diff % 60000) / 1000)}s`;
+                                                })()}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div style={{ background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '8px', display: 'flex', justifyContent: 'center', gap: '10px', fontSize: '0.7rem', color: '#94A3B8' }}>
+                                    <div style={{
+                                        background: 'rgba(0,0,0,0.3)',
+                                        padding: '10px 15px',
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        gap: '15px',
+                                        fontSize: '0.7rem',
+                                        color: 'rgba(255,255,255,0.4)',
+                                        border: '1px solid rgba(255,255,255,0.03)'
+                                    }}>
                                         <span>OPEN: <b style={{ color: '#fff' }}>{new Date(trade.entryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</b></span>
-                                        <span>➜</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
                                         <span>CLOSE: <b style={{ color: '#fff' }}>{new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</b></span>
                                     </div>
                                 </div>
