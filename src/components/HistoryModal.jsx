@@ -72,16 +72,23 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000200
         }} onClick={onClose}>
 
             <div style={{
                 width: '100%', maxWidth: '440px', height: '90vh',
-                backgroundColor: 'rgba(15, 15, 20, 0.95)',
-                borderRadius: '35px', border: '1px solid rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(20px)', position: 'relative', overflow: 'hidden',
-                display: 'flex', flexDirection: 'column', color: '#fff'
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03))',
+                backgroundColor: 'rgba(15, 15, 25, 0.5)',
+                borderRadius: '35px',
+                border: '1px solid rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(30px)',
+                WebkitBackdropFilter: 'blur(30px)',
+                position: 'relative', overflow: 'hidden',
+                display: 'flex', flexDirection: 'column', color: '#fff',
+                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.8)'
             }} onClick={e => e.stopPropagation()}>
 
                 {/* --- HEADER --- */}
@@ -123,8 +130,11 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
                 {/* --- SUMMARY BOX --- */}
                 <div style={{
                     margin: '0 25px 20px', padding: '15px',
-                    background: 'rgba(16, 185, 129, 0.05)', borderRadius: '15px',
-                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
                     display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px'
                 }}>
                     <div style={{ textAlign: 'center' }}>
@@ -163,14 +173,16 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
 
                             return (
                                 <div key={i} style={{
-                                    background: 'rgba(255,255,255,0.03)',
+                                    background: 'rgba(255, 255, 255, 0.05)',
                                     borderRadius: '25px',
                                     padding: '18px',
                                     marginBottom: '15px',
-                                    border: '1px solid rgba(255,255,255,0.08)',
-                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    backdropFilter: 'blur(15px)',
+                                    WebkitBackdropFilter: 'blur(15px)',
                                     position: 'relative',
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
                                 }}>
                                     {/* Glass Highlight Line */}
                                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
