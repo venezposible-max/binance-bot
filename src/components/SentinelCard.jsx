@@ -75,6 +75,33 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
         pulse = false;
     }
 
+    // --- MOTOR DE IDENTIDAD VISUAL ---
+    const coinThemes = {
+        'BTC': { icon: '₿', color: '#F7931A' },
+        'ETH': { icon: '💠', color: '#627EEA' },
+        'BNB': { icon: '🔶', color: '#F3BA2F' },
+        'SOL': { icon: '☀️', color: '#14F195' },
+        'DOGE': { icon: '🐶', color: '#E1B31E' },
+        'ORCA': { icon: '🐋', color: '#00D9FF' },
+        'MATIC': { icon: 'Ⓜ️', color: '#8247E5' },
+        'XRP': { icon: '✕', color: '#23292F' },
+        'ADA': { icon: '₳', color: '#0033AD' },
+        'NEAR': { icon: 'Ⓝ', color: '#000000' },
+        'PEPE': { icon: '🐸', color: '#00FF00' },
+        'SHIB': { icon: '🐕', color: '#FFA500' },
+        'AVAX': { icon: '🔺', color: '#E84142' },
+        'DOT': { icon: '⚪', color: '#E6007A' },
+        'LINK': { icon: '🔗', color: '#2A5ADA' },
+        'TRX': { icon: '💎', color: '#EF0011' },
+        'LTC': { icon: 'Ł', color: '#BEBEBE' },
+        'WIF': { icon: '🎩', color: '#A52A2A' },
+        'ARB': { icon: '🔵', color: '#28A0F0' },
+        'OP': { icon: '🔴', color: '#FF0420' }
+    };
+
+    const cleanSymbol = symbol.replace('USDT', '');
+    const theme = coinThemes[cleanSymbol] || { icon: cleanSymbol.substring(0, 1), color: '#334155' };
+
     return (
         <motion.div
             className={`${styles.card} ${isSignal ? styles.flash : ''}`}
@@ -87,15 +114,17 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
             {/* COLUMN 1: SYMBOL */}
             <div className={styles.header}>
                 <div style={{
-                    width: '32px', height: '32px', borderRadius: '50%',
-                    background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 'bold', fontSize: '12px', color: '#fff'
+                    width: '38px', height: '38px', borderRadius: '12px',
+                    background: 'rgba(15, 15, 25, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 'bold', fontSize: '18px', color: '#fff',
+                    boxShadow: `0 0 15px ${theme.color}22`,
+                    border: `1px solid ${theme.color}33`
                 }}>
-                    {symbol.substring(0, 1)}
+                    {theme.icon}
                 </div>
                 <div>
-                    <div className={styles.symbol}>{symbol.replace('USDT', '')}</div>
-                    <div className={styles.subSymbol}>PERPETUAL</div>
+                    <div className={styles.symbol}>{cleanSymbol}</div>
+                    <div className={styles.subSymbol}>SPOT ALPHA</div>
                 </div>
             </div>
 
@@ -145,13 +174,16 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
                         whileTap={!readOnly ? { scale: 0.95 } : {}}
                         onClick={() => !readOnly && onSimulate(symbol, price)}
                         style={{
-                            background: readOnly ? '#334155' : color,
-                            color: readOnly ? '#94A3B8' : '#000',
-                            border: 'none',
-                            padding: '10px 20px', borderRadius: '6px',
+                            background: readOnly ? 'rgba(51, 65, 85, 0.4)' : 'rgba(16, 185, 129, 0.15)',
+                            color: readOnly ? '#64748B' : '#10B981',
+                            border: readOnly ? '1px solid rgba(255,255,255,0.05)' : '1px solid #10B981',
+                            padding: '10px 20px', borderRadius: '12px',
                             cursor: readOnly ? 'default' : 'pointer',
                             fontWeight: 'bold',
-                            fontSize: '0.8rem', width: '100%', maxWidth: '140px'
+                            fontSize: '0.75rem', width: '100%', maxWidth: '140px',
+                            boxShadow: readOnly ? 'none' : '0 0 15px rgba(16, 185, 129, 0.2)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '1px'
                         }}
                     >
                         {readOnly ? '👁️ VISOR' : '⚡ ENTRAR'}

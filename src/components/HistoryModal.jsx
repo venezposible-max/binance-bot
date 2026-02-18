@@ -72,23 +72,22 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(5, 5, 10, 0.5)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000200
         }} onClick={onClose}>
 
             <div style={{
                 width: '100%', maxWidth: '440px', height: '90vh',
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03))',
-                backgroundColor: 'rgba(15, 15, 25, 0.5)',
-                borderRadius: '35px',
-                border: '1px solid rgba(255,255,255,0.15)',
-                backdropFilter: 'blur(30px)',
-                WebkitBackdropFilter: 'blur(30px)',
+                background: 'rgba(15, 15, 25, 0.4)',
+                borderRadius: '40px',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(40px)',
+                WebkitBackdropFilter: 'blur(40px)',
                 position: 'relative', overflow: 'hidden',
                 display: 'flex', flexDirection: 'column', color: '#fff',
-                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.8)'
+                boxShadow: '0 20px 80px rgba(0, 0, 0, 0.8)'
             }} onClick={e => e.stopPropagation()}>
 
                 {/* --- HEADER --- */}
@@ -197,16 +196,16 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
 
                             return (
                                 <div key={i} style={{
-                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    background: 'rgba(255, 255, 255, 0.04)',
                                     borderRadius: '25px',
-                                    padding: '18px',
+                                    padding: '20px',
                                     marginBottom: '15px',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    backdropFilter: 'blur(15px)',
-                                    WebkitBackdropFilter: 'blur(15px)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    backdropFilter: 'blur(25px)',
+                                    WebkitBackdropFilter: 'blur(25px)',
                                     position: 'relative',
                                     overflow: 'hidden',
-                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
                                 }}>
                                     {/* Glass Highlight Line */}
                                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
@@ -214,10 +213,10 @@ const HistoryModal = ({ isOpen, onClose, mode, binanceBalance, walletConfig, act
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px' }}>
                                         {/* CIRCLE ICON WITH GLOW */}
                                         <div style={{
-                                            width: '45px', height: '45px', borderRadius: '15px',
-                                            background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-                                            boxShadow: `0 0 15px ${coinColor}33`, border: `1px solid ${coinColor}44`,
-                                            fontSize: '20px'
+                                            width: '50px', height: '50px', borderRadius: '18px',
+                                            background: 'rgba(15, 15, 25, 0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                            boxShadow: `0 0 20px ${coinColor}33`, border: `1px solid ${coinColor}33`,
+                                            fontSize: '22px'
                                         }}>
                                             {coinEmoji}
                                         </div>

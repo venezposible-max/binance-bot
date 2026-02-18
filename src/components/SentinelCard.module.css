@@ -1,25 +1,25 @@
 .card {
     position: relative;
-    background: linear-gradient(90deg, #0F172A 0%, #1e293b 100%);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    /* Slimmer radius */
+    border-radius: 16px;
     padding: 12px 20px;
     display: grid;
-    /* Grid for Row Layout */
     grid-template-columns: 2fr 3fr 2fr 2fr;
-    /* Symbol | Price | Status | Action/Info */
     align-items: center;
     gap: 20px;
     cursor: default;
     min-height: 80px;
-    /* Slim row */
-    transition: all 0.2s;
+    transition: all 0.3s ease;
 }
 
 .card:hover {
-    background: linear-gradient(90deg, #1e293b 0%, #0F172A 100%);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 .pulse {
@@ -48,12 +48,13 @@
 @keyframes flash {
     from {
         border-color: rgba(16, 185, 129, 0.2);
-        background: #0F172A;
+        background: rgba(16, 185, 129, 0.05);
     }
 
     to {
         border-color: rgba(16, 185, 129, 1);
-        background: rgba(16, 185, 129, 0.05);
+        background: rgba(16, 185, 129, 0.15);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
     }
 }
 

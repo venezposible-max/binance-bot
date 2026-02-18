@@ -104,28 +104,49 @@ function App() {
 
             {/* API STATUS */}
             <div style={{
-              marginRight: '15px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.65rem', fontWeight: 'bold',
-              color: apiConfigured ? '#10B981' : '#64748B', border: apiConfigured ? '1px solid rgba(16, 185, 129, 0.2)' : '1px dashed #64748B',
-              padding: '4px 8px', borderRadius: '4px', background: apiConfigured ? 'rgba(16, 185, 129, 0.05)' : 'transparent'
+              marginRight: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.65rem', fontWeight: 'bold',
+              color: apiConfigured ? '#10B981' : '#64748B',
+              border: `1px solid ${apiConfigured ? 'rgba(16, 185, 129, 0.3)' : 'rgba(100, 116, 139, 0.2)'}`,
+              padding: '6px 12px', borderRadius: '10px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)'
             }} title={apiConfigured ? "Conectado a Binance" : "Sin API Key Configurada"}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: apiConfigured ? '#10B981' : '#64748B', boxShadow: apiConfigured ? '0 0 5px #10B981' : 'none' }}></div>
+              <div style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: apiConfigured ? '#10B981' : '#64748B',
+                boxShadow: apiConfigured ? '0 0 10px #10B981' : 'none'
+              }}></div>
               {apiConfigured ? 'API: LIVE' : 'NO API'}
             </div>
 
             {/* EMERGENCY BUTTON (HIDDEN IN READ ONLY) */}
             {!isReadOnly && (
               <button onClick={toggleLockdown} style={{
-                background: lockdown ? '#EF4444' : 'rgba(239, 68, 68, 0.1)', border: '1px solid #EF4444', color: lockdown ? '#fff' : '#EF4444',
-                padding: '6px 12px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                marginRight: '10px', boxShadow: lockdown ? '0 0 15px rgba(239, 68, 68, 0.5)' : 'none', animation: lockdown ? 'pulse 2s infinite' : 'none'
+                background: lockdown ? '#EF4444' : 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid #EF4444',
+                color: lockdown ? '#fff' : '#EF4444',
+                padding: '8px 16px', borderRadius: '10px',
+                fontSize: '0.7rem', fontWeight: 'bold',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                marginRight: '10px',
+                boxShadow: lockdown ? '0 0 20px rgba(239, 68, 68, 0.6)' : 'none',
+                animation: lockdown ? 'pulse 2s infinite' : 'none',
+                backdropFilter: 'blur(10px)'
               }}>
                 {lockdown ? '⛔ BLOQUEADO' : '🛑 STOP'}
               </button>
             )}
 
             <button onClick={() => setIsLogOpen(true)} style={{
-              background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8',
-              padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginRight: '15px'
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#94A3B8',
+              padding: '8px 16px', borderRadius: '10px',
+              fontSize: '0.75rem', fontWeight: 'bold',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+              marginRight: '15px',
+              backdropFilter: 'blur(10px)'
             }}>
               <Terminal size={14} /> LOG
             </button>
