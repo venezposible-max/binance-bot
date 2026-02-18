@@ -7,7 +7,7 @@ const DocumentationModal = ({ isOpen, onClose }) => {
     const modes = [
         {
             id: 'blitz-spot',
-            title: 'ESTRATEGIA BLITZ: SPOT ALPHA (Alta Frecuencia)',
+            title: 'ESTRATEGIA VORTEX: SPOT ALPHA (Alta Frecuencia)',
             icon: <Zap className={styles.modeIcon} style={{ color: '#00D9FF' }} size={28} />,
             description: 'Estrategia propietaria de ejecución rápida diseñada para mercados Spot. Busca ineficiencias de precio en temporalidades cortas (1m/5m) para capturar rebotes técnicos con precisión quirúrgica, sin riesgo de liquidación por apalancamiento.',
             indicators: ['RSI Estocástico', 'Price Action Concepts (SMC)', 'Order Block Detection'],
@@ -15,7 +15,7 @@ const DocumentationModal = ({ isOpen, onClose }) => {
             examples: [
                 {
                     title: 'Escenario de Compra Ideal',
-                    text: 'El precio de BTC cae bruscamente un 2% en 5 minutos. El RSI toca 25 (Sobreventa) y el precio entra en un "Order Block" (zona de compras anteriores). BLITZ detecta la confluencia y ejecuta una compra de mercado.'
+                    text: 'El precio de BTC cae bruscamente un 2% en 5 minutos. El RSI toca 25 (Sobreventa) y el precio entra en un "Order Block" (zona de compras anteriores). VORTEX detecta la confluencia y ejecuta una compra de mercado.'
                 },
                 {
                     title: 'Gestión de Salida (Take Profit)',

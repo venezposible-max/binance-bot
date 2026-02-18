@@ -408,7 +408,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 <div className={styles.rightPanel}>
                     <div style={{ display: 'flex', gap: '10px', width: '100%', marginBottom: '8px' }}>
 
-                        {/* 1. BLITZ TOGGLE (Interactive) */}
+                        {/* 1. VORTEX TOGGLE (Interactive) */}
                         {(() => {
                             const isBlitzOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useBlitz !== false; // Default ON
                             return (

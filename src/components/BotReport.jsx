@@ -11,8 +11,8 @@ const BotReport = ({ config, cloudStatus }) => {
     const minOdds = strategyConf.minOdds || 67;
 
     let strategyName = 'MONITOR (INACTIVO)';
-    if (useBlitz && useHybrid) strategyName = 'FUSIÓN (BLITZ + HYBRID)';
-    else if (useBlitz) strategyName = 'BLITZ (TÉCNICO)';
+    if (useBlitz && useHybrid) strategyName = 'FUSIÓN (VORTEX + HYBRID)';
+    else if (useBlitz) strategyName = 'VORTEX (TÉCNICO)';
     else if (useHybrid) strategyName = 'HYBRID (ESTADÍSTICO)';
 
     const [displayOdds, setDisplayOdds] = React.useState(minOdds);
