@@ -142,9 +142,9 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
                             <span style={{ fontSize: '0.65rem', color: slPrice > 0 ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 SL</span>
                         )}
                     </div>
-                    <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: trade.strategy === 'UNIXA' ? '#C4B5FD' : (slPrice > 0 ? '#fff' : '#94A3B8') }}>
+                    <span className={styles.infoVal} style={{ fontSize: '0.75rem', fontWeight: 'bold', color: trade.strategy === 'UNIXA' ? '#C4B5FD' : (slPrice > 0 ? '#fff' : '#94A3B8') }}>
                         {trade.strategy === 'UNIXA' ? (
-                            'RSI > 95'
+                            'RSI>95 o MAX 24h'
                         ) : trade.isTrailing ? (
                             <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)', fontSize: '0.75rem' }}>
                                 ⛓️ TRAILING ACTIVO
