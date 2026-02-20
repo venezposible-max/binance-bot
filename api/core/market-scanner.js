@@ -74,17 +74,15 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 30) {
                     vortexSignal = true;
                 }
-            } else { vortexSignal = true; } // Bypass if OFF
+            } else { vortexSignal = false; } // Bypass OFF
 
             // B. HYBRID (Statistical Odds)
             const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
             if (useHybrid) {
                 if (odds >= minOdds) {
                     hybridSignal = true;
-                } else {
-                    // console.log(`[${mode}] 🧬 HYBRID SKIP ${symbol} (${odds.toFixed(1)}% < ${minOdds}%)`);
                 }
-            } else { hybridSignal = true; } // Bypass if OFF
+            } else { hybridSignal = false; } // Bypass OFF
 
             // C. UNIXA (Extreme RSI < 2)
             let unixaSignal = false;
@@ -97,11 +95,17 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
             }
 
             // --- FINAL DECISION ---
-            // Safety: If ALL are OFF, do nothing.
-            const allOff = !useVortex && !useHybrid && !useUnixa;
+            // Winning Condition: Both Vortex & Hybrid (if active) must agree, OR just the active one
+            // We need at least ONE active system to be TRUE
+            let standardEntry = false;
 
-            // Winning Condition: (Vortex && Hybrid) AND (BTC Health is OK)
-            const standardEntry = (!allOff && (useVortex || useHybrid) && vortexSignal && hybridSignal && !btcVeto);
+            if (useVortex && useHybrid) {
+                standardEntry = vortexSignal && hybridSignal && !btcVeto;
+            } else if (useVortex && !useHybrid) {
+                standardEntry = vortexSignal && !btcVeto;
+            } else if (!useVortex && useHybrid) {
+                standardEntry = hybridSignal && !btcVeto;
+            }
 
             // UNIXA Condition: Signal matches AND (It bypasses BTC Guard)
             const entryTriggered = standardEntry || unixaSignal;
@@ -150,7 +154,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 if (isNaN(realInvest) || !isFinite(realInvest)) realInvest = invest;
 
                 // Determine Dynamic Strategy Label
-                let strategyLabel = 'VORTEX';
+                let strategyLabel = 'UNKNOWN';
                 if (unixaSignal) strategyLabel = 'UNIXA';
                 else if (useVortex && useHybrid) strategyLabel = 'VORTEX+HYBRID';
                 else if (useHybrid) strategyLabel = 'HYBRID';

@@ -133,18 +133,23 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
                     </span>
                 </div>
 
-                {/* STOP LOSS ROW (Dynamic Trailing UI) */}
-                <div className={`${styles.targetRow} ${slPrice > 0 ? styles.slRow : styles.slRowNeutral}`}>
+                {/* STOP LOSS O EUFORIA ROW (Dynamic Trailing UI) */}
+                <div className={`${styles.targetRow} ${slPrice > 0 || trade.strategy === 'UNIXA' ? styles.slRow : styles.slRowNeutral}`}>
                     <div className={styles.tagGroup}>
-                        <span style={{ fontSize: '0.65rem', color: slPrice > 0 ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 SL</span>
+                        {trade.strategy === 'UNIXA' ? (
+                            <span style={{ fontSize: '0.65rem', color: '#8B5CF6', fontWeight: '800' }}>✨ EUFORIA</span>
+                        ) : (
+                            <span style={{ fontSize: '0.65rem', color: slPrice > 0 ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 SL</span>
+                        )}
                     </div>
-                    <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: slPrice > 0 ? '#fff' : '#94A3B8' }}>
-                        {trade.isTrailing
-                            ? <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)', fontSize: '0.75rem' }}>
+                    <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: trade.strategy === 'UNIXA' ? '#C4B5FD' : (slPrice > 0 ? '#fff' : '#94A3B8') }}>
+                        {trade.strategy === 'UNIXA' ? (
+                            'RSI > 95'
+                        ) : trade.isTrailing ? (
+                            <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)', fontSize: '0.75rem' }}>
                                 ⛓️ TRAILING ACTIVO
                             </span>
-                            : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN S/L')
-                        }
+                        ) : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN S/L')}
                     </span>
                 </div>
             </div>
