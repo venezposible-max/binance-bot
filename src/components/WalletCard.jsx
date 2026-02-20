@@ -126,7 +126,6 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                 });
 
                 if (res.ok) {
-                    await fetchWallet();
                     alert('✅ Configuración Guardada');
                 }
             } catch (error) {
