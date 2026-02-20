@@ -51,16 +51,16 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         // 5. [NEW] Strategy Modules Configuration
         const currentConfig = wallet.strategyConfig?.HYBRID_VORTEX || {};
 
-        // Vortex Toggle
-        const useVortex = confirm(`⚡ MODULO TÉCNICO (VORTEX)\n\n¿Activar análisis de Agotamiento y Velas Heikin Ashi?\nEstado Actual: ${currentConfig.useVortex !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+        // Vortex Toggle (Visual button controls this now)
+        const useVortex = currentConfig.useVortex !== false;
 
-        // Hybrid Toggle
-        const useHybrid = confirm(`🧬 MODULO ESTADÍSTICO (HYBRID)\n\n¿Activar filtro de Probabilidades?\nEstado Actual: ${currentConfig.useHybrid !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+        // Hybrid Toggle (Visual button controls this now)
+        const useHybrid = currentConfig.useHybrid !== false;
 
-        // UNIXA Toggle
-        const useUnixa = confirm(`🪐 ESTRATEGIA UNIXA (EXPERIMENTAL)\n\n¿Activar entradas Ultra-Filtro (RSI < 2)?\nEstado Actual: ${currentConfig.useUnixa === true ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+        // UNIXA Toggle (Visual button controls this now)
+        const useUnixa = currentConfig.useUnixa === true;
 
-        let minOdds = 67;
+        let minOdds = currentConfig.minOdds || 67;
         if (useHybrid) {
             const minOddsInput = prompt('🧬 Umbral Mínimo de Probabilidad (%):', currentConfig.minOdds || 67);
             if (minOddsInput === null) return;
