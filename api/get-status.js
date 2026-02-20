@@ -24,13 +24,29 @@ export default async function handler(req, res) {
         // 💀 PAIN MEMORY: Disabled
         const blacklist = [];
 
-        // 🛡️ SELF-HEALING HISTORY (PnL Fix)
+        // 🛡️ SELF-HEALING HISTORY (PnL Fix & Unixa Strategy Label Fix)
         let fixNeeded = false;
         history = history.map(h => {
+            // FIX 1: PnL flip error
             if (h.type === 'LONG' && h.exitPrice > h.entryPrice && h.pnl < 0) {
                 h.pnl = ((h.exitPrice - h.entryPrice) / h.entryPrice) * 100;
-                if (h.profitUsd < 0) h.profitUsd = Math.abs(h.profitUsd); // Rough fix for USD too
+                if (h.profitUsd < 0) h.profitUsd = Math.abs(h.profitUsd);
                 fixNeeded = true;
+            }
+
+            // FIX 2: Strategy Labels (Migrate recently mislabeled VORTEX to UNIXA)
+            // If the exitReason contains UNIXA (e.g. UNIXA_TIMEOUT) but strategy says VORTEX, fix it.
+            // Also, since the user explicitly asked to "fix the old ones", and we know Unixa was just running:
+            if ((h.strategy === 'VORTEX' || h.strategy === 'VORTEX+HYBRID') &&
+                (h.exitReason?.includes('UNIXA') || h.exitReason === 'TP_HIT' || h.exitReason === 'GLOBAL_TP_HIT')) {
+                // If it was a TP hit during Unixa testing, labeling it UNIXA is safer now.
+                // We apply this only to very recent trades (past 24h) to avoid breaking real old Vortex trades.
+                const tradeTime = new Date(h.timestamp).getTime();
+                const now = Date.now();
+                if ((now - tradeTime) < 86400000) { // Last 24 hours migration
+                    h.strategy = 'UNIXA';
+                    fixNeeded = true;
+                }
             }
             return h;
         });
