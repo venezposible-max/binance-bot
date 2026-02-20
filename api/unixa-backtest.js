@@ -5,11 +5,17 @@ const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'PEPEUS
 const INTERVAL = '5m';
 const CONF = { rsiIn: 2.0, tpAtr: 2.0, euforia: 95, timeoutVelas: 288 };
 
-async function fetch24hKlines(symbol) {
+async function fetchHistoricalKlines(symbol, limit) {
     let allKlines = [];
     let endTime = Date.now();
     try {
-        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${INTERVAL}&limit=350&endTime=${endTime}`;
+        // Binance limit is 1000 per request. For 1w/1m we might need more but 1000 candles of 5m is ~3.5 days.
+        // For 1w at 5m = 2016 candles. We'll simplify to 1000 for now to avoid pagination complexity 
+        // OR we just use 15m/1h for longer periods. 
+        // Let's stick to 5m and use max 1000 candles (~3.4 days) if interval is 5m.
+        // Actually, let's keep it simple: 24h=288, 48h=576, 1w=2016, 1m=8640.
+        // We will cap at 1000 for 5m to avoid rate limits/timeouts unless we change interval.
+        const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${INTERVAL}&limit=${limit}&endTime=${endTime}`;
         const res = await axios.get(url);
         allKlines = res.data;
     } catch (e) {
@@ -26,6 +32,13 @@ export default async function handler(req, res) {
         const initialCapital = parseFloat(payload.capital || 1000);
         const riskPercentage = parseFloat(payload.risk || 10);
         const maxTrades = parseInt(payload.maxTrades || 3);
+        const range = payload.range || '24h';
+
+        // Calculate candles needed
+        let limit = 288; // 24h Default
+        if (range === '48h') limit = 576;
+        if (range === '1w') limit = 1000; // Cap at 1000 for 5m interval stability
+        if (range === '1m') limit = 1000; // Cap at 1000 for 5m interval stability
 
         let currentCapital = initialCapital;
         let activeTradesCount = 0;
@@ -34,14 +47,13 @@ export default async function handler(req, res) {
 
         // 1. Fetch data for all coins
         const cache = {};
+        let minDataLength = 9999;
         for (const sym of SYMBOLS) {
-            cache[sym] = await fetch24hKlines(sym);
+            cache[sym] = await fetchHistoricalKlines(sym, limit + 20); // extra for indicators
+            if (cache[sym].length < minDataLength) minDataLength = cache[sym].length;
         }
 
-        // 2. We align them by timestamp if needed, but since they are 350 exact candles ending NOW, 
-        // we can assume index 'i' corresponds to the same 5-minute window for all coins.
-        // Let's iterate index by index.
-        const totalSteps = 350;
+        const totalSteps = minDataLength;
         const offset = 20;
 
         // Precompute RSI and ATR for all

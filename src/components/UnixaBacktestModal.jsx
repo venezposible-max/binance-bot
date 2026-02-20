@@ -6,6 +6,7 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
     const [capital, setCapital] = useState(1000);
     const [risk, setRisk] = useState(10);
     const [maxTrades, setMaxTrades] = useState(3);
+    const [range, setRange] = useState('24h');
 
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -21,7 +22,7 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    capital, risk, maxTrades
+                    capital, risk, maxTrades, range
                 })
             });
 
@@ -41,12 +42,12 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className={styles.header}>
-                    <h2>🧪 BACKTEST UNIXA REALISTA (24h)</h2>
+                    <h2>🧪 BACKTEST UNIXA REALISTA ({range.toUpperCase()})</h2>
                     <button className={styles.closeBtn} onClick={onClose}>×</button>
                 </div>
 
                 <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: '20px', lineHeight: '1.4' }}>
-                    Simula la estrategía de pánico institucional (UNIXA Config Óptima #1) en las condiciones exactas del mercado de las últimas 24 horas para estimar rentabilidad futura.
+                    Simula la estrategía de pánico institucional (UNIXA Config Óptima #1) en las condiciones exactas del mercado de las últimas {range === '24h' ? '24 horas' : range === '48h' ? '48 horas' : range === '1w' ? '7 días' : '30 días'} para estimar rentabilidad futura.
                 </p>
 
                 <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -77,6 +78,19 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
                             style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid #334155', borderRadius: '8px', color: '#fff', fontSize: '1rem' }}
                         />
                     </div>
+                    <div style={{ flex: '1 1 120px' }}>
+                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', marginBottom: '5px', fontWeight: 'bold' }}>Rango Histórico</label>
+                        <select
+                            value={range}
+                            onChange={(e) => setRange(e.target.value)}
+                            style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid #334155', borderRadius: '8px', color: '#fff', fontSize: '1rem', cursor: 'pointer' }}
+                        >
+                            <option value="24h">Últimas 24 Horas</option>
+                            <option value="48h">Últimas 48 Horas</option>
+                            <option value="1w">Última Semana (3.5d max)</option>
+                            <option value="1m">Último Mes (3.5d max)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <button
@@ -89,7 +103,7 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
                         cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
                     }}
                 >
-                    {loading ? '⏳ PROCESANDO SIMULACIÓN...' : '🚀 EJECUTAR BACKTEST (24H)'}
+                    {loading ? '⏳ PROCESANDO SIMULACIÓN...' : `🚀 EJECUTAR BACKTEST (${range.toUpperCase()})`}
                 </button>
 
                 {error && <div style={{ background: 'rgba(239,68,68,0.2)', color: '#F87171', padding: '10px', borderRadius: '8px', marginTop: '20px', textAlign: 'center' }}>{error}</div>}
