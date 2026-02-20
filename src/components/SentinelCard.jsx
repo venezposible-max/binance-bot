@@ -142,24 +142,34 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
 
             {/* COLUMN 3: TRAFFIC LIGHT STATUS */}
             <div className={styles.statusSection} style={{ flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                {/* 1. VORTEX / UNIXA INDICATOR */}
-                {(showDip !== false || showUnixa) && (() => {
-                    const isUnixa = showUnixa === true;
-                    const rsiThreshold = isUnixa ? 2.0 : 5.0;
+                {/* 1. VORTEX INDICATOR */}
+                {showDip !== false && (() => {
                     const rsiValue = parseFloat(indicators.rsi2);
-                    const isTriggered = rsiValue < rsiThreshold;
-                    const labelName = isUnixa ? 'UNIXA' : 'VORTEX';
-                    const hitColor = isUnixa ? '#F59E0B' : '#10B981';
-                    const icon = isUnixa ? '🪐' : '🌪️';
-
+                    const isTriggered = rsiValue < 5.0;
                     return (
                         <div style={{
                             fontSize: '0.7rem', fontWeight: 'bold',
-                            color: isTriggered ? hitColor : '#64748B',
+                            color: isTriggered ? '#10B981' : '#64748B',
                             display: 'flex', alignItems: 'center', gap: '4px'
                         }}>
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: isTriggered ? hitColor : '#334155', boxShadow: isTriggered ? `0 0 5px ${hitColor}` : 'none' }}></div>
-                            {isTriggered ? `${icon} ${labelName}: SI` : `➖ ${labelName}: NO`}
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: isTriggered ? '#10B981' : '#334155', boxShadow: isTriggered ? `0 0 5px #10B981` : 'none' }}></div>
+                            {isTriggered ? `🌪️ VORTEX: SI` : `➖ VORTEX: NO`}
+                        </div>
+                    );
+                })()}
+
+                {/* 1.5. UNIXA INDICATOR (Si está activado independientemente) */}
+                {showUnixa === true && (() => {
+                    const rsiValue = parseFloat(indicators.rsi2);
+                    const isTriggered = rsiValue < 2.0;
+                    return (
+                        <div style={{
+                            fontSize: '0.7rem', fontWeight: 'bold',
+                            color: isTriggered ? '#F59E0B' : '#64748B',
+                            display: 'flex', alignItems: 'center', gap: '4px'
+                        }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: isTriggered ? '#F59E0B' : '#334155', boxShadow: isTriggered ? `0 0 5px #F59E0B` : 'none' }}></div>
+                            {isTriggered ? `🪐 UNIXA: SI` : `➖ UNIXA: NO`}
                         </div>
                     );
                 })()}
