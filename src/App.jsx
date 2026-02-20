@@ -62,7 +62,7 @@ function App() {
   const handleSimulate = useCallback((symbol, price, type, amount = null) => {
     if (isReadOnly) return; // Block in Guest Mode
 
-    // Capture ATR targets if available (BLITZ mode)
+    // Capture ATR targets if available (VORTEX mode)
     let takeProfit = null;
     let stopLoss = null;
 
@@ -291,9 +291,9 @@ function App() {
 
             <MarketGrid>
               {Object.keys(marketData).map(symbol => {
-                const stratConfig = walletConfig?.strategyConfig?.HYBRID_BLITZ || {};
+                const stratConfig = walletConfig?.strategyConfig?.HYBRID_VORTEX || {};
                 const minOdds = stratConfig.minOdds || 67;
-                const showDip = stratConfig.useBlitz !== false; // Default ON
+                const showDip = stratConfig.useVortex !== false; // Default ON
                 const showProb = stratConfig.useHybrid !== false; // Default ON
 
                 return (

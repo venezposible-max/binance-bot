@@ -6,7 +6,7 @@ import styles from './DocumentationModal.module.css';
 const DocumentationModal = ({ isOpen, onClose }) => {
     const modes = [
         {
-            id: 'blitz-spot',
+            id: 'vortex-spot',
             title: 'ESTRATEGIA VORTEX: SPOT ALPHA (Alta Frecuencia)',
             icon: <Zap className={styles.modeIcon} style={{ color: '#00D9FF' }} size={28} />,
             description: 'Estrategia propietaria de ejecución rápida diseñada para mercados Spot. Busca ineficiencias de precio en temporalidades cortas (1m/5m) para capturar rebotes técnicos con precisión quirúrgica, sin riesgo de liquidación por apalancamiento.',

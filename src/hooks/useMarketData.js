@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices } from '../api/binance';
-import { analyzePair, analyzeFlow, analyzeBlitz, calculateForecast } from '../utils/analysis';
+import { analyzePair, analyzeFlow, analyzeVortex, calculateForecast } from '../utils/analysis';
 
 export function useMarketData(activeStrategy, timeframe, tradingMode, walletConfig, cloudStatus) {
     const [pairs, setPairs] = useState(INITIAL_PAIRS);
@@ -70,7 +70,7 @@ export function useMarketData(activeStrategy, timeframe, tradingMode, walletConf
                         analysis = {
                             ...analyzePair(klines),
                             ...analyzeFlow(null, klines), // Flow indicators (Depth null for now)
-                            ...analyzeBlitz(null, klines), // BLITZ Signal (Depth null for now)
+                            ...analyzeVortex(null, klines), // VORTEX Signal (Depth null for now)
                             forecast: calculateForecast(klines)
                         };
 
@@ -83,10 +83,10 @@ export function useMarketData(activeStrategy, timeframe, tradingMode, walletConf
                         analysis.indicators.isBlacklisted = isBlacklisted;
 
                         // 🛡️ FRONTEND HYBRID FILTER: Match Backend Logic
-                        const useHybrid = walletConfig?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
+                        const useHybrid = walletConfig?.strategyConfig?.HYBRID_VORTEX?.useHybrid !== false; // Default ON
                         const odds = parseFloat(analysis.indicators?.hybrid?.odds || 50);
 
-                        if (activeStrategy.includes('BLITZ') && useHybrid && odds < 67) {
+                        if (activeStrategy.includes('VORTEX') && useHybrid && odds < 67) {
                             // Suppress Signal if Odds are too low
                             if (analysis.prediction?.signal.includes('BUY')) {
                                 analysis.prediction.signal = 'NEUTRAL';

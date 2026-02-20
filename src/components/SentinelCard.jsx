@@ -25,15 +25,15 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
 
 
     // --- MODULAR DECISION LOGIC (Visual Sync with Backend) ---
-    const blitzSignal = signal?.includes('BUY');
+    const vortexSignal = signal?.includes('BUY');
     const hybridSignal = parseFloat(indicators.hybrid?.odds || 0) >= (minOdds || 67);
 
     let finalDecision = false;
 
-    // 1. Blitz Check
-    let passBlitz = true;
-    if (showDip !== false) { // If Blitz Module ON
-        passBlitz = blitzSignal;
+    // 1. Vortex Check
+    let passVortex = true;
+    if (showDip !== false) { // If Vortex Module ON
+        passVortex = vortexSignal;
     }
 
     // 2. Hybrid Check
@@ -46,7 +46,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
     if (showDip === false && showProb === false) {
         finalDecision = false;
     } else {
-        finalDecision = passBlitz && passHybrid;
+        finalDecision = passVortex && passHybrid;
     }
 
     // DETERMINE SIGNAL LABEL & COLOR

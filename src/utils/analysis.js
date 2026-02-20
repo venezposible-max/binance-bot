@@ -217,7 +217,7 @@ export const analyzeFlow = (depth, candles) => {
 };
 
 /**
- * STRATEGY: SENTINEL VORTEX (Evolution of Blitz)
+ * STRATEGY: SENTINEL VORTEX (Evolution of Vortex)
  * Accuracy focalized on Extreme Exhaustion (RSI 2) + Heikin Ashi Confirmation.
  * @param { Object } depth - Order Book depth
  * @param { Array } candles - Price history

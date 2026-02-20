@@ -49,10 +49,10 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         const maxTrades = parseInt(maxTradesInput);
 
         // 5. [NEW] Strategy Modules Configuration
-        const currentConfig = wallet.strategyConfig?.HYBRID_BLITZ || {};
+        const currentConfig = wallet.strategyConfig?.HYBRID_VORTEX || {};
 
         // Vortex Toggle
-        const useBlitz = confirm(`⚡ MODULO TÉCNICO (VORTEX)\n\n¿Activar análisis de Agotamiento y Velas Heikin Ashi?\nEstado Actual: ${currentConfig.useBlitz !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+        const useVortex = confirm(`⚡ MODULO TÉCNICO (VORTEX)\n\n¿Activar análisis de Agotamiento y Velas Heikin Ashi?\nEstado Actual: ${currentConfig.useVortex !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
 
         // Hybrid Toggle
         const useHybrid = confirm(`🧬 MODULO ESTADÍSTICO (HYBRID)\n\n¿Activar filtro de Probabilidades?\nEstado Actual: ${currentConfig.useHybrid !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
@@ -68,8 +68,8 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         }
 
         const confirmMsg = isLive
-            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Vortex: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
-            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Vortex: ${useBlitz ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]`;
+            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Vortex: ${useVortex ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
+            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Vortex: ${useVortex ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]`;
 
         if (confirm(confirmMsg)) {
             // OPTIMISTIC UPDATE: Update UI immediately
@@ -85,10 +85,10 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                 currentBalance: isLive ? wallet.currentBalance : newCap, // If SIM reset, current = new
                 strategyConfig: {
                     ...wallet.strategyConfig,
-                    HYBRID_BLITZ: {
-                        ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
+                    HYBRID_VORTEX: {
+                        ...(wallet.strategyConfig?.HYBRID_VORTEX || {}),
                         minOdds: minOdds,
-                        useBlitz: useBlitz,
+                        useVortex: useVortex,
                         useHybrid: useHybrid,
                         useUnixa: useUnixa
                     }
@@ -114,10 +114,10 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                         // [NEW] Update Strategy Config with Modules
                         strategyConfig: {
                             ...wallet.strategyConfig,
-                            HYBRID_BLITZ: {
-                                ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
+                            HYBRID_VORTEX: {
+                                ...(wallet.strategyConfig?.HYBRID_VORTEX || {}),
                                 minOdds: minOdds,
-                                useBlitz: useBlitz,
+                                useVortex: useVortex,
                                 useHybrid: useHybrid,
                                 useUnixa: useUnixa
                             }
@@ -191,10 +191,10 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
     // DYNAMIC STRATEGY LABEL: Detects active modules to show precise state
     const getActiveStrategyLabel = () => {
-        if (!wallet?.strategyConfig?.HYBRID_BLITZ) return 'VORTEX';
-        const cfg = wallet.strategyConfig.HYBRID_BLITZ;
+        if (!wallet?.strategyConfig?.HYBRID_VORTEX) return 'VORTEX';
+        const cfg = wallet.strategyConfig.HYBRID_VORTEX;
         if (cfg.useUnixa) return '🪐 UNIXA';
-        if (cfg.useBlitz && cfg.useHybrid) return '⚡ VORTEX+HYBRID';
+        if (cfg.useVortex && cfg.useHybrid) return '⚡ VORTEX+HYBRID';
         if (cfg.useHybrid) return '🧬 HYBRID';
         return '⚡ VORTEX';
     };
@@ -254,18 +254,18 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         }
     };
 
-    const toggleHybridBlitz = async () => {
+    const toggleHybridVortex = async () => {
         if (readOnly) return; // Security Guard
         if (!wallet) return;
         const currentStrategies = wallet.strategyConfig || {};
-        const hybridConfig = currentStrategies['HYBRID_BLITZ'] || { useHybrid: true }; // Default true if missing
+        const hybridConfig = currentStrategies['HYBRID_VORTEX'] || { useHybrid: true }; // Default true if missing
 
         // Toggle
         const newState = !hybridConfig.useHybrid;
 
         const newStrategies = {
             ...currentStrategies,
-            HYBRID_BLITZ: { ...hybridConfig, useHybrid: newState }
+            HYBRID_VORTEX: { ...hybridConfig, useHybrid: newState }
         };
 
         try {
@@ -289,16 +289,16 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         }
     };
 
-    const toggleBlitzOnly = async () => {
+    const toggleVortexOnly = async () => {
         if (readOnly) return; // Security Guard
         if (!wallet) return;
         const currentStrategies = wallet.strategyConfig || {};
-        const config = currentStrategies['HYBRID_BLITZ'] || { useBlitz: true };
-        const newState = !config.useBlitz;
+        const config = currentStrategies['HYBRID_VORTEX'] || { useVortex: true };
+        const newState = !config.useVortex;
 
         const newStrategies = {
             ...currentStrategies,
-            HYBRID_BLITZ: { ...config, useBlitz: newState }
+            HYBRID_VORTEX: { ...config, useVortex: newState }
         };
 
         try {
@@ -323,12 +323,12 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         if (readOnly) return; // Security Guard
         if (!wallet) return;
         const currentStrategies = wallet.strategyConfig || {};
-        const config = currentStrategies['HYBRID_BLITZ'] || { useBtcGuard: false };
+        const config = currentStrategies['HYBRID_VORTEX'] || { useBtcGuard: false };
         const newState = !config.useBtcGuard;
 
         const newStrategies = {
             ...currentStrategies,
-            HYBRID_BLITZ: { ...config, useBtcGuard: newState }
+            HYBRID_VORTEX: { ...config, useBtcGuard: newState }
         };
 
         try {
@@ -353,12 +353,12 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         if (readOnly) return; // Security Guard
         if (!wallet) return;
         const currentStrategies = wallet.strategyConfig || {};
-        const config = currentStrategies['HYBRID_BLITZ'] || { useUnixa: false };
+        const config = currentStrategies['HYBRID_VORTEX'] || { useUnixa: false };
         const newState = !config.useUnixa;
 
         const newStrategies = {
             ...currentStrategies,
-            HYBRID_BLITZ: { ...config, useUnixa: newState }
+            HYBRID_VORTEX: { ...config, useUnixa: newState }
         };
 
         try {
@@ -418,15 +418,15 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
                         {/* 1. VORTEX TOGGLE (Interactive) */}
                         {(() => {
-                            const isBlitzOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useBlitz !== false; // Default ON
+                            const isVortexOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useVortex !== false; // Default ON
                             return (
                                 <div
-                                    onClick={readOnly ? null : toggleBlitzOnly}
+                                    onClick={readOnly ? null : toggleVortexOnly}
                                     title="Activar/Desactivar Análisis Técnico (Dips)"
                                     style={{
                                         flex: 1,
-                                        background: isBlitzOn ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: isBlitzOn ? '1px solid #06B6D4' : '1px solid rgba(255,255,255,0.1)',
+                                        background: isVortexOn ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: isVortexOn ? '1px solid #06B6D4' : '1px solid rgba(255,255,255,0.1)',
                                         borderRadius: '8px',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                         cursor: readOnly ? 'default' : 'pointer',
@@ -436,11 +436,11 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                                         opacity: readOnly ? 0.7 : 1
                                     }}
                                 >
-                                    <div style={{ fontSize: '0.9rem', color: isBlitzOn ? '#22D3EE' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{ fontSize: '0.9rem', color: isVortexOn ? '#22D3EE' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         ⚡ VORTEX
                                     </div>
-                                    <div style={{ fontSize: '0.55rem', color: isBlitzOn ? '#fff' : '#64748B', marginTop: '2px' }}>
-                                        {isBlitzOn ? 'TECHNICAL' : 'DISABLED'}
+                                    <div style={{ fontSize: '0.55rem', color: isVortexOn ? '#fff' : '#64748B', marginTop: '2px' }}>
+                                        {isVortexOn ? 'TECHNICAL' : 'DISABLED'}
                                     </div>
                                 </div>
                             );
@@ -448,10 +448,10 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
                         {/* 2. HYBRID TOGGLE */}
                         {(() => {
-                            const isHybridOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useHybrid !== false; // Default ON
+                            const isHybridOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useHybrid !== false; // Default ON
                             return (
                                 <div
-                                    onClick={readOnly ? null : toggleHybridBlitz}
+                                    onClick={readOnly ? null : toggleHybridVortex}
                                     title="Activar/Desactivar Filtro Estadístico"
                                     style={{
                                         flex: 1,
@@ -478,7 +478,7 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
                         {/* 3. BTC GUARD TOGGLE */}
                         {(() => {
-                            const isGuardOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useBtcGuard === true; // Default OFF
+                            const isGuardOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useBtcGuard === true; // Default OFF
                             return (
                                 <div
                                     onClick={readOnly ? null : toggleBtcGuard}
@@ -510,7 +510,7 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
                         {/* 4. UNIXA TOGGLE */}
                         {(() => {
-                            const isUnixaOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useUnixa === true;
+                            const isUnixaOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useUnixa === true;
                             return (
                                 <div
                                     onClick={readOnly ? null : toggleUnixa}

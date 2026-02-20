@@ -5,14 +5,14 @@ import { API_BASE } from '../config/api';
 
 const BotReport = ({ config, cloudStatus }) => {
     const blacklistCount = cloudStatus?.blacklist?.length || 0;
-    const strategyConf = config?.strategyConfig?.HYBRID_BLITZ || {};
-    const useBlitz = strategyConf.useBlitz !== false;
+    const strategyConf = config?.strategyConfig?.HYBRID_VORTEX || {};
+    const useVortex = strategyConf.useVortex !== false;
     const useHybrid = strategyConf.useHybrid !== false;
     const useUnixa = strategyConf.useUnixa === true;
     const minOdds = strategyConf.minOdds || 67;
 
     let activeModules = [];
-    if (useBlitz) activeModules.push('VORTEX');
+    if (useVortex) activeModules.push('VORTEX');
     if (useHybrid) activeModules.push('HYBRID');
     if (useUnixa) activeModules.push('UNIXA');
 
@@ -40,7 +40,7 @@ const BotReport = ({ config, cloudStatus }) => {
 
         const newStrategyConfig = {
             ...config?.strategyConfig,
-            HYBRID_BLITZ: {
+            HYBRID_VORTEX: {
                 ...strategyConf,
                 minOdds: newOdds
             }
