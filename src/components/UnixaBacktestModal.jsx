@@ -46,44 +46,40 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
                     <button className={styles.closeBtn} onClick={onClose}>×</button>
                 </div>
 
-                <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: '20px', lineHeight: '1.4' }}>
+                <p className={styles.description}>
                     Simula la estrategía de pánico institucional (UNIXA Config Óptima #1) en las condiciones exactas del mercado de las últimas {range === '24h' ? '24 horas' : range === '48h' ? '48 horas' : range === '1w' ? '7 días' : '30 días'} para estimar rentabilidad futura.
                 </p>
 
-                <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1 1 120px' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', marginBottom: '5px', fontWeight: 'bold' }}>Capital Base ($)</label>
+                <div className={styles.settingsGrid}>
+                    <div className={styles.inputField}>
+                        <label>Capital Base ($)</label>
                         <input
                             type="number"
                             value={capital}
-                            onChange={(e) => setCapital(e.target.value)}
-                            style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid #334155', borderRadius: '8px', color: '#fff', fontSize: '1rem' }}
+                            onChange={(e) => setCapital(parseFloat(e.target.value) || 0)}
                         />
                     </div>
-                    <div style={{ flex: '1 1 120px' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', marginBottom: '5px', fontWeight: 'bold' }}>Riesgo/Operación (%)</label>
+                    <div className={styles.inputField}>
+                        <label>Riesgo/Operación (%)</label>
                         <input
                             type="number"
                             value={risk}
-                            onChange={(e) => setRisk(e.target.value)}
-                            style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid #334155', borderRadius: '8px', color: '#fff', fontSize: '1rem' }}
+                            onChange={(e) => setRisk(parseFloat(e.target.value) || 0)}
                         />
                     </div>
-                    <div style={{ flex: '1 1 120px' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', marginBottom: '5px', fontWeight: 'bold' }}>Trades Simultáneos</label>
+                    <div className={styles.inputField}>
+                        <label>Trades Simultáneos</label>
                         <input
                             type="number"
                             value={maxTrades}
-                            onChange={(e) => setMaxTrades(e.target.value)}
-                            style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid #334155', borderRadius: '8px', color: '#fff', fontSize: '1rem' }}
+                            onChange={(e) => setMaxTrades(parseInt(e.target.value) || 1)}
                         />
                     </div>
-                    <div style={{ flex: '1 1 120px' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', marginBottom: '5px', fontWeight: 'bold' }}>Rango Histórico</label>
+                    <div className={styles.inputField}>
+                        <label>Rango Histórico</label>
                         <select
                             value={range}
                             onChange={(e) => setRange(e.target.value)}
-                            style={{ width: '100%', padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid #334155', borderRadius: '8px', color: '#fff', fontSize: '1rem', cursor: 'pointer' }}
                         >
                             <option value="24h">Últimas 24 Horas</option>
                             <option value="48h">Últimas 48 Horas</option>
@@ -94,17 +90,12 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
                 <button
                     onClick={runBacktest}
                     disabled={loading}
-                    style={{
-                        width: '100%', padding: '15px', borderRadius: '8px',
-                        background: loading ? '#334155' : 'linear-gradient(90deg, #F59E0B, #EA580C)',
-                        color: '#fff', border: 'none', fontWeight: 'bold', fontSize: '1rem',
-                        cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
-                    }}
+                    className={styles.runBtn}
                 >
                     {loading ? '⏳ PROCESANDO SIMULACIÓN...' : `🚀 EJECUTAR BACKTEST (${range.toUpperCase()})`}
                 </button>
 
-                {error && <div style={{ background: 'rgba(239,68,68,0.2)', color: '#F87171', padding: '10px', borderRadius: '8px', marginTop: '20px', textAlign: 'center' }}>{error}</div>}
+                {error && <div className={styles.errorBanner}>{error}</div>}
 
                 {result && (
                     <div style={{ marginTop: '25px', borderTop: '1px solid #334155', paddingTop: '20px' }}>
