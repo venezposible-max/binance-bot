@@ -98,7 +98,7 @@ export default async function handler(req, res) {
                     const pnlUsd = netValue - trade.sizeUsd;
                     const pnlPct = (pnlUsd / trade.sizeUsd) * 100;
 
-                    currentCapital += pnlUsd;
+                    currentCapital += grossValue * (1 - (fee / 2)); // Add full value back to liquid pool
                     tradeHistory.push({
                         symbol: sym,
                         entryPrice: trade.entryPrice,
@@ -125,7 +125,9 @@ export default async function handler(req, res) {
 
                     if (currentRsi < CONF.rsiIn) {
                         const sizeUsd = currentCapital * (riskPercentage / 100);
-                        const sizeAfterFee = sizeUsd * (1 - (fee / 2)); // entry fee
+                        const sizeAfterFee = sizeUsd * (1 - (fee / 2));
+
+                        currentCapital -= sizeUsd; // Reserve capital from pool
                         const quantity = sizeAfterFee / currentPrice;
 
                         let tp = currentPrice + (ind.atr[i] * CONF.tpAtr);
