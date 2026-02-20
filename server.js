@@ -25,6 +25,7 @@ import getMarketPairs from './api/get-market-pairs.js'; // NEW: Sync Endpoint
 import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 import removeTrade from './api/remove-trade.js'; // NEW: Manual Trade Removal
 import arbitrageVes from './api/arbitrage-ves.js'; // NEW: Arbitrage Monitor
+import unixaBacktest from './api/unixa-backtest.js';
 
 
 // --- LOG CAPTURE HOOK ---
@@ -102,6 +103,7 @@ app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 app.get('/api/olga/portfolio', vercelAdapter(portfolioHandler)); // NEW: Olga Safe Endpoint 👩‍💼
 app.get('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
 app.post('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
+app.post('/api/unixa-backtest', vercelAdapter(unixaBacktest));
 
 
 // Phase 1: High-Speed Market Cache
