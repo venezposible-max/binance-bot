@@ -1,10 +1,12 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import { API_BASE } from '../config/api';
 import styles from './WalletCard.module.css';
+import UnixaBacktestModal from './UnixaBacktestModal';
 
 const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode, readOnly, btcChange }, ref) => {
     const [wallet, setWallet] = useState(config || null);
     const [loading, setLoading] = useState(!config);
+    const [showBacktest, setShowBacktest] = useState(false);
     const isSaving = React.useRef(false);
 
     // Sync from parent prop (the source of truth for all devices)
@@ -346,6 +348,9 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
                 {/* RIGHT PANEL - STRATEGY CONTROLS */}
                 <div className={styles.rightPanel}>
+                    <div style={{ marginBottom: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245, 158, 11, 0.1)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }} onClick={() => setShowBacktest(true)}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#FBBF24' }}>🧪 SIMULADOR UNIXA BACKTEST (24H)</span>
+                    </div>
                     <div className={styles.strategyGrid}>
 
                         {/* 1. VORTEX TOGGLE (Interactive) */}
@@ -489,6 +494,8 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                     </div>
                 </div>
             </div>
+
+            <UnixaBacktestModal isOpen={showBacktest} onClose={() => setShowBacktest(false)} />
         </div>
     );
 });
