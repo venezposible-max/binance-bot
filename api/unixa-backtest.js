@@ -91,15 +91,9 @@ export default async function handler(req, res) {
                 if (currentHigh >= trade.tp) {
                     exitPrice = trade.tp;
                     exitReason = "TP Natural (ATR 2x)";
-                } else if (currentRsi >= CONF.euforia) {
-                    exitPrice = currentPrice;
-                    exitReason = "Euforia (RSI 95)";
-                } else if (i - trade.entryIndex >= CONF.timeoutVelas) {
-                    exitPrice = currentPrice;
-                    exitReason = "Timeout 24H";
                 } else if (i === totalSteps - 1) {
                     exitPrice = currentPrice;
-                    exitReason = "Cierre Forzado";
+                    exitReason = "Cierre Forzado (Fin Periodo)";
                 }
 
                 if (exitReason) {
