@@ -226,7 +226,7 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
     // REMOVED: handleSetHybridMode
 
     const handleToggleStrategyActive = async (strategyName) => {
-        if (readOnly) return; // Security Guard
+        if (readOnly) return;
         if (!wallet) return;
         const strategyConfig = wallet.strategyConfig || {};
         const currentConfig = strategyConfig[strategyName] || { active: false };
@@ -238,7 +238,6 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         };
 
         try {
-            // Update state and also select this strategy to sync the main button
             setWallet(prev => ({ ...prev, strategyConfig: newStrategyConfig, strategy: strategyName }));
             await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
@@ -254,130 +253,63 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         }
     };
 
-    const toggleHybridVortex = async () => {
-        if (readOnly) return; // Security Guard
-        if (!wallet) return;
-        const currentStrategies = wallet.strategyConfig || {};
-        const hybridConfig = currentStrategies['HYBRID_VORTEX'] || { useHybrid: true }; // Default true if missing
+    // --- BUNDLED DEBOUNCED UPDATE FOR STRATEGY TOGGLES (STOPS RAPID CLICK BUGS) ---
+    const pendingStrategies = useRef(null);
+    const saveTimeout = useRef(null);
 
-        // Toggle
-        const newState = !hybridConfig.useHybrid;
+    const updateStrategyModule = (moduleName, paramName) => {
+        if (readOnly || !wallet) return;
 
-        const newStrategies = {
-            ...currentStrategies,
-            HYBRID_VORTEX: { ...hybridConfig, useHybrid: newState }
-        };
+        isSaving.current = true;
 
-        try {
-            isSaving.current = true;
-            const newWallet = { ...wallet, strategyConfig: newStrategies };
-            setWallet(newWallet);
-            if (onConfigChange) onConfigChange(newWallet);
+        // Use the pending state if exists, otherwise fallback to current wallet state
+        const baseConfig = pendingStrategies.current || wallet.strategyConfig || {};
+        const moduleConfig = baseConfig[moduleName] || {};
 
-            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    strategyConfig: newStrategies,
-                    tradingMode
-                })
-            });
-        } catch (e) {
-            console.error("Hybrid Toggle Error:", e);
-        } finally {
-            setTimeout(() => { isSaving.current = false; }, 1000);
-        }
-    };
-
-    const toggleVortexOnly = async () => {
-        if (readOnly) return; // Security Guard
-        if (!wallet) return;
-        const currentStrategies = wallet.strategyConfig || {};
-        const config = currentStrategies['HYBRID_VORTEX'] || { useVortex: true };
-        const newState = !config.useVortex;
+        // Default to true for most, except guard/unixa. We'll read the previous carefully or provide sensible defaults.
+        const defaultState = (paramName === 'useBtcGuard' || paramName === 'useUnixa') ? false : true;
+        const currentState = moduleConfig[paramName] !== undefined ? moduleConfig[paramName] : defaultState;
+        const newState = !currentState;
 
         const newStrategies = {
-            ...currentStrategies,
-            HYBRID_VORTEX: { ...config, useVortex: newState }
+            ...baseConfig,
+            [moduleName]: { ...moduleConfig, [paramName]: newState }
         };
 
-        try {
-            isSaving.current = true;
-            const newWallet = { ...wallet, strategyConfig: newStrategies };
-            setWallet(newWallet);
-            if (onConfigChange) onConfigChange(newWallet);
+        // Store in ref immediately so next rapid click sees it
+        pendingStrategies.current = newStrategies;
 
-            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
-            });
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setTimeout(() => { isSaving.current = false; }, 1000);
-        }
+        // Optimistic UI Update
+        const newWallet = { ...wallet, strategyConfig: newStrategies };
+        setWallet(newWallet);
+        if (onConfigChange) onConfigChange(newWallet);
+
+        // Clear previous timeout and set a new one to bundle saves
+        if (saveTimeout.current) clearTimeout(saveTimeout.current);
+
+        saveTimeout.current = setTimeout(async () => {
+            try {
+                const payload = pendingStrategies.current; // capture exactly what to send
+                await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ strategyConfig: payload, tradingMode })
+                });
+            } catch (e) {
+                console.error("Strategy Toggle Error:", e);
+            } finally {
+                pendingStrategies.current = null; // Reset
+                setTimeout(() => { isSaving.current = false; }, 1000);
+            }
+        }, 400); // Wait 400ms after last click to execute API
     };
 
-    const toggleBtcGuard = async () => {
-        if (readOnly) return; // Security Guard
-        if (!wallet) return;
-        const currentStrategies = wallet.strategyConfig || {};
-        const config = currentStrategies['HYBRID_VORTEX'] || { useBtcGuard: false };
-        const newState = !config.useBtcGuard;
+    const toggleHybridVortex = () => updateStrategyModule('HYBRID_VORTEX', 'useHybrid');
+    const toggleVortexOnly = () => updateStrategyModule('HYBRID_VORTEX', 'useVortex');
+    const toggleBtcGuard = () => updateStrategyModule('HYBRID_VORTEX', 'useBtcGuard');
+    const toggleUnixa = () => updateStrategyModule('HYBRID_VORTEX', 'useUnixa');
 
-        const newStrategies = {
-            ...currentStrategies,
-            HYBRID_VORTEX: { ...config, useBtcGuard: newState }
-        };
-
-        try {
-            isSaving.current = true;
-            const newWallet = { ...wallet, strategyConfig: newStrategies };
-            setWallet(newWallet);
-            if (onConfigChange) onConfigChange(newWallet);
-
-            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
-            });
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setTimeout(() => { isSaving.current = false; }, 1000);
-        }
-    };
-
-    const toggleUnixa = async () => {
-        if (readOnly) return; // Security Guard
-        if (!wallet) return;
-        const currentStrategies = wallet.strategyConfig || {};
-        const config = currentStrategies['HYBRID_VORTEX'] || { useUnixa: false };
-        const newState = !config.useUnixa;
-
-        const newStrategies = {
-            ...currentStrategies,
-            HYBRID_VORTEX: { ...config, useUnixa: newState }
-        };
-
-        try {
-            isSaving.current = true;
-            const newWallet = { ...wallet, strategyConfig: newStrategies };
-            setWallet(newWallet);
-            if (onConfigChange) onConfigChange(newWallet);
-
-            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
-            });
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setTimeout(() => { isSaving.current = false; }, 1000);
-        }
-    };
+    // Replaced by debounced updater above
 
     return (
         <div className={styles.card}>
