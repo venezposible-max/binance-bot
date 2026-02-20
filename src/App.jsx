@@ -13,6 +13,7 @@ import DocumentationModal from './components/DocumentationModal';
 import HistoryModal from './components/HistoryModal';
 import VESArbitrageModal from './components/VESArbitrageModal';
 import LogConsole from './components/LogConsole';
+import UnixaBacktestModal from './components/UnixaBacktestModal';
 
 import { BookOpen, Terminal, ShieldCheck, History, Globe } from 'lucide-react';
 
@@ -40,6 +41,7 @@ function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isArbitrageOpen, setIsArbitrageOpen] = useState(false);
+  const [isUnixaBacktestOpen, setIsUnixaBacktestOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('dashboard');
 
   const walletRef = useRef(null);
@@ -194,6 +196,7 @@ function App() {
             onToggleMode={onScanToggleMode}
             readOnly={isReadOnly}
             btcChange={btcChange}
+            onOpenUnixaBacktest={() => setIsUnixaBacktestOpen(true)}
           />
 
           <BotReport config={walletConfig} cloudStatus={cloudStatus} />
@@ -340,6 +343,7 @@ function App() {
       />
       {isLogOpen && <LogConsole onClose={() => setIsLogOpen(false)} />}
       <VESArbitrageModal isOpen={isArbitrageOpen} onClose={() => setIsArbitrageOpen(false)} />
+      <UnixaBacktestModal isOpen={isUnixaBacktestOpen} onClose={() => setIsUnixaBacktestOpen(false)} />
       <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
     </div>
   );
