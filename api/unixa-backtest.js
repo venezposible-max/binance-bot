@@ -34,11 +34,9 @@ export default async function handler(req, res) {
         const maxTrades = parseInt(payload.maxTrades || 3);
         const range = payload.range || '24h';
 
-        // Calculate candles needed
-        let limit = 288; // 24h Default
+        // Calculate candles needed (exact multiples for real-world consistency)
+        let limit = 288; // 24h
         if (range === '48h') limit = 576;
-        if (range === '1w') limit = 1000; // Cap at 1000 for 5m interval stability
-        if (range === '1m') limit = 1000; // Cap at 1000 for 5m interval stability
 
         let currentCapital = initialCapital;
         let activeTradesCount = 0;

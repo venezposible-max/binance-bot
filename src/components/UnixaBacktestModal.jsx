@@ -87,8 +87,6 @@ const UnixaBacktestModal = ({ isOpen, onClose }) => {
                         >
                             <option value="24h">Últimas 24 Horas</option>
                             <option value="48h">Últimas 48 Horas</option>
-                            <option value="1w">Última Semana (3.5d max)</option>
-                            <option value="1m">Último Mes (3.5d max)</option>
                         </select>
                     </div>
                 </div>
