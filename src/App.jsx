@@ -295,6 +295,7 @@ function App() {
                 const minOdds = stratConfig.minOdds || 67;
                 const showDip = stratConfig.useVortex !== false; // Default ON
                 const showProb = stratConfig.useHybrid !== false; // Default ON
+                const showUnixa = stratConfig.useUnixa === true;
 
                 return (
                   <SentinelCard
@@ -306,6 +307,7 @@ function App() {
                     minOdds={minOdds}
                     showDip={showDip}
                     showProb={showProb}
+                    showUnixa={showUnixa}
                     readOnly={isReadOnly}
                   />
                 );

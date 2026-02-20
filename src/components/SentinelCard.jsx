@@ -4,7 +4,7 @@ import styles from './SentinelCard.module.css';
 import { motion } from 'framer-motion';
 import NumberTicker from './NumberTicker';
 
-const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = true, showProb = true, readOnly }) => {
+const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = true, showProb = true, showUnixa = false, readOnly }) => {
     // Phase 1: Skeleton Loading (Row)
     if (loading || !data) {
         return (
@@ -142,17 +142,27 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showDip = tr
 
             {/* COLUMN 3: TRAFFIC LIGHT STATUS */}
             <div className={styles.statusSection} style={{ flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                {/* 1. VORTEX INDICATOR */}
-                {showDip !== false && (
-                    <div style={{
-                        fontSize: '0.7rem', fontWeight: 'bold',
-                        color: parseFloat(indicators.rsi2) < 5 ? '#10B981' : '#64748B',
-                        display: 'flex', alignItems: 'center', gap: '4px'
-                    }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: parseFloat(indicators.rsi2) < 5 ? '#10B981' : '#334155', boxShadow: parseFloat(indicators.rsi2) < 5 ? '0 0 5px #10B981' : 'none' }}></div>
-                        {parseFloat(indicators.rsi2) < 5 ? '🌪️ VORTEX: SI' : '➖ VORTEX: NO'}
-                    </div>
-                )}
+                {/* 1. VORTEX / UNIXA INDICATOR */}
+                {(showDip !== false || showUnixa) && (() => {
+                    const isUnixa = showUnixa === true;
+                    const rsiThreshold = isUnixa ? 2.0 : 5.0;
+                    const rsiValue = parseFloat(indicators.rsi2);
+                    const isTriggered = rsiValue < rsiThreshold;
+                    const labelName = isUnixa ? 'UNIXA' : 'VORTEX';
+                    const hitColor = isUnixa ? '#F59E0B' : '#10B981';
+                    const icon = isUnixa ? '🪐' : '🌪️';
+
+                    return (
+                        <div style={{
+                            fontSize: '0.7rem', fontWeight: 'bold',
+                            color: isTriggered ? hitColor : '#64748B',
+                            display: 'flex', alignItems: 'center', gap: '4px'
+                        }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: isTriggered ? hitColor : '#334155', boxShadow: isTriggered ? `0 0 5px ${hitColor}` : 'none' }}></div>
+                            {isTriggered ? `${icon} ${labelName}: SI` : `➖ ${labelName}: NO`}
+                        </div>
+                    );
+                })()}
 
                 {/* 2. PROB INDICATOR */}
                 {showProb !== false && indicators.hybrid?.odds && (
