@@ -122,15 +122,15 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
 
             // ⚠️ UNIXA EXCLUSIVE RULES
             if (trade.strategy === 'UNIXA' && !isExit) {
-                // RULE 1: TIME OUT (48 hours = 172800000 ms)
+                // RULE 1: TIME OUT (24 hours = 86400000 ms) - OPTIMIZED CONFIG #1
                 const tradeTimeMs = new Date(trade.timestamp).getTime();
                 const nowMs = Date.now();
-                if ((nowMs - tradeTimeMs) > 172800000) {
+                if ((nowMs - tradeTimeMs) > 86400000) {
                     isExit = true;
-                    exitReason = 'UNIXA_TIMEOUT_48H';
+                    exitReason = 'UNIXA_TIMEOUT_24H';
                 }
 
-                // RULE 2: EUPHORIA (RSI(2) > 80)
+                // RULE 2: EUPHORIA (RSI(2) >= 95) - OPTIMIZED CONFIG #1
                 if (!isExit) {
                     try {
                         const res = await axios.get(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=15`, { timeout: 3000 });
@@ -138,7 +138,7 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                             const closes = res.data.map(d => parseFloat(d[4]));
                             const rsiArr = RSI.calculate({ values: closes, period: 2 });
                             const currentRsi = rsiArr[rsiArr.length - 1];
-                            if (currentRsi >= 80) {
+                            if (currentRsi >= 95) {
                                 isExit = true;
                                 exitReason = `UNIXA_EUPHORIA_RSI_${currentRsi.toFixed(0)}`;
                             }

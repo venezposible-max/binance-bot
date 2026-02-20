@@ -285,7 +285,8 @@ export const analyzeVortex = (depth, candles) => {
         tp: targetPrice,
         sl: null, // No SL as requested for Spot
         rsi2: currentRSI2,
-        isHA: isHAConfirmation
+        isHA: isHAConfirmation,
+        atr: currentATR
     };
 
     if (isExhausted) {
@@ -337,6 +338,12 @@ export const analyzeUnixa = (depth, candles) => {
         analysis.prediction.label = `⚡ UNIXA ENTRY (${rsi2.toFixed(1)}%) ⚡`;
         analysis.prediction.color = '#F59E0B';
         analysis.prediction.intensity = 100;
+
+        // UNIXA OPTIMAL CONFIG #1: TP = 2.0x ATR (vs 2.5x from Vortex)
+        if (analysis.obZone && analysis.obZone.atr) {
+            const rawTarget = analysis.price + (analysis.obZone.atr * 2.0);
+            analysis.obZone.tp = Math.max(rawTarget, analysis.price * 1.004); // Min 0.4% per optimizer
+        }
     } else {
         analysis.prediction.signal = 'NEUTRAL';
         analysis.prediction.label = 'ESPERANDO UNIXA';
