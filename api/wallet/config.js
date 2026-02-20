@@ -52,8 +52,6 @@ export default async function handler(req, res) {
                     cooldownMinutes: req.body.cooldownMinutes ? parseInt(req.body.cooldownMinutes) : (current.cooldownMinutes || 30),
                     isBotActive: current.isBotActive !== undefined ? current.isBotActive : true,
                     multiFrameMode: false,
-                    strategy: 'HYBRID_BLITZ',
-                    timeframe: '5m',
                     strategy: 'HYBRID_VORTEX',
                     timeframe: '5m',
                     strategyConfig: req.body.strategyConfig || current.strategyConfig || {
