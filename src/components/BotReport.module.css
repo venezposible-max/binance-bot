@@ -29,6 +29,12 @@
     gap: 10px;
 }
 
+@media (max-width: 480px) {
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .statItem {
     background: rgba(255, 255, 255, 0.03);
     padding: 10px;

@@ -210,7 +210,8 @@ export default async function handler(req, res) {
                         profitUsd: netProfit,
                         pnl: finalRoi, // 👈 USING CORRECTED ROI
                         timestamp: new Date().toISOString(),
-                        entryTimestamp: trade.entryTimestamp || trade.timestamp
+                        entryTimestamp: trade.entryTimestamp || trade.timestamp,
+                        exitReason: 'MANUAL_CLOSE'
                     });
 
                     if (winHistory.length > 50) winHistory.pop();
@@ -234,8 +235,8 @@ export default async function handler(req, res) {
                     const hrs = Math.floor(diffMs / 3600000);
                     const mins = Math.floor((diffMs % 3600000) / 60000);
                     const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
-                    const label = (req.body.source === 'user') ? 'MANUAL CLOSE' : 'AUTO CLOSE';
-                    const closureMsg = `🚨 <b>[${activeMode}] ${label}: ${trade.symbol}</b>\n${emoji} ROI: ${finalRoi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)}\n⏱️ Duración: ${durationStr}`;
+                    const label = (req.body.source === 'user' || action === 'CLOSE') ? 'MANUAL CLOSE' : 'AUTO CLOSE';
+                    const closureMsg = `🚨 <b>[${activeMode}] ${label}: ${trade.symbol}</b>\n${emoji} ROI: ${finalRoi.toFixed(2)}%\n💰 PnL: $${netProfit.toFixed(2)} (${label})\n⏱️ Duración: ${durationStr}`;
                     await sendServerTelegram(closureMsg);
                 }
             }

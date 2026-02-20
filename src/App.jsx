@@ -11,8 +11,10 @@ import ActiveTradeCard from './components/ActiveTradeCard';
 import BotReport from './components/BotReport';
 import DocumentationModal from './components/DocumentationModal';
 import HistoryModal from './components/HistoryModal';
+import VESArbitrageModal from './components/VESArbitrageModal';
 import LogConsole from './components/LogConsole';
-import { BookOpen, Terminal, ShieldCheck, History } from 'lucide-react';
+
+import { BookOpen, Terminal, ShieldCheck, History, Globe } from 'lucide-react';
 
 // --- HOOKS (The New Brains) ---
 import { useWallet } from './hooks/useWallet';
@@ -37,7 +39,9 @@ function App() {
   const [isDocsOpen, setIsDocsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
+  const [isArbitrageOpen, setIsArbitrageOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('dashboard');
+
   const walletRef = useRef(null);
   // --- GUEST MODE DETECTION ---
   const isReadOnly = (new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('view') === 'guest') || isVercelGuest();
@@ -86,18 +90,39 @@ function App() {
       <main className={styles.mainContent}>
         <header className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldCheck size={26} color="#00D9FF" strokeWidth={2.5} />
-              <span>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span> {isReadOnly && <span style={{ fontSize: '0.6rem', background: '#333', padding: '2px 4px', borderRadius: '4px', color: '#aaa' }}>VIEWER</span>}</span>
+            <div className={styles.logo}>
+              <ShieldCheck size={20} color="#00D9FF" strokeWidth={2.5} />
+              <span>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></span>
             </div>
+
+            {/* --- MONITOR VES BUTTON --- */}
+            <button
+              onClick={() => setIsArbitrageOpen(true)}
+              style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                color: '#60A5FA',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                fontSize: '0.6rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Globe size={11} /> MONITOR VES
+            </button>
+
             <div
               className={styles.statusBadge}
               onClick={onScanToggleMode}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
-              title="Click to Switch Mode (Live/Sim)"
+              style={{ cursor: 'pointer', userSelect: 'none', marginLeft: 'auto' }}
             >
-              <span className={styles.statusDot} style={{ background: tradingMode === 'LIVE' ? '#EF4444' : '#10B981', boxShadow: tradingMode === 'LIVE' ? '0 0 10px #EF4444' : '0 0 10px #10B981' }}></span>
-              {tradingMode} MODE
+              <span className={styles.statusDot} style={{ background: tradingMode === 'LIVE' ? '#EF4444' : '#10B981' }}></span>
+              {tradingMode}
             </div>
           </div>
           <div className={styles.headerRight}>
@@ -161,14 +186,14 @@ function App() {
             mode={tradingMode}
             config={walletConfig}
             binanceBalance={binanceBalance}
-            onUpdate={refreshConfig} // Use hook refresher
+            onConfigChange={setWalletConfig}
             activeTrades={cloudStatus.active}
             marketData={marketData}
             activeStrategy={activeStrategy}
             tradingMode={tradingMode}
             onToggleMode={onScanToggleMode}
             readOnly={isReadOnly}
-            btcChange={btcChange} // NEW
+            btcChange={btcChange}
           />
 
           <BotReport config={walletConfig} cloudStatus={cloudStatus} />
@@ -312,6 +337,7 @@ function App() {
         marketData={marketData}
       />
       {isLogOpen && <LogConsole onClose={() => setIsLogOpen(false)} />}
+      <VESArbitrageModal isOpen={isArbitrageOpen} onClose={() => setIsArbitrageOpen(false)} />
       <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
     </div>
   );

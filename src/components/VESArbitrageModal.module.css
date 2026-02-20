@@ -1,0 +1,343 @@
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modalContent {
+    background: rgba(17, 24, 39, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 700px;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
+}
+
+.titleArea {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.titleArea h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #fff;
+    margin: 0;
+}
+
+.globeIcon {
+    color: #3b82f6;
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.body {
+    padding: 24px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.strategyToggle {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    gap: 4px;
+}
+
+.strategyToggle button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    padding: 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.activeTab {
+    background: #3b82f6 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.inputSection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 24px;
+}
+
+.inputGroup label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #9ca3af;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.inputWrapper {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0 12px;
+    height: 44px;
+    transition: border-color 0.2s;
+}
+
+.inputWrapper:focus-within {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.inputWrapper input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    width: 100%;
+    padding: 0 10px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.inputWrapper input:disabled {
+    color: #6b7280;
+}
+
+.editBtn,
+.saveBtn {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid #3b82f6;
+    color: #60a5fa;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.saveBtn {
+    background: #10b981;
+    border-color: #10b981;
+    color: #fff;
+}
+
+.resultsArea {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.stepCard {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stepHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #9ca3af;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+.stepBadge {
+    background: #3b82f6;
+    color: #fff;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+}
+
+.stepInfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stepInfo p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #d1d5db;
+}
+
+.feesList {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+}
+
+.fee {
+    font-size: 0.75rem !important;
+    color: #ef4444 !important;
+}
+
+.highlight {
+    color: #fbbf24;
+    font-size: 1.1rem !important;
+}
+
+.arrow {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.summaryCard {
+    width: 100%;
+    margin-top: 15px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.2));
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.summaryHeader {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.summaryTitle h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.summaryTitle p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.profitRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.profitVal {
+    display: flex;
+    flex-direction: column;
+}
+
+.profitVal .label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #9ca3af;
+    margin-bottom: 4px;
+}
+
+.profitVal .value {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #fff;
+}
+
+.positive {
+    color: #10b981 !important;
+}
+
+.negative {
+    color: #ef4444 !important;
+}
+
+.footer {
+    padding: 15px 24px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer p {
+    margin: 0;
+    font-size: 0.65rem;
+    color: #6b7280;
+    text-align: center;
+}
+
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    color: #3b82f6;
+}
+
+.spin {
+    animation: rotate 2s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

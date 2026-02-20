@@ -21,9 +21,9 @@ export default async function handler(req, res) {
                 swingMode: 'CONSERVATIVE',
                 tradingMode: mode === 'LIVE' ? 'LIVE' : 'SIMULATION',
                 strategyConfig: {
-                    HYBRID_BLITZ: { active: true }
+                    HYBRID_VORTEX: { active: true, useVortex: true, useHybrid: true, useUnixa: false }
                 },
-                strategy: 'HYBRID_BLITZ',
+                strategy: 'HYBRID_VORTEX',
                 timeframe: '5m',
                 ...existingConfig
             };
@@ -54,10 +54,10 @@ export default async function handler(req, res) {
                     multiFrameMode: false,
                     strategy: 'HYBRID_BLITZ',
                     timeframe: '5m',
-                    strategy: 'HYBRID_BLITZ',
+                    strategy: 'HYBRID_VORTEX',
                     timeframe: '5m',
                     strategyConfig: req.body.strategyConfig || current.strategyConfig || {
-                        HYBRID_BLITZ: { active: true, minOdds: 67 }
+                        HYBRID_VORTEX: { active: true, minOdds: 67, useVortex: true, useHybrid: true, useUnixa: false }
                     },
                     whaleThreshold: req.body.whaleThreshold ? parseFloat(req.body.whaleThreshold) : (current.whaleThreshold || 150000)
                 };

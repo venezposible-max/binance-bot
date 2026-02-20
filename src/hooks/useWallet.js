@@ -65,14 +65,15 @@ export function useWallet() {
             const isLive = modeToFetch === 'LIVE';
 
             const promises = [
-                fetch(`${API_BASE}/api/get-status?mode=${modeToFetch}`).then(r => r.json())
+                fetch(`${API_BASE}/api/get-status?mode=${modeToFetch}`).then(r => r.json()),
+                fetch(`${API_BASE}/api/wallet/config?mode=${modeToFetch}`).then(r => r.json())
             ];
 
             if (isLive) {
                 promises.push(fetch(`${API_BASE}/api/wallet/balance`).then(r => r.json()));
             }
 
-            const [data, balance] = await Promise.all(promises);
+            const [data, configData, balance] = await Promise.all(promises);
 
             if (data) {
                 setCloudStatus({
@@ -84,6 +85,11 @@ export function useWallet() {
                 setApiConfigured(data.isApiConfigured || false);
                 setBtcChange(data.btcChange || null);
             }
+
+            if (configData) {
+                setWalletConfig(configData);
+            }
+
             if (balance) setBinanceBalance(balance);
 
         } catch (err) {

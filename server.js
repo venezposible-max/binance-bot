@@ -7,7 +7,6 @@ import axios from 'axios';
 
 // --- MODULE IMPORTS (Consolidated) ---
 import { LogStore } from './api/utils/logger.js';
-import { scanTopTraders } from './api/utils/trader-oracle-scanner.js';
 import logsHandler from './api/logs.js';
 import telegramProxy from './api/telegram-proxy.js';
 import checkPrices from './api/check-prices.js';
@@ -19,13 +18,14 @@ import ticker from './api/ticker.js';
 import walletBalance from './api/wallet/balance.js'; // Restored Import ✅
 import portfolioHandler from './api/olga/portfolio.js'; // Olga is back!
 import activeMode from './api/wallet/active-mode.js';
-import traderOracle from './api/wallet/trader-oracle.js';
 import marketWorker from './api/stream/market-worker.js';
 import debug from './api/debug.js';
 import cleanup from './api/cleanup.js';
 import getMarketPairs from './api/get-market-pairs.js'; // NEW: Sync Endpoint
 import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 import removeTrade from './api/remove-trade.js'; // NEW: Manual Trade Removal
+import arbitrageVes from './api/arbitrage-ves.js'; // NEW: Arbitrage Monitor
+
 
 // --- LOG CAPTURE HOOK ---
 // Capture logs for the frontend console
@@ -91,7 +91,6 @@ app.post('/api/wallet/config', vercelAdapter(walletConfig));
 app.get('/api/wallet/balance', vercelAdapter(walletBalance));
 app.get('/api/wallet/active-mode', vercelAdapter(activeMode));
 app.post('/api/wallet/active-mode', vercelAdapter(activeMode));
-app.get('/api/wallet/trader-oracle', vercelAdapter(traderOracle));
 
 app.post('/api/lockdown', vercelAdapter(lockdown)); // NEW: Emergency
 app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
@@ -101,6 +100,9 @@ app.get('/api/remove-trade', vercelAdapter(removeTrade)); // NEW: Manual Trade R
 app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
 app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 app.get('/api/olga/portfolio', vercelAdapter(portfolioHandler)); // NEW: Olga Safe Endpoint 👩‍💼
+app.get('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
+app.post('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
+
 
 // Phase 1: High-Speed Market Cache
 app.get('/api/market-cache', (req, res) => {
@@ -150,12 +152,7 @@ const runInternalScan = async (source = 'TIMER') => {
             }
         } catch (e) { }
 
-        // --- TRADER ORACLE SCAN ---
-        try {
-            await scanTopTraders();
-        } catch (err) {
-            console.error('❌ Oracle Heartbeat Fail:', err.message);
-        }
+
 
     } catch (e) {
         console.error(`❌ CRON FAIL [${source}]:`, e.message);

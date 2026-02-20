@@ -4,16 +4,16 @@ import { RSI, ATR } from 'technicalindicators';
 
 const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'PEPEUSDT', 'WIFUSDT', 'SUIUSDT', 'FETUSDT', 'AVAXUSDT'];
 const INTERVAL = '5m';
-const DAYS = 7;
+const DAYS = 30;
 const CANDLES_PER_REQUEST = 1000;
 
 async function fetchHeavyKlines(symbol) {
     let allKlines = [];
     let endTime = Date.now();
 
-    // We need around 2016 candles (7 days * 24h * 12 candles/h)
-    // We do 3 requests of 1000 to be safe
-    for (let i = 0; i < 3; i++) {
+    // We need around 8640 candles (30 days * 24h * 12 candles/h)
+    // We do 10 requests of 1000 to be safe
+    for (let i = 0; i < 10; i++) {
         try {
             const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${INTERVAL}&limit=${CANDLES_PER_REQUEST}&endTime=${endTime}`;
             const res = await axios.get(url);
@@ -75,7 +75,8 @@ async function backtest(symbol) {
             continue;
         }
 
-        const isExhausted = rsiPadded[i] < 10;
+        // UNIXA condition: RSI(2) < 2.0
+        const isExhausted = rsiPadded[i] < 2.0;
         const isHAConfirmation = ha[i].close > ha[i].open;
 
         if (isExhausted && isHAConfirmation) {
@@ -88,7 +89,7 @@ async function backtest(symbol) {
 }
 
 async function runAll() {
-    console.log(`--- BACKTESTING VORTEX: ÚLTIMO 7 DÍAS (5M - REAL) ---`);
+    console.log(`--- BACKTESTING VORTEX / UNIXA PURA: ÚLTIMAS ${DAYS} DÍAS (5M - REAL) ---`);
     let gt = 0, gw = 0, gp = 0;
     for (const s of SYMBOLS) {
         const r = await backtest(s);
@@ -97,10 +98,9 @@ async function runAll() {
             gt += r.trades; gw += r.wins; gp += r.totalPnL;
         }
     }
-    console.log(`\n--- CONCLUSIÓN SEMANAL ---`);
+    console.log(`\n--- CONCLUSIÓN MENSUAL (Sin Stop Loss Duro, cierre RSI o Tiempo) ---`);
     console.log(`Total Trades: ${gt}`);
-    console.log(`WinRate: ${((gw / gt) * 100).toFixed(1)}%`);
-    console.log(`Profit REAL semanal (10 monedas): +${gp.toFixed(2)}%`);
-    console.log(`Proyección mensual estimada: +${(gp * 4).toFixed(2)}%`);
+    console.log(`WinRate Global: ${((gw / gt) * 100).toFixed(1)}%`);
+    console.log(`Rentabilidad Mensual Bruta: +${gp.toFixed(2)}%`);
 }
 runAll();

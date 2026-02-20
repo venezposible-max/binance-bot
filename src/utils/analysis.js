@@ -222,7 +222,7 @@ export const analyzeFlow = (depth, candles) => {
  * @param { Object } depth - Order Book depth
  * @param { Array } candles - Price history
  */
-export const analyzeBlitz = (depth, candles) => {
+export const analyzeVortex = (depth, candles) => {
     const closes = candles.map(c => c.close || parseFloat(c[4]));
     const opens = candles.map(c => c.open || parseFloat(c[1]));
     const highs = candles.map(c => c.high || parseFloat(c[2]));
@@ -276,7 +276,7 @@ export const analyzeBlitz = (depth, candles) => {
     let color = '#94A3B8';
     let intensity = 0;
 
-    // TP Calculation (ATR based from Blitz)
+    // TP Calculation (ATR based from Vortex)
     // 2.5x ATR with 0.6% ROI protective floor for fees
     let rawTarget = lastPrice + (currentATR * 2.5);
     let targetPrice = Math.max(rawTarget, lastPrice * 1.006);
@@ -321,6 +321,30 @@ export const analyzeBlitz = (depth, candles) => {
             intensity
         }
     };
+};
+
+/**
+ * STRATEGY: UNIXA (Precision Extreme)
+ * Same as Vortex but with RSI(2) < 2 for near-perfect entries.
+ */
+export const analyzeUnixa = (depth, candles) => {
+    const analysis = analyzeVortex(depth, candles);
+    const rsi2 = parseFloat(analysis.indicators.rsi2);
+
+    // Override signal for UNIXA
+    if (rsi2 < 2.0) {
+        analysis.prediction.signal = 'STRONG_BUY';
+        analysis.prediction.label = `⚡ UNIXA ENTRY (${rsi2.toFixed(1)}%) ⚡`;
+        analysis.prediction.color = '#F59E0B';
+        analysis.prediction.intensity = 100;
+    } else {
+        analysis.prediction.signal = 'NEUTRAL';
+        analysis.prediction.label = 'ESPERANDO UNIXA';
+        analysis.prediction.color = '#94A3B8';
+        analysis.prediction.intensity = 0;
+    }
+
+    return analysis;
 };
 
 /**

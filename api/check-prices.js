@@ -88,7 +88,7 @@ async function processMode(mode, marketPairs, marketCache) {
         currentBalance: 1000,
         riskPercentage: 10,
         maxTrades: 3,
-        strategy: 'HYBRID_BLITZ'
+        strategy: 'HYBRID_VORTEX'
     };
 
     // SYNC BALANCE LIVE (Slowed down to 60s for Rate Limit Safety)
@@ -127,7 +127,7 @@ async function processMode(mode, marketPairs, marketCache) {
     let newScanTrades = [];
 
     // 🛡️ BTC GUARD CHECK
-    const useBtcGuard = wallet.strategyConfig?.HYBRID_BLITZ?.useBtcGuard === true;
+    const useBtcGuard = wallet.strategyConfig?.HYBRID_VORTEX?.useBtcGuard === true;
     let btcVeto = false;
 
     if (useBtcGuard) {
@@ -151,36 +151,34 @@ async function processMode(mode, marketPairs, marketCache) {
         await redis.del('sentinel_btc_change');
     }
 
-    // Lockdown Check OR BTC Veto
+    // Lockdown Check (Global Emergency)
     const isLockdown = globalLockdown === 'true';
-    if (isLockdown || btcVeto) {
-        console.log(`[${mode}] ⛔ NO ENTRIES: ${isLockdown ? 'Emergency Lockdown' : 'BTC Guard Veto'}`);
+
+    if (isLockdown) {
+        console.log(`[${mode}] ⛔ NO ENTRIES: Emergency Lockdown Active`);
     } else if (wallet.isBotActive) {
         const slotsAvailable = (wallet.maxTrades || 3) - updatedActiveTrades.length;
 
         if (slotsAvailable > 0) {
-            // Filter Candidates
+            // Filter Candidates (Not occupied, not in cooldown)
             const occupied = activeTrades.map(t => t.symbol);
 
-            // COOLDOWN LOGIC (15 Mins)
             const COOLDOWN_MS = 15 * 60 * 1000;
             const now = Date.now();
             const recentCloses = winHistory
                 .filter(w => (now - new Date(w.timestamp).getTime()) < COOLDOWN_MS)
                 .map(w => w.symbol);
 
-            // Also append newly closed trades to cooldown immediately
             closedTrades.forEach(c => recentCloses.push(c.symbol));
             const excludedSymbols = [...new Set(recentCloses)];
 
-            // Candidates list
             const candidates = marketPairs.filter(s => !occupied.includes(s) && !excludedSymbols.includes(s));
 
             if (candidates.length > 0) {
-                // 🔥 CALL THE SCANNER MODULE
-                newScanTrades = await scanMarketOpportunities(candidates, mode, wallet, marketCache, updatedActiveTrades.length);
+                // 🔥 CALL THE SCANNER: We pass btcVeto so it can filter Vortex but let UNIXA pass
+                newScanTrades = await scanMarketOpportunities(candidates, mode, wallet, marketCache, updatedActiveTrades.length, btcVeto);
             } else {
-                console.log(`💤 [${mode}] NO CANDIDATES (Slots: ${slotsAvailable}, but all occupied or cooldown)`);
+                // Keep logs quiet if no candidates
             }
         }
     }
@@ -248,7 +246,13 @@ async function processMode(mode, marketPairs, marketCache) {
             await redis.set(historyKey, JSON.stringify(dbHistory));
             await redis.set(configKey, JSON.stringify(wallet));
 
-            console.log(`✅ [${mode}] Cycle Complete. Active: ${nextActiveList.length}`);
+            const strategyConfig = wallet.strategyConfig?.HYBRID_VORTEX || {};
+            const enabledStrats = [];
+            if (strategyConfig.useVortex !== false) enabledStrats.push('VTX');
+            if (strategyConfig.useHybrid !== false) enabledStrats.push('HYB');
+            if (strategyConfig.useUnixa === true) enabledStrats.push('UNX');
+
+            console.log(`✅ [${mode}] Cycle Complete | Active: ${nextActiveList.length} | Strats: ${enabledStrats.join('+')}`);
             activeTrades = nextActiveList; // For return display
             winHistory = dbHistory;
 

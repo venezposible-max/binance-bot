@@ -4,14 +4,38 @@
     -webkit-backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 24px;
-    padding: 30px;
+    padding: 20px;
+    /* Reduced from 30px */
     margin-bottom: 25px;
     display: flex;
+    flex-direction: column;
+    /* Changed to column by default for mobile safety */
     justify-content: space-between;
-    align-items: center;
     box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+    .card {
+        padding: 30px;
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+.strategyGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+    .strategyGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .card::after {
@@ -73,6 +97,12 @@
     display: flex;
     justify-content: space-between;
     gap: 20px;
+}
+
+@media (max-width: 480px) {
+    .mainStats {
+        gap: 10px;
+    }
 }
 
 .startBtn {
@@ -186,6 +216,16 @@
     font-family: 'Roboto Mono', monospace;
 }
 
+@media (max-width: 480px) {
+    .value {
+        font-size: 1.1rem;
+    }
+
+    .label {
+        font-size: 0.65rem;
+    }
+}
+
 .subValue {
     font-size: 0.8rem;
     margin-top: 4px;
@@ -204,7 +244,6 @@
     gap: 20px;
     align-items: center;
     flex-wrap: wrap;
-    /* Prevent overflow on small screens */
 }
 
 .statItem {
@@ -230,20 +269,7 @@
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-@media (max-width: 600px) {
-    .card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-
-    .configGroup {
-        width: 100%;
-        justify-content: space-between;
-    }
-}
-
-/* NEW MOBILE STYLES */
+/* --- MOBILE SYNC OPTIMIZATIONS --- */
 .headerRow {
     display: flex;
     justify-content: space-between;
@@ -261,6 +287,40 @@
     gap: 10px;
 }
 
+.strategyStatus {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #F3BA2F;
+    background: rgba(243, 186, 47, 0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(243, 186, 47, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    box-shadow: 0 0 10px rgba(243, 186, 47, 0.05);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(0.98);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 .controlsGroup {
     display: flex;
     align-items: center;
@@ -273,9 +333,22 @@
     color: white;
     padding: 2px 6px;
     border-radius: 4px;
-    animation: pulse 2s infinite;
+    animation: flash 1s infinite;
     white-space: nowrap;
-    /* Prevent tag break */
+}
+
+@keyframes flash {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 .modeToggleBtn {
@@ -288,48 +361,15 @@
     font-weight: bold;
 }
 
-@media (max-width: 450px) {
-    .headerRow {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .controlsGroup {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .modeToggleBtn,
-    .startBtn,
-    .pauseBtn {
-        flex: 1;
-        text-align: center;
-    }
-}
-
-/* --- DESKTOP SPLIT LAYOUT (User Optimization) --- */
 .desktopSplit {
     display: flex;
     flex-direction: column;
-    /* Default Mobile: Stacked */
     gap: 20px;
 }
 
 .leftPanel,
 .rightPanel {
     width: 100%;
-}
-
-.blitzBadge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 15px;
 }
 
 .miniStatsRow {
@@ -343,7 +383,6 @@
     .desktopSplit {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        /* Split in two */
         gap: 30px;
         align-items: center;
     }
@@ -356,8 +395,21 @@
     .rightPanel {
         padding-left: 10px;
     }
+}
 
-    .blitzBadge {
-        margin-bottom: 10px;
+@media (max-width: 450px) {
+    .headerRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .controlsGroup {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .strategyStatus {
+        font-size: 0.55rem;
+        padding: 2px 6px;
     }
 }

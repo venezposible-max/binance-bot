@@ -2,54 +2,18 @@ import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'rea
 import { API_BASE } from '../config/api';
 import styles from './WalletCard.module.css';
 
-const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode, readOnly, btcChange }, ref) => {
-    // ... (state and fetch logic remains same)
-    const [wallet, setWallet] = useState(null);
-    const [loading, setLoading] = useState(true);
+const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketData, activeStrategy, tradingMode, binanceBalance, onToggleMode, readOnly, btcChange }, ref) => {
+    const [wallet, setWallet] = useState(config || null);
+    const [loading, setLoading] = useState(!config);
     const isSaving = React.useRef(false);
 
-    const fetchWallet = async () => {
-        if (isSaving.current) return;
-
-        try {
-            const modeParam = tradingMode || 'SIMULATION';
-            const isLive = modeParam === 'LIVE';
-
-            const promises = [
-                fetch(`${API_BASE}/api/wallet/config?mode=${modeParam}`).then(r => r.json()),
-                fetch(`${API_BASE}/api/get-status?mode=${modeParam}`).then(r => r.json())
-            ];
-
-            if (isLive) {
-                promises.push(fetch(`${API_BASE}/api/wallet/balance`).then(r => r.json()));
-            } else {
-                promises.push(Promise.resolve({ available: 0, total: 0 }));
-            }
-
-            const [configData, statusData, balanceData] = await Promise.all(promises);
-
-            if (configData && !isSaving.current) {
-                setWallet(configData);
-                if (onConfigChange) {
-                    onConfigChange(
-                        { active: statusData.active || [], history: statusData.history || [] },
-                        balanceData,
-                        configData
-                    );
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching wallet/status:', error);
-        } finally {
+    // Sync from parent prop (the source of truth for all devices)
+    useEffect(() => {
+        if (!isSaving.current && config && Object.keys(config).length > 0) {
+            setWallet(config);
             setLoading(false);
         }
-    };
-
-    useEffect(() => {
-        fetchWallet();
-        const interval = setInterval(fetchWallet, 2000);
-        return () => clearInterval(interval);
-    }, [tradingMode]);
+    }, [config]);
 
     const handleConfigure = async () => {
         if (readOnly) return; // Security Guard
@@ -93,6 +57,9 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         // Hybrid Toggle
         const useHybrid = confirm(`🧬 MODULO ESTADÍSTICO (HYBRID)\n\n¿Activar filtro de Probabilidades?\nEstado Actual: ${currentConfig.useHybrid !== false ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
 
+        // UNIXA Toggle
+        const useUnixa = confirm(`🪐 ESTRATEGIA UNIXA (EXPERIMENTAL)\n\n¿Activar entradas Ultra-Filtro (RSI < 2)?\nEstado Actual: ${currentConfig.useUnixa === true ? 'ON' : 'OFF'}\n\n[Aceptar = ON] [Cancelar = OFF]`);
+
         let minOdds = 67;
         if (useHybrid) {
             const minOddsInput = prompt('🧬 Umbral Mínimo de Probabilidad (%):', currentConfig.minOdds || 67);
@@ -122,13 +89,14 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                         ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
                         minOdds: minOdds,
                         useBlitz: useBlitz,
-                        useHybrid: useHybrid
+                        useHybrid: useHybrid,
+                        useUnixa: useUnixa
                     }
                 }
             };
 
             setWallet(optimisticUpdate);
-            if (onConfigChange) onConfigChange(null, null, optimisticUpdate); // Propagate up
+            if (onConfigChange) onConfigChange(optimisticUpdate); // Propagate up
 
             try {
                 const res = await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
@@ -150,7 +118,8 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                 ...(wallet.strategyConfig?.HYBRID_BLITZ || {}),
                                 minOdds: minOdds,
                                 useBlitz: useBlitz,
-                                useHybrid: useHybrid
+                                useHybrid: useHybrid,
+                                useUnixa: useUnixa
                             }
                         }
                     })
@@ -220,8 +189,16 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
     }
 
 
-    // REFACTORED: Only VORTEX Strategy supported
-    const currentStrategy = 'VORTEX';
+    // DYNAMIC STRATEGY LABEL: Detects active modules to show precise state
+    const getActiveStrategyLabel = () => {
+        if (!wallet?.strategyConfig?.HYBRID_BLITZ) return 'VORTEX';
+        const cfg = wallet.strategyConfig.HYBRID_BLITZ;
+        if (cfg.useUnixa) return '🪐 UNIXA';
+        if (cfg.useBlitz && cfg.useHybrid) return '⚡ VORTEX+HYBRID';
+        if (cfg.useHybrid) return '🧬 HYBRID';
+        return '⚡ VORTEX';
+    };
+    const currentStrategy = getActiveStrategyLabel();
 
     // REMOVED: handleCycleStrategy
     // REMOVED: getStrategyColor (Not used in new UI)
@@ -292,14 +269,11 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         };
 
         try {
-            isSaving.current = true; // 🔒 LOCK
-
-            // Optimistic Client Update
+            isSaving.current = true;
             const newWallet = { ...wallet, strategyConfig: newStrategies };
             setWallet(newWallet);
-            if (onConfigChange) onConfigChange(newWallet); // Propagate up
+            if (onConfigChange) onConfigChange(newWallet);
 
-            // Server Update
             await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -308,11 +282,10 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                     tradingMode
                 })
             });
-            console.log(`🧬 Hybrid Mode Set to: ${newState ? 'ON' : 'OFF'}`);
         } catch (e) {
             console.error("Hybrid Toggle Error:", e);
         } finally {
-            isSaving.current = false; // 🔓 UNLOCK
+            setTimeout(() => { isSaving.current = false; }, 1000);
         }
     };
 
@@ -329,20 +302,21 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         };
 
         try {
-            isSaving.current = true; // 🔒 LOCK
-
+            isSaving.current = true;
             const newWallet = { ...wallet, strategyConfig: newStrategies };
             setWallet(newWallet);
-            if (onConfigChange) onConfigChange(newWallet); // Propagate
+            if (onConfigChange) onConfigChange(newWallet);
 
             await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
             });
-            console.log(`⚡ Blitz Mode Set to: ${newState ? 'ON' : 'OFF'}`);
-        } catch (e) { console.error(e); }
-        finally { isSaving.current = false; } // 🔓 UNLOCK
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setTimeout(() => { isSaving.current = false; }, 1000);
+        }
     };
 
     const toggleBtcGuard = async () => {
@@ -358,20 +332,51 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
         };
 
         try {
-            isSaving.current = true; // 🔒 LOCK
-
+            isSaving.current = true;
             const newWallet = { ...wallet, strategyConfig: newStrategies };
             setWallet(newWallet);
-            if (onConfigChange) onConfigChange(newWallet); // Propagate
+            if (onConfigChange) onConfigChange(newWallet);
 
             await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
             });
-            console.log(`🛡️ BTC GUARD Set to: ${newState ? 'ON' : 'OFF'}`);
-        } catch (e) { console.error(e); }
-        finally { isSaving.current = false; } // 🔓 UNLOCK
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setTimeout(() => { isSaving.current = false; }, 1000);
+        }
+    };
+
+    const toggleUnixa = async () => {
+        if (readOnly) return; // Security Guard
+        if (!wallet) return;
+        const currentStrategies = wallet.strategyConfig || {};
+        const config = currentStrategies['HYBRID_BLITZ'] || { useUnixa: false };
+        const newState = !config.useUnixa;
+
+        const newStrategies = {
+            ...currentStrategies,
+            HYBRID_BLITZ: { ...config, useUnixa: newState }
+        };
+
+        try {
+            isSaving.current = true;
+            const newWallet = { ...wallet, strategyConfig: newStrategies };
+            setWallet(newWallet);
+            if (onConfigChange) onConfigChange(newWallet);
+
+            await fetch(`${API_BASE}/api/wallet/config?mode=${tradingMode}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategyConfig: newStrategies, tradingMode })
+            });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setTimeout(() => { isSaving.current = false; }, 1000);
+        }
     };
 
     return (
@@ -381,6 +386,9 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                 <div className={styles.titleGroup}>
                     <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>💼 BILLETERA</span>
+                        <div className={styles.strategyStatus}>
+                            {currentStrategy}
+                        </div>
                         {wallet?.tradingMode === 'LIVE' && <span className={styles.liveTag}>LIVE MONEY 💸</span>}
                     </div>
                 </div>
@@ -406,7 +414,7 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
 
                 {/* RIGHT PANEL - STRATEGY CONTROLS */}
                 <div className={styles.rightPanel}>
-                    <div style={{ display: 'flex', gap: '10px', width: '100%', marginBottom: '8px' }}>
+                    <div className={styles.strategyGrid}>
 
                         {/* 1. VORTEX TOGGLE (Interactive) */}
                         {(() => {
@@ -495,6 +503,36 @@ const WalletCard = forwardRef(({ onConfigChange, activeTrades, marketData, activ
                                         {isGuardOn
                                             ? (btcChange !== null ? `${btcChange > 0 ? '+' : ''}${btcChange}% (2h)` : 'PROTECTED')
                                             : 'DISABLED'}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* 4. UNIXA TOGGLE */}
+                        {(() => {
+                            const isUnixaOn = wallet?.strategyConfig?.HYBRID_BLITZ?.useUnixa === true;
+                            return (
+                                <div
+                                    onClick={readOnly ? null : toggleUnixa}
+                                    title="Activar entradas Ultra-Filtro (RSI < 2)"
+                                    style={{
+                                        flex: 1,
+                                        background: isUnixaOn ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: isUnixaOn ? '1px solid #F59E0B' : '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                        cursor: readOnly ? 'default' : 'pointer',
+                                        padding: '8px',
+                                        transition: 'all 0.2s ease',
+                                        userSelect: 'none',
+                                        opacity: readOnly ? 0.7 : 1
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.9rem', color: isUnixaOn ? '#FBBF24' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        🪐 UNIXA
+                                    </div>
+                                    <div style={{ fontSize: '0.55rem', color: isUnixaOn ? '#fff' : '#64748B', marginTop: '2px', fontWeight: 'bold' }}>
+                                        {isUnixaOn ? 'ULTRA' : 'OFF'}
                                     </div>
                                 </div>
                             );

@@ -1,6 +1,8 @@
 
 import binanceClient from '../utils/binance-client.js';
 import { sendServerTelegram } from '../utils/telegram-server.js';
+import axios from 'axios';
+import { RSI } from 'technicalindicators';
 
 /**
  * CORE MODULE: TRADE MONITOR
@@ -51,44 +53,47 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
             let isExit = false;
             let exitReason = '';
 
-            // 🩹 SELF-HEALING: Fix Zombie Trades (Trailing but no SL)
-            if (trade.isTrailing && (!trade.stopLoss || trade.stopLoss <= 0)) {
-                // If we lost the SL value but flag is true, restore it safely below current price
-                const healMargin = 0.005; // 0.5% buffer
-                if (trade.type === 'SHORT') updatedTrade.stopLoss = currentPrice * (1 + healMargin);
-                else updatedTrade.stopLoss = currentPrice * (1 - healMargin);
-                console.log(`[${mode}] 🩹 HEALING ${symbol}: Restored missing TS to ${updatedTrade.stopLoss.toFixed(4)}`);
-            }
-
-            // Dynamic Trailing: Activates after +0.7% profit
-            if (pnl >= 0.7) {
-                const trailMargin = 0.002; // 0.2% distance
-                let newTrailingSL = 0;
-                let trailingTriggered = false;
-
-                if (trade.type === 'SHORT') {
-                    newTrailingSL = currentPrice * (1 + trailMargin);
-                    // Move SL down (tighten)
-                    if (!trade.stopLoss || newTrailingSL < trade.stopLoss) {
-                        updatedTrade.stopLoss = newTrailingSL;
-                        trailingTriggered = true;
-                    }
-                } else {
-                    newTrailingSL = currentPrice * (1 - trailMargin);
-                    // Move SL up (tighten)
-                    if (!trade.stopLoss || newTrailingSL > trade.stopLoss) {
-                        updatedTrade.stopLoss = newTrailingSL;
-                        trailingTriggered = true;
-                    }
+            // ⛔ BYPASS TRAILING STOP FOR UNIXA (It holds for natural Target or Timeout)
+            if (trade.strategy !== 'UNIXA') {
+                // 🩹 SELF-HEALING: Fix Zombie Trades (Trailing but no SL)
+                if (trade.isTrailing && (!trade.stopLoss || trade.stopLoss <= 0)) {
+                    // If we lost the SL value but flag is true, restore it safely below current price
+                    const healMargin = 0.005; // 0.5% buffer
+                    if (trade.type === 'SHORT') updatedTrade.stopLoss = currentPrice * (1 + healMargin);
+                    else updatedTrade.stopLoss = currentPrice * (1 - healMargin);
+                    console.log(`[${mode}] 🩹 HEALING ${symbol}: Restored missing TS to ${updatedTrade.stopLoss.toFixed(4)}`);
                 }
 
-                if (trailingTriggered || trade.isTrailing) {
-                    updatedTrade.isTrailing = true;
-                    if (trailingTriggered) {
-                        console.log(`[${mode}] ⛓️ TRAILING STOP UPDATED: ${symbol} @ +${pnl.toFixed(2)}% | New SL: ${newTrailingSL}`);
+                // Dynamic Trailing: Activates after +0.7% profit
+                if (pnl >= 0.7) {
+                    const trailMargin = 0.002; // 0.2% distance
+                    let newTrailingSL = 0;
+                    let trailingTriggered = false;
+
+                    if (trade.type === 'SHORT') {
+                        newTrailingSL = currentPrice * (1 + trailMargin);
+                        // Move SL down (tighten)
+                        if (!trade.stopLoss || newTrailingSL < trade.stopLoss) {
+                            updatedTrade.stopLoss = newTrailingSL;
+                            trailingTriggered = true;
+                        }
+                    } else {
+                        newTrailingSL = currentPrice * (1 - trailMargin);
+                        // Move SL up (tighten)
+                        if (!trade.stopLoss || newTrailingSL > trade.stopLoss) {
+                            updatedTrade.stopLoss = newTrailingSL;
+                            trailingTriggered = true;
+                        }
+                    }
+
+                    if (trailingTriggered || trade.isTrailing) {
+                        updatedTrade.isTrailing = true;
+                        if (trailingTriggered) {
+                            console.log(`[${mode}] ⛓️ TRAILING STOP UPDATED: ${symbol} @ +${pnl.toFixed(2)}% | New SL: ${newTrailingSL}`);
+                        }
                     }
                 }
-            }
+            } // END OF IF NOT UNIXA
 
             // 5. EXIT CONDITIONS CHECK
             const hasSpecificSL = updatedTrade.stopLoss !== null && updatedTrade.stopLoss !== undefined;
@@ -99,7 +104,7 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
             if (trade.takeProfit) {
                 // Convert price-based TP to percentage logic if stored as price, 
                 // OR if stored as absolute price, check price directly.
-                // Currently BLITZ stores Absolute Price in 'takeProfit'.
+                // Currently VORTEX stores Absolute Price in 'takeProfit'.
 
                 // Absolute Price Check
                 if (trade.type === 'LONG' && currentPrice >= trade.takeProfit) { isExit = true; exitReason = 'TP_HIT'; }
@@ -109,10 +114,39 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                 if (pnl >= finalTPPerc) { isExit = true; exitReason = 'GLOBAL_TP_HIT'; }
             }
 
-            // Stop Loss Check
-            if (hasSpecificSL) {
+            // Stop Loss Check (Only if NOT UNIXA)
+            if (hasSpecificSL && trade.strategy !== 'UNIXA') {
                 if (trade.type === 'LONG' && currentPrice <= updatedTrade.stopLoss) { isExit = true; exitReason = 'SL_HIT'; }
                 else if (trade.type === 'SHORT' && currentPrice >= updatedTrade.stopLoss) { isExit = true; exitReason = 'SL_HIT'; }
+            }
+
+            // ⚠️ UNIXA EXCLUSIVE RULES
+            if (trade.strategy === 'UNIXA' && !isExit) {
+                // RULE 1: TIME OUT (48 hours = 172800000 ms)
+                const tradeTimeMs = new Date(trade.timestamp).getTime();
+                const nowMs = Date.now();
+                if ((nowMs - tradeTimeMs) > 172800000) {
+                    isExit = true;
+                    exitReason = 'UNIXA_TIMEOUT_48H';
+                }
+
+                // RULE 2: EUPHORIA (RSI(2) > 80)
+                if (!isExit) {
+                    try {
+                        const res = await axios.get(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=15`, { timeout: 3000 });
+                        if (res.data && Array.isArray(res.data)) {
+                            const closes = res.data.map(d => parseFloat(d[4]));
+                            const rsiArr = RSI.calculate({ values: closes, period: 2 });
+                            const currentRsi = rsiArr[rsiArr.length - 1];
+                            if (currentRsi >= 80) {
+                                isExit = true;
+                                exitReason = `UNIXA_EUPHORIA_RSI_${currentRsi.toFixed(0)}`;
+                            }
+                        }
+                    } catch (e) {
+                        // Silent fail, just fallback to TP or Timeout on next cycle
+                    }
+                }
             }
 
             // 6. EXECUTE EXIT

@@ -8,12 +8,15 @@ const BotReport = ({ config, cloudStatus }) => {
     const strategyConf = config?.strategyConfig?.HYBRID_BLITZ || {};
     const useBlitz = strategyConf.useBlitz !== false;
     const useHybrid = strategyConf.useHybrid !== false;
+    const useUnixa = strategyConf.useUnixa === true;
     const minOdds = strategyConf.minOdds || 67;
 
-    let strategyName = 'MONITOR (INACTIVO)';
-    if (useBlitz && useHybrid) strategyName = 'FUSIÓN (VORTEX + HYBRID)';
-    else if (useBlitz) strategyName = 'VORTEX (TÉCNICO)';
-    else if (useHybrid) strategyName = 'HYBRID (ESTADÍSTICO)';
+    let activeModules = [];
+    if (useBlitz) activeModules.push('VORTEX');
+    if (useHybrid) activeModules.push('HYBRID');
+    if (useUnixa) activeModules.push('UNIXA');
+
+    let strategyName = activeModules.length > 0 ? activeModules.join(' + ') : 'MONITOR (INACTIVO)';
 
     const [displayOdds, setDisplayOdds] = React.useState(minOdds);
 
