@@ -30,7 +30,7 @@ async function getDynamicTopPairs() {
             const res = await axios.get(src.url, { timeout: 5000 });
             if (res.data && Array.isArray(res.data)) {
                 // BLACKLIST
-                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC', 'TROY', 'PUMP', 'ASTER'];
+                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC', 'TROY', 'PUMP', 'ASTER', 'PEPE'];
                 const relevant = res.data.filter(p => {
                     if (!p.symbol.endsWith('USDT')) return false;
                     if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;
