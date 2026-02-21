@@ -16,7 +16,7 @@ export default async function handler(req, res) {
         const allPairs = response.data;
 
         // Same logic as check-prices.js
-        const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC'];
+        const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC', 'TROY', 'PUMP', 'ASTER', 'PEPE'];
         const relevant = allPairs.filter(p => {
             if (!p.symbol.endsWith('USDT')) return false;
             if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;

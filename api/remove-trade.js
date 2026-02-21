@@ -46,6 +46,8 @@ export default async function handler(req, res) {
                 totalDeleted += removedCount;
                 details.push(`${removedCount} removed from ${key}`);
                 await redis.set(key, JSON.stringify(keptTrades));
+                // Force a scanner refresh
+                await redis.del('sentinel_active_pairs');
             }
         }
 
