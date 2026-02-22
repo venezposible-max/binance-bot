@@ -3,7 +3,7 @@ import axios from 'axios';
 import { RSI, ATR } from 'technicalindicators';
 
 // Seleccionamos las monedas más activas para un backtest real de 30 días en 5m
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'WIFUSDT', 'PEPEUSDT'];
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'WIFUSDT'];
 const INTERVAL = '5m';
 const DAYS = 30;
 const CANDLES_PER_REQUEST = 1000;

@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { RSI, ATR } from 'technicalindicators';
 
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'PEPEUSDT', 'WIFUSDT', 'SUIUSDT', 'FETUSDT', 'AVAXUSDT'];
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'WIFUSDT', 'SUIUSDT', 'FETUSDT', 'AVAXUSDT'];
 const INTERVAL = '5m';
 const DAYS = 30;
 const CANDLES_PER_REQUEST = 1000;

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { RSI, ATR } from 'technicalindicators';
 
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'PEPEUSDT', 'WIFUSDT', 'SUIUSDT', 'FETUSDT', 'AVAXUSDT'];
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'LINKUSDT', 'WIFUSDT', 'SUIUSDT', 'FETUSDT', 'AVAXUSDT'];
 const INTERVAL = '5m';
 const CONF = { rsiIn: 2.0, tpAtr: 2.0, euforia: 95, timeoutVelas: 288 };
 

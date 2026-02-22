@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { RSI, ATR } from 'technicalindicators';
 
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT', 'PEPEUSDT', 'SHIBUSDT', 'FETUSDT', 'NEARUSDT', 'WIFUSDT', 'SUIUSDT'];
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT', 'SHIBUSDT', 'FETUSDT', 'NEARUSDT', 'WIFUSDT', 'SUIUSDT'];
 const INTERVAL = '5m';
 const DAYS = 1;
 const LIMIT = 12 * 24 * DAYS; // 288 candles for the last 24 hours

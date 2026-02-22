@@ -3,7 +3,7 @@ import axios from 'axios';
 import { RSI, ATR } from 'technicalindicators';
 
 // Seleccionamos las monedas con más histórico y volumen para evaluar 90 días
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'WIFUSDT', 'PEPEUSDT', 'BONKUSDT', 'FETUSDT', 'LINKUSDT', 'TRXUSDT'];
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'WIFUSDT', 'BONKUSDT', 'FETUSDT', 'LINKUSDT', 'TRXUSDT'];
 const INTERVAL = '15m'; // Subimos de 5m a 15m solo por volumen de datos/API, pero con lógica Vortex ajustada
 const DAYS = 90;
 const CANDLES_PER_REQUEST = 1000;

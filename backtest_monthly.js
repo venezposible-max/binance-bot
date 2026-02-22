@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { RSI, ATR } from 'technicalindicators';
 
-const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT', 'PEPEUSDT', 'FETUSDT', 'NEARUSDT', 'WIFUSDT', 'SUIUSDT'];
+const SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT', 'FETUSDT', 'NEARUSDT', 'WIFUSDT', 'SUIUSDT'];
 const INTERVAL = '1h'; // Hourly for clearer 30-day trends
 const LIMIT = 24 * 30;
 
