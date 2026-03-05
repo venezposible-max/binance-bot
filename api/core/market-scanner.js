@@ -41,7 +41,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
 
     // SEQUENTIAL LOOP (Prevents Race Conditions)
     for (const symbol of candidates) {
-        if (symbol.includes('PEPE')) continue;
+        if (symbol.includes('PEPE') || symbol.includes('NEAR')) continue;
 
         // 🛑 CRITICAL LIMIT CHECK
         // We check this at the START of every iteration.
@@ -128,7 +128,9 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
 
                 // 6. EXECUTE ENTRY
                 const risk = walletConfig.riskPercentage || 10;
-                const invest = walletConfig.currentBalance * (risk / 100);
+                // Factor de seguridad (99.7%) para evitar "insufficient balance" por decimales o micro-cambios de precio
+                const safetyFactor = 0.997;
+                const invest = (walletConfig.currentBalance * (risk / 100)) * safetyFactor;
                 let qty = invest / currentPrice;
                 let realInvest = invest;
 

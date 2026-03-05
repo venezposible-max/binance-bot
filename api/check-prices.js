@@ -30,7 +30,7 @@ async function getDynamicTopPairs() {
             const res = await axios.get(src.url, { timeout: 5000 });
             if (res.data && Array.isArray(res.data)) {
                 // BLACKLIST
-                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC', 'TROY', 'PUMP', 'ASTER', 'PEPE'];
+                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC', 'TROY', 'PUMP', 'ASTER', 'PEPE', 'NEAR'];
                 const relevant = res.data.filter(p => {
                     if (!p.symbol.endsWith('USDT')) return false;
                     if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;
@@ -97,10 +97,11 @@ async function processMode(mode, marketPairs, marketCache) {
         try {
             const usdt = await binanceClient.getAccountBalance('USDT');
             if (usdt && !usdt.error) {
-                wallet.currentBalance = usdt.total;
+                // USAR 'available' en lugar de 'total' para evitar intentar usar fondos bloqueados
+                wallet.currentBalance = usdt.available; 
                 await redis.set(configKey, JSON.stringify(wallet));
                 lastBalanceSync = now;
-                console.log(`⚖️ [LIVE] Wallet Balance Synced: $${wallet.currentBalance}`);
+                console.log(`⚖️ [LIVE] Usable Balance Synced: $${wallet.currentBalance}`);
             }
         } catch (e) { }
     }
@@ -222,7 +223,9 @@ async function processMode(mode, marketPairs, marketCache) {
                 // Deduct Balance for SIM
                 if (mode === 'SIMULATION') {
                     newScanTrades.forEach(t => {
-                        wallet.currentBalance -= t.investedAmount;
+                        // Aplicamos un factor de seguridad del 99.7% para evitar errores de insuficiencia por cambios de precio decimales
+                        const safetyFactor = 0.997;
+                        wallet.currentBalance -= (t.investedAmount * safetyFactor);
                     });
                 }
             }
@@ -284,14 +287,11 @@ export default async function handler(req, res) {
         // (Monitor code I wrote handles missing cache by skipping or blindly keeping, 
         // BUT wait, Monitor needs prices. I should pre-fetch prices for ACTIVE trades at least.)
 
-        const tasks = [];
-        tasks.push(processMode('SIMULATION', marketPairs, marketCache));
-
+        // ⚠️ SEQUENTIAL (not parallel) to avoid race conditions reading stale Redis state
+        await processMode('SIMULATION', marketPairs, marketCache);
         if (process.env.BINANCE_API_KEY) {
-            tasks.push(processMode('LIVE', marketPairs, marketCache));
+            await processMode('LIVE', marketPairs, marketCache);
         }
-
-        await Promise.all(tasks);
         res.status(200).json({ status: 'OK' });
     } catch (error) {
         console.error('❌ CRITICAL ERROR:', error.message);
