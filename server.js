@@ -25,7 +25,11 @@ import getMarketPairs from './api/get-market-pairs.js'; // NEW: Sync Endpoint
 import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 import removeTrade from './api/remove-trade.js'; // NEW: Manual Trade Removal
 import arbitrageVes from './api/arbitrage-ves.js'; // NEW: Arbitrage Monitor
+import whaleSniper, { getRecentWhales } from './api/whale-sniper.js'; // NEW: Whale Sniper
 import unixaBacktest from './api/unixa-backtest.js';
+import { SniperState } from './api/whale-sniper-state.js';
+import { PolymarketState } from './api/polymarket-state.js';
+import polymarketSniper from './api/polymarket-sniper.js';
 
 
 // --- LOG CAPTURE HOOK ---
@@ -103,6 +107,10 @@ app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
 app.get('/api/olga/portfolio', vercelAdapter(portfolioHandler)); // NEW: Olga Safe Endpoint 👩‍💼
 app.get('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
 app.post('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
+app.get('/api/whale-sniper', vercelAdapter(whaleSniper));
+app.post('/api/whale-sniper', vercelAdapter(whaleSniper));
+app.get('/api/polymarket-sniper', vercelAdapter(polymarketSniper));
+app.post('/api/polymarket-sniper', vercelAdapter(polymarketSniper));
 app.post('/api/unixa-backtest', vercelAdapter(unixaBacktest));
 
 
@@ -137,6 +145,10 @@ const runInternalScan = async (source = 'TIMER') => {
     console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
 
     try {
+        // Engines del Sniper (24/7 en segundo plano)
+        await getRecentWhales();
+        await PolymarketState.updateEngine();
+
         const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
             headers: { 'x-cron-secret': process.env.CRON_SECRET }, // SECURE HANDSHAKE
             timeout: 60000 // Increased to 60s for heavy scanning
@@ -178,8 +190,8 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
 });
 
-// Loop every 3 seconds (Extreme Fast Monitoring for Trailing Stop)
-setInterval(() => runInternalScan('HEARTBEAT'), 3000);
+// Loop every 10 seconds to stay within RPC limits
+setInterval(() => runInternalScan('HEARTBEAT'), 10000);
 
 // --- KEEPALIVE LOG (Every 2 minutes) ---
 setInterval(() => {

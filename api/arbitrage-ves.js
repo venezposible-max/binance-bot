@@ -1,81 +1,52 @@
 import axios from 'axios';
-import redis from './utils/redisClient.js';
+const BANKS = [
+    { name: 'Banesco', codes: ['Banesco'] },
+    { name: 'Mercantil', codes: ['Mercantil'] },
+    { name: 'BDV', codes: ['Banco de Venezuela'] },
+    { name: 'Pago Movil', codes: ['Pago Movil'] }
+];
 
 export default async function handler(req, res) {
     if (req.method === 'GET') {
         try {
-            // 1. Fetch Saldo.com.ar Rates (Using 'palpal' system for PayPal to USDT)
-            const saldoRes = await axios.get('https://api.saldo.com.ar/json/rates/palpal');
-            const saldoData = saldoRes.data;
+            // Fetch P2P Rates for each bank
+            const rates = await Promise.all(BANKS.map(async (bank) => {
+                try {
+                    const payload = {
+                        "asset": "USDT",
+                        "fiat": "VES",
+                        "merchantCheck": false,
+                        "page": 1,
+                        "payTypes": bank.codes,
+                        "publisherType": null,
+                        "rows": 1,
+                        "tradeType": "BUY" // Sell our USDT to get VES
+                    };
+                    const resBuy = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', payload);
 
-            // 2. Fetch Binance P2P Rate (Internal BAPI Search)
-            // We search for: Asset=USDT, Fiat=VES, TradeType=BUY (to sell our USDT), PublisherType=MERCHANT
-            let p2pRate = 0;
-            try {
-                const p2pPayload = {
-                    "asset": "USDT",
-                    "fiat": "VES",
-                    "merchantCheck": false,
-                    "page": 1,
-                    "payTypes": ["Maino", "Banesco", "Banco de Venezuela"],
-                    "publisherType": null,
-                    "rows": 5,
-                    "tradeType": "BUY" // We want to BUY VES with our USDT
-                };
+                    const payloadSell = { ...payload, "tradeType": "SELL" }; // Buy USDT with VES
+                    const resSell = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', payloadSell);
 
-                const p2pRes = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', p2pPayload);
-                if (p2pRes.data && p2pRes.data.data && p2pRes.data.data.length > 0) {
-                    p2pRate = parseFloat(p2pRes.data.data[0].adv.price);
+                    return {
+                        name: bank.name,
+                        sell: resBuy.data?.data?.[0]?.adv?.price || 0, // Price to sell USDT
+                        buy: resSell.data?.data?.[0]?.adv?.price || 0  // Price to buy USDT
+                    };
+                } catch (e) {
+                    return { name: bank.name, sell: 0, buy: 0 };
                 }
-            } catch (p2pErr) {
-                console.error('P2P Fetch Error:', p2pErr.message);
-                // Fallback to a safe estimate if API fails
-                p2pRate = 568.5;
-            }
-
-            // 3. Get Manual Rates from Redis
-            const manualBankRateStr = await redis.get('sentinel_ves_bank_rate');
-            const manualBankRate = manualBankRateStr ? parseFloat(manualBankRateStr) : 430.0;
-
-            const manualP2PRateStr = await redis.get('sentinel_ves_p2p_rate');
-            const finalP2PRate = manualP2PRateStr ? parseFloat(manualP2PRateStr) : (p2pRate || 568.5);
+            }));
 
             res.json({
                 success: true,
                 data: {
-                    saldoar: {
-                        usdt_ask: saldoData.usdt?.ask || 0,
-                        usdt_bid: saldoData.usdt?.bid || 0,
-                        paypal_to_usdt: saldoData.usdt?.ask ? (1 / saldoData.usdt.ask) : 0.939 // Ratio USDT received per 1 PayPal USD
-                    },
-                    p2p: {
-                        rate: finalP2PRate,
-                        auto_rate: p2pRate
-                    },
-                    bank: {
-                        rate: manualBankRate
-                    },
+                    rates,
                     timestamp: new Date().toISOString()
                 }
             });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
-    } else if (req.method === 'POST') {
-        try {
-            const { bankRate, p2pRate } = req.body;
-
-            if (bankRate && !isNaN(bankRate)) {
-                await redis.set('sentinel_ves_bank_rate', bankRate.toString());
-            }
-
-            if (p2pRate && !isNaN(p2pRate)) {
-                await redis.set('sentinel_ves_p2p_rate', p2pRate.toString());
-            }
-
-            res.json({ success: true, bankRate, p2pRate });
-        } catch (error) {
-            res.status(500).json({ success: false, error: error.message });
-        }
     }
 }
+

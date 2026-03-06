@@ -29,12 +29,16 @@ async function getDynamicTopPairs() {
         try {
             const res = await axios.get(src.url, { timeout: 5000 });
             if (res.data && Array.isArray(res.data)) {
-                // BLACKLIST
-                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC', 'TROY', 'PUMP', 'ASTER', 'PEPE', 'NEAR'];
+                // BLACKLIST: TOKENS QUE NO QUEREMOS OPERAR (ESTABLES O NO DESEADOS)
+                const BLACKLIST = ['USDC', 'FDUSD', 'TUSD', 'BUSD', 'DAI', 'USDP', 'AEUR', 'EUR', 'GBP', 'PAXG', 'WBTC', 'USD1', 'USDE', 'SUSD', 'FRAX', 'LUSD', 'GUSD', 'FUSD', 'ZAMA', 'ZEC', 'TROY', 'PUMP', 'ASTER', 'PEPE', 'NEAR', 'U'];
                 const relevant = res.data.filter(p => {
                     if (!p.symbol.endsWith('USDT')) return false;
                     if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;
-                    if (BLACKLIST.some(blocked => p.symbol.includes(blocked))) return false;
+                    
+                    // Extraemos el activo base (ej: BTC de BTCUSDT)
+                    const baseAsset = p.symbol.replace('USDT', '');
+                    if (BLACKLIST.includes(baseAsset)) return false;
+                    
                     return parseFloat(p.quoteVolume) > 5000000;
                 });
                 relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));

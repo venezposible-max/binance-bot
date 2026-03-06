@@ -1,0 +1,517 @@
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.modalContent {
+    background: #0B0E11;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(59, 130, 246, 0.1);
+    border-radius: 28px;
+    width: 100%;
+    max-width: 550px;
+    overflow: hidden;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 28px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.titleArea {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.titleArea h2 {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #fff;
+    margin: 0;
+    letter-spacing: 1.5px;
+}
+
+.polyTag {
+    font-size: 0.65rem;
+    background: #3B82F6;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 900;
+    margin-left: 10px;
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: #475569;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.closeBtn:hover {
+    color: #fff;
+}
+
+.body {
+    padding: 28px;
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+.viewToggle {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    gap: 8px;
+}
+
+.viewToggle button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #475569;
+    padding: 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.activeTab {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: #60A5FA !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(59, 130, 246, 0.05);
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    margin-bottom: 30px;
+}
+
+.statusLabel {
+    font-size: 0.6rem;
+    color: #64748B;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.statusActive {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #60A5FA;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.statusIdle {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #94A3B8;
+}
+
+.activateBtn,
+.deactivateBtn {
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.activateBtn {
+    background: #3B82F6;
+    color: #fff;
+    border: none;
+}
+
+.deactivateBtn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.bankrollConfig {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 18px;
+    border-radius: 20px;
+    margin-bottom: 25px;
+}
+
+.configItem label {
+    font-size: 0.55rem;
+    font-weight: 800;
+    color: #64748B;
+}
+
+.inputWrap {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+
+.inputWrap input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 800;
+    width: 100%;
+}
+
+.walletDisplay {
+    background: linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%);
+    padding: 15px 20px;
+    border-radius: 18px;
+    color: #fff;
+    text-align: right;
+}
+
+.walletLabel {
+    font-size: 0.5rem;
+    font-weight: 950;
+    opacity: 0.7;
+}
+
+.walletBalance {
+    font-size: 1.1rem;
+    font-weight: 950;
+}
+
+.availableRow {
+    font-size: 0.65rem;
+    opacity: 0.9;
+    margin-top: 4px;
+}
+
+.imbalanceSection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #60A5FA;
+}
+
+.tradeList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tradeCard {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 18px;
+}
+
+.tradeTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.marketTitle {
+    font-size: 0.85rem;
+    font-weight: 850;
+    color: #fff;
+    flex: 1;
+    padding-right: 15px;
+}
+
+.pnlBox {
+    font-size: 1.1rem;
+    font-weight: 950;
+}
+
+.tradeDetails {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.detail {
+    display: flex;
+    flex-direction: column;
+}
+
+.detail span:first-child {
+    font-size: 0.55rem;
+    color: #64748B;
+    font-weight: 800;
+}
+
+.ratioVal {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #60A5FA;
+}
+
+.closeBtnSmall {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #EF4444;
+    font-size: 0.55rem;
+    font-weight: 900;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.tradeFooter {
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: #475569;
+}
+
+.pulseTag {
+    color: #60A5FA;
+    font-weight: 800;
+    animation: blink 2s infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.scanningArea {
+    padding: 40px;
+    text-align: center;
+    color: #475569;
+    font-size: 0.8rem;
+}
+
+.spin {
+    animation: rotate 2s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.historyStats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.stat {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.statLabel {
+    font-size: 0.55rem;
+    font-weight: 800;
+    color: #64748B;
+}
+
+.statVal {
+    font-size: 0.95rem;
+    font-weight: 950;
+}
+
+.clearBtn {
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #EF4444;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.historyList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.historyCard {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 15px;
+    border-radius: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.histInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.histTitle {
+    font-size: 0.75rem;
+    font-weight: 850;
+    color: #fff;
+}
+
+.histTime {
+    font-size: 0.6rem;
+    color: #475569;
+}
+
+.histResult {
+    font-size: 0.85rem;
+    font-weight: 950;
+}
+
+.footer {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px 28px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footerInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.6rem;
+    color: #475569;
+}
+
+.hotEventsSection {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.hotList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.hotCard {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.hotCard:hover {
+    background: rgba(59, 130, 246, 0.1);
+    transform: translateX(5px);
+}
+
+.hotInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.hotTitle {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.2;
+}
+
+.hotMeta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.6rem;
+    color: #64748B;
+    font-weight: 700;
+}
+
+.liveStatus {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.55rem;
+    font-weight: 900;
+    color: #60A5FA;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    background: #60A5FA;
+    border-radius: 50%;
+    animation: blink 1.5s infinite;
+}

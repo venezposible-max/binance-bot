@@ -156,8 +156,8 @@ export const executeOrder = async (symbol, side, quantity, currentPrice = 0, typ
             throw new Error(`SAFETY: Buy amount $${quantity} is below Binance minimum ($${rules.minNotional})`);
         }
 
-        // Round USDT amount (usually 2 decimals for USDT pairs, dependent on tickSize of quote asset technically, but 2 is standard safe for USDT)
-        params.quoteOrderQty = quantity.toFixed(2);
+        // Redondear SIEMPRE hacia ABAJO para no exceder el balance por decimales
+        params.quoteOrderQty = (Math.floor(quantity * 100) / 100).toFixed(2);
 
     } else {
         // For SELL, we must send quantity (Crypto Amount) rounded to LOT_SIZE

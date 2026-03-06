@@ -12,10 +12,12 @@ import BotReport from './components/BotReport';
 import DocumentationModal from './components/DocumentationModal';
 import HistoryModal from './components/HistoryModal';
 import VESArbitrageModal from './components/VESArbitrageModal';
+import WhaleSniperModal from './components/WhaleSniperModal';
+import PolymarketSniperModal from './components/PolymarketSniperModal';
 import LogConsole from './components/LogConsole';
 import UnixaBacktestModal from './components/UnixaBacktestModal';
 
-import { BookOpen, Terminal, ShieldCheck, History, Globe } from 'lucide-react';
+import { BookOpen, Terminal, ShieldCheck, History, Globe, Radar, LayoutGrid } from 'lucide-react';
 
 // --- HOOKS (The New Brains) ---
 import { useWallet } from './hooks/useWallet';
@@ -41,6 +43,8 @@ function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isArbitrageOpen, setIsArbitrageOpen] = useState(false);
+  const [isWhaleSniperOpen, setIsWhaleSniperOpen] = useState(false);
+  const [isPolymarketOpen, setIsPolymarketOpen] = useState(false);
   const [isUnixaBacktestOpen, setIsUnixaBacktestOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState('dashboard');
 
@@ -112,11 +116,54 @@ function App() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                marginRight: '6px'
               }}
             >
               <Globe size={11} /> MONITOR VES
             </button>
+
+            <button
+              onClick={() => setIsWhaleSniperOpen(true)}
+              style={{
+                background: 'rgba(153, 69, 255, 0.1)',
+                border: '1px solid rgba(153, 69, 255, 0.3)',
+                color: '#A855F7',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                fontSize: '0.6rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                marginRight: '6px'
+              }}
+            >
+              <Radar size={11} /> WHALE SNIPER
+            </button>
+
+            <button
+              onClick={() => setIsPolymarketOpen(true)}
+              style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                color: '#60A5FA',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                fontSize: '0.6rem',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <LayoutGrid size={11} /> POLYMARKET SNIPER
+            </button>
+
 
             <div
               className={styles.statusBadge}
@@ -343,6 +390,8 @@ function App() {
       />
       {isLogOpen && <LogConsole onClose={() => setIsLogOpen(false)} />}
       <VESArbitrageModal isOpen={isArbitrageOpen} onClose={() => setIsArbitrageOpen(false)} />
+      <WhaleSniperModal isOpen={isWhaleSniperOpen} onClose={() => setIsWhaleSniperOpen(false)} />
+      <PolymarketSniperModal isOpen={isPolymarketOpen} onClose={() => setIsPolymarketOpen(false)} />
       <UnixaBacktestModal isOpen={isUnixaBacktestOpen} onClose={() => setIsUnixaBacktestOpen(false)} />
       <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
     </div>

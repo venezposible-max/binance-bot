@@ -12,8 +12,11 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@solana/web3.js": "^1.98.4",
     "@vercel/kv": "^3.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "axios": "^1.13.4",
+    "bs58": "^6.0.0",
     "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
@@ -29,10 +32,9 @@
     "technicalindicators": "^3.1.0",
     "tsparticles-slim": "^2.12.0",
     "uuid": "^13.0.0",
-    "vite-plugin-pwa": "^1.2.0",
-    "ws": "^8.18.3",
     "vite": "^6.0.0",
-    "@vitejs/plugin-react": "^4.3.1"
+    "vite-plugin-pwa": "^1.2.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
