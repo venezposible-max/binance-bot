@@ -286,7 +286,6 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
     };
 
     const toggleVolcano = () => updateStrategyModule('HYBRID_VORTEX', 'useVolcano');
-    const toggleBtcGuard = () => updateStrategyModule('HYBRID_VORTEX', 'useBtcGuard');
 
     // Replaced by debounced updater above
 
@@ -353,38 +352,6 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                                     </div>
                                     <div style={{ fontSize: '0.55rem', color: isVolcanoOn ? '#fff' : '#64748B', marginTop: '2px' }}>
                                         {isVolcanoOn ? 'ACTIVE' : 'DISABLED'}
-                                    </div>
-                                </div>
-                            );
-                        })()}
-
-                        {/* 3. BTC GUARD TOGGLE */}
-                        {(() => {
-                            const isGuardOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useBtcGuard === true; // Default OFF
-                            return (
-                                <div
-                                    onClick={readOnly ? null : toggleBtcGuard}
-                                    title="Activar/Desactivar Protección contra BTC Crash"
-                                    style={{
-                                        flex: 1,
-                                        background: isGuardOn ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: isGuardOn ? '1px solid #EF4444' : '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                        cursor: readOnly ? 'default' : 'pointer',
-                                        padding: '8px',
-                                        transition: 'all 0.2s ease',
-                                        userSelect: 'none',
-                                        opacity: readOnly ? 0.7 : 1
-                                    }}
-                                >
-                                    <div style={{ fontSize: '0.9rem', color: isGuardOn ? '#F87171' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        🛡️ GUARD
-                                    </div>
-                                    <div style={{ fontSize: '0.55rem', color: isGuardOn ? '#fff' : '#64748B', marginTop: '2px', fontWeight: 'bold' }}>
-                                        {isGuardOn
-                                            ? (btcChange !== null ? `${btcChange > 0 ? '+' : ''}${btcChange}% (2h)` : 'PROTECTED')
-                                            : 'DISABLED'}
                                     </div>
                                 </div>
                             );

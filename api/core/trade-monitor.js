@@ -47,81 +47,36 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                 pnl = ((currentBid - trade.entryPrice) / trade.entryPrice) * 100;
             }
 
-            // 4. TRAILING STOP LOGIC
-            // Only runs in memory for this cycle until saved
+            // 4. TRAILING STOP LOGIC (Puro Volcano 🌋)
+            // Olvidamos el Take Profit clásico. Solo salimos cuando el precio retroceda un -1.5% desde su pico máximo.
             let updatedTrade = { ...trade };
             let isExit = false;
             let exitReason = '';
 
-            // ⛔ BYPASS TRAILING STOP FOR UNIXA (It holds for natural Target or Timeout)
-            if (trade.strategy !== 'UNIXA') {
-                // 🩹 SELF-HEALING: Fix Zombie Trades (Trailing but no SL)
-                if (trade.isTrailing && (!trade.stopLoss || trade.stopLoss <= 0)) {
-                    // If we lost the SL value but flag is true, restore it safely below current price
-                    const healMargin = 0.005; // 0.5% buffer
-                    if (trade.type === 'SHORT') updatedTrade.stopLoss = currentPrice * (1 + healMargin);
-                    else updatedTrade.stopLoss = currentPrice * (1 - healMargin);
-                    console.log(`[${mode}] 🩹 HEALING ${symbol}: Restored missing TS to ${updatedTrade.stopLoss.toFixed(4)}`);
-                }
-
-                // Dynamic Trailing: Activates after +0.7% profit
-                if (pnl >= 0.7) {
-                    const trailMargin = 0.002; // 0.2% distance
-                    let newTrailingSL = 0;
-                    let trailingTriggered = false;
-
-                    if (trade.type === 'SHORT') {
-                        newTrailingSL = currentPrice * (1 + trailMargin);
-                        // Move SL down (tighten)
-                        if (!trade.stopLoss || newTrailingSL < trade.stopLoss) {
-                            updatedTrade.stopLoss = newTrailingSL;
-                            trailingTriggered = true;
-                        }
-                    } else {
-                        newTrailingSL = currentPrice * (1 - trailMargin);
-                        // Move SL up (tighten)
-                        if (!trade.stopLoss || newTrailingSL > trade.stopLoss) {
-                            updatedTrade.stopLoss = newTrailingSL;
-                            trailingTriggered = true;
-                        }
-                    }
-
-                    if (trailingTriggered || trade.isTrailing) {
-                        updatedTrade.isTrailing = true;
-                        if (trailingTriggered) {
-                            console.log(`[${mode}] ⛓️ TRAILING STOP UPDATED: ${symbol} @ +${pnl.toFixed(2)}% | New SL: ${newTrailingSL}`);
-                        }
-                    }
-                }
-            } // END OF IF NOT UNIXA
-
-            // 5. EXIT CONDITIONS CHECK
-            const hasSpecificSL = updatedTrade.stopLoss !== null && updatedTrade.stopLoss !== undefined;
-            const globalTP = walletConfig.takeProfit || 1.5;
-
-            // Priority: Trade TP > Global Config TP
-            let finalTPPerc = globalTP;
-            if (trade.takeProfit) {
-                // Convert price-based TP to percentage logic if stored as price, 
-                // OR if stored as absolute price, check price directly.
-                // Currently VORTEX stores Absolute Price in 'takeProfit'.
-
-                // Absolute Price Check
-                if (trade.type === 'LONG' && currentPrice >= trade.takeProfit) { isExit = true; exitReason = 'TP_HIT'; }
-                if (trade.type === 'SHORT' && currentPrice <= trade.takeProfit) { isExit = true; exitReason = 'TP_HIT'; }
-            } else {
-                // Percentage fallback
-                if (pnl >= finalTPPerc) { isExit = true; exitReason = 'GLOBAL_TP_HIT'; }
+            // Inicializar línea de agua máxima si no existe (al comprar, el max es el precio de entrada)
+            if (!updatedTrade.highestWatermark) {
+                updatedTrade.highestWatermark = updatedTrade.entryPrice;
             }
 
-            // Stop Loss Check (Only if NOT UNIXA)
-            if (hasSpecificSL && trade.strategy !== 'UNIXA') {
-                if (trade.type === 'LONG' && currentPrice <= updatedTrade.stopLoss) { isExit = true; exitReason = 'SL_HIT'; }
-                else if (trade.type === 'SHORT' && currentPrice >= updatedTrade.stopLoss) { isExit = true; exitReason = 'SL_HIT'; }
+            // Actualizar el pico máximo si la moneda explota
+            if (currentPrice > updatedTrade.highestWatermark) {
+                updatedTrade.highestWatermark = currentPrice;
             }
 
-            // ⚠️ UNIXA EXCLUSIVE RULES REMOVED (By user request: No SL/Timeout/Euphoria)
-            // Now behaves like Vortex: Only exits via TP (Take Profit) or Manual Close
+            // Calcular el Trailing Stop (-1.5% desde el pico)
+            const trailingPercent = 0.015; // 1.5%
+            const trailingLine = updatedTrade.highestWatermark * (1 - trailingPercent);
+
+            updatedTrade.stopLoss = trailingLine;
+            updatedTrade.isTrailing = true;
+
+            // 5. CONDICIÓN DE VENTA (El Perro de Presa)
+            // Si el precio baja o toca nuestra línea trazada desde el pico: ¡VENDER!
+            if (currentPrice <= trailingLine) {
+                isExit = true;
+                exitReason = 'TRAILING_STOP_HIT';
+            }
+
 
             // 6. EXECUTE EXIT
             if (isExit) {

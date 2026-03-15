@@ -7,7 +7,6 @@ import { runWithLock } from './utils/locker.js';
 // --- IMPORT CORE MODULES ---
 import { monitorActiveTrades } from './core/trade-monitor.js';
 import { scanMarketOpportunities } from './core/market-scanner.js';
-import { checkBTCGuardStatus } from '../lib/core/btc-guard.js';
 import marketWorker from './stream/market-worker.js';
 
 // --- Shared Helper (With 15-Min Cache) ---
@@ -34,15 +33,15 @@ async function getDynamicTopPairs() {
                 const relevant = res.data.filter(p => {
                     if (!p.symbol.endsWith('USDT')) return false;
                     if (!/^[A-Z0-9]+$/.test(p.symbol)) return false;
-                    
+
                     // Extraemos el activo base (ej: BTC de BTCUSDT)
                     const baseAsset = p.symbol.replace('USDT', '');
                     if (BLACKLIST.includes(baseAsset)) return false;
-                    
+
                     return parseFloat(p.quoteVolume) > 5000000;
                 });
                 relevant.sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume));
-                const finalPairs = relevant.slice(0, 12).map(p => p.symbol);
+                const finalPairs = relevant.slice(0, 20).map(p => p.symbol);
 
                 lastTopPairs = finalPairs;
                 lastPairSync = now;
@@ -102,7 +101,7 @@ async function processMode(mode, marketPairs, marketCache) {
             const usdt = await binanceClient.getAccountBalance('USDT');
             if (usdt && !usdt.error) {
                 // USAR 'available' en lugar de 'total' para evitar intentar usar fondos bloqueados
-                wallet.currentBalance = usdt.available; 
+                wallet.currentBalance = usdt.available;
                 await redis.set(configKey, JSON.stringify(wallet));
                 lastBalanceSync = now;
                 console.log(`⚖️ [LIVE] Usable Balance Synced: $${wallet.currentBalance}`);
@@ -131,30 +130,7 @@ async function processMode(mode, marketPairs, marketCache) {
     // --- STEP 2: SCAN NEW OPPORTUNITIES (The Explorer) ---
     let newScanTrades = [];
 
-    // 🛡️ BTC GUARD CHECK
-    const useBtcGuard = wallet.strategyConfig?.HYBRID_VORTEX?.useBtcGuard === true;
-    let btcVeto = false;
-
-    if (useBtcGuard) {
-        try {
-            const guard = await checkBTCGuardStatus();
-            const btcChange = guard.btcChange;
-
-            // Save to Redis for UI
-            await redis.set('sentinel_btc_change', btcChange.toFixed(2));
-
-            // CRASH CRITERIA: -1.5% drop (From lib/core/btc-guard)
-            if (guard.status === 'DANGER') {
-                btcVeto = true;
-                console.log(`🛡️ [BTC GUARD] ⛔ VETO ACTIVE: Bitcoin is erratic (${btcChange.toFixed(2)}%). Pausing entries.`);
-            }
-        } catch (err) {
-            console.warn(`🛡️ [BTC GUARD] ⚠️ Failed to check BTC health: ${err.message}. Proceeding with caution.`);
-        }
-    } else {
-        // Clear value if guard is off (optional, but keeps UI clean)
-        await redis.del('sentinel_btc_change');
-    }
+    // Protocol Btc Guard REMOVED by user request
 
     // Lockdown Check (Global Emergency)
     const isLockdown = globalLockdown === 'true';
@@ -180,8 +156,8 @@ async function processMode(mode, marketPairs, marketCache) {
             const candidates = marketPairs.filter(s => !occupied.includes(s) && !excludedSymbols.includes(s));
 
             if (candidates.length > 0) {
-                // 🔥 CALL THE SCANNER: We pass btcVeto so it can filter Vortex but let UNIXA pass
-                newScanTrades = await scanMarketOpportunities(candidates, mode, wallet, marketCache, updatedActiveTrades.length, btcVeto);
+                // 🔥 CALL THE SCANNER: BTC Veto Removed
+                newScanTrades = await scanMarketOpportunities(candidates, mode, wallet, marketCache, updatedActiveTrades.length);
             } else {
                 // Keep logs quiet if no candidates
             }

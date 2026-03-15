@@ -33,9 +33,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
     // Log intent (Sequential)
     const strategyConfig = walletConfig.strategyConfig?.HYBRID_VORTEX || {};
     const enabledStrats = [];
-    if (strategyConfig.useVortex !== false) enabledStrats.push('VORTEX');
-    if (strategyConfig.useHybrid !== false) enabledStrats.push('HYBRID');
-    if (strategyConfig.useUnixa === true) enabledStrats.push('UNIXA');
+    if (strategyConfig.useVolcano !== false) enabledStrats.push('VOLCANO');
 
     console.log(`📡 [${mode}] SCANNING ${candidates.length} COINS | STRATS: [${enabledStrats.join(' + ')}]`);
 
@@ -56,64 +54,28 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
             const candles = await fetchGlobalKlines(symbol, '5m', 150);
             if (!candles) continue; // Skip to next iteration
 
-            // 2. Run Analysis
-            const analysisRes = analysis.analyzeVortex(null, candles);
+            // 2. Run Analysis (Volcano)
+            const analysisRes = analysis.analyzeVolcano(null, candles);
 
             // 🧬 CONFIG: STRATEGY TOGGLES
             const strategyConfig = walletConfig.strategyConfig?.HYBRID_VORTEX || {};
-            const useVortex = strategyConfig.useVortex !== false;
-            const useHybrid = strategyConfig.useHybrid !== false;
-            const useUnixa = strategyConfig.useUnixa === true; // NEW: UNIXA Logic
-            const minOdds = parseFloat(strategyConfig.minOdds || 67);
+            const useVolcano = strategyConfig.useVolcano !== false;
 
             // --- EVALUATE SIGNALS ---
-            let vortexSignal = false;
-            let hybridSignal = false;
+            let volcanoSignal = false;
 
-            // A. VORTEX (Technical Dip)
-            if (useVortex) {
-                if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 30) {
-                    vortexSignal = true;
-                }
-            } else { vortexSignal = false; } // Bypass OFF
-
-            // B. HYBRID (Statistical Odds)
-            const odds = parseFloat(analysisRes.indicators.hybrid?.odds || 50);
-            if (useHybrid) {
-                if (odds >= minOdds) {
-                    hybridSignal = true;
-                }
-            } else { hybridSignal = false; } // Bypass OFF
-
-            // C. UNIXA (Extreme RSI < 2)
-            let unixaSignal = false;
-            let unixaRes = null;
-            if (useUnixa) {
-                unixaRes = analysis.analyzeUnixa(null, candles);
-                if (unixaRes.prediction.signal.includes('BUY')) {
-                    unixaSignal = true;
+            if (useVolcano) {
+                if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 80) {
+                    volcanoSignal = true;
                 }
             }
 
             // --- FINAL DECISION ---
-            // Winning Condition: Both Vortex & Hybrid (if active) must agree, OR just the active one
-            // We need at least ONE active system to be TRUE
-            let standardEntry = false;
-
-            if (useVortex && useHybrid) {
-                standardEntry = vortexSignal && hybridSignal && !btcVeto;
-            } else if (useVortex && !useHybrid) {
-                standardEntry = vortexSignal && !btcVeto;
-            } else if (!useVortex && useHybrid) {
-                standardEntry = hybridSignal && !btcVeto;
-            }
-
-            // UNIXA Condition: Signal matches AND (It bypasses BTC Guard)
-            const entryTriggered = standardEntry || unixaSignal;
+            // Winning Condition: Volcano triggered and BTC Guard allows it.
+            const entryTriggered = (useVolcano && volcanoSignal && !btcVeto);
 
             if (entryTriggered) {
-                // If UNIXA triggered, prioritize its analysis
-                const finalAnalysis = unixaSignal ? unixaRes : analysisRes;
+                const finalAnalysis = analysisRes;
 
                 // 4. Get Price (Real-time)
                 let currentPrice = marketCache[symbol]?.price;
@@ -157,11 +119,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                 if (isNaN(realInvest) || !isFinite(realInvest)) realInvest = invest;
 
                 // Determine Dynamic Strategy Label
-                let strategyLabel = 'UNKNOWN';
-                if (unixaSignal) strategyLabel = 'UNIXA';
-                else if (useVortex && useHybrid) strategyLabel = 'VORTEX+HYBRID';
-                else if (useHybrid) strategyLabel = 'HYBRID';
-                else if (useVortex) strategyLabel = 'VORTEX';
+                let strategyLabel = 'VOLCANO';
 
                 const tradeRecord = {
                     id: uuidv4(),
@@ -181,9 +139,9 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
 
                 newTrades.push(tradeRecord);
 
-                const emoji = unixaSignal ? '🪐' : '🚀';
-                console.log(`${emoji} [${mode}] AUTO-ENTRY: ${symbol} | Strat: ${strategyLabel} | Odds: ${odds.toFixed(1)}%`);
-                await sendServerTelegram(`🤖 <b>[${mode}] AUTO ENTRY</b>\n${emoji} ${symbol}\n🏷️ ${strategyLabel}\n🧬 Odds: ${odds.toFixed(1)}%`);
+                const emoji = '🌋';
+                console.log(`${emoji} [${mode}] AUTO-ENTRY: ${symbol} | Strat: ${strategyLabel} | Vol: ${finalAnalysis.indicators.volumeRatio}x`);
+                await sendServerTelegram(`🤖 <b>[${mode}] AUTO ENTRY</b>\n${emoji} ${symbol}\n🏷️ ${strategyLabel}\n📈 Compresión Rota: ${finalAnalysis.indicators.volatility}%`);
             }
 
         } catch (e) {
