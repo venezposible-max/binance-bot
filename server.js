@@ -42,7 +42,7 @@ console.warn = (...args) => { originalWarn(...args); try { LogStore.add('WARN', 
 // --- CRASH PREVENTION & LOGGING ---
 console.log('========================================');
 console.log('🔥 SERVER STARTING...');
-console.log('🚀 DEPLOYMENT TRIGGER CHECK: V_0_0_3_FORCE (TIMESTAMP: ' + new Date().toISOString() + ')');
+console.log('🚀 DEPLOYMENT TRIGGER CHECK: V_0_0_4_FORCE_PERSISTENCE (TIMESTAMP: ' + new Date().toISOString() + ')');
 console.log('Node Version:', process.version);
 console.log('========================================');
 
@@ -137,7 +137,10 @@ const runInternalScan = async (source = 'TIMER') => {
     console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
 
     try {
-        // Volcano Engine will go here in the future
+        if (marketWorker.isBanned) {
+            console.log(`⏳ [${source}] Scan skipped - IP BANNED. Waiting for cooldown...`);
+            return;
+        }
 
         const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
             headers: { 'x-cron-secret': process.env.CRON_SECRET }, // SECURE HANDSHAKE
@@ -181,7 +184,8 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 });
 
 // Loop every 10 seconds to stay within RPC limits
-setInterval(() => runInternalScan('HEARTBEAT'), 10000);
+// Loop every 20 seconds to be safer with weight (20 coins x 3 cycles = 60 weight/min)
+setInterval(() => runInternalScan('HEARTBEAT'), 20000);
 
 // --- KEEPALIVE LOG (Every 2 minutes) ---
 setInterval(() => {

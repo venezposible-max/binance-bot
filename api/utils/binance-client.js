@@ -2,6 +2,9 @@ import 'dotenv/config';
 import crypto from 'crypto';
 import axios from 'axios';
 import querystring from 'querystring';
+import marketWorker from '../stream/market-worker.js';
+import redis from './redisClient.js';
+
 
 const API_KEY = process.env.BINANCE_API_KEY;
 const API_SECRET = process.env.BINANCE_API_SECRET;
@@ -24,6 +27,9 @@ const sign = (queryString) => {
 
 // Wrapper para Peticiones Firmadas (Privadas)
 const privateRequest = async (endpoint, method = 'GET', data = {}) => {
+    if (marketWorker.isBanned) {
+        throw new Error('IP_BANNED');
+    }
     if (!API_KEY || !API_SECRET) {
         throw new Error('MISSING_CREDENTIALS');
     }
@@ -44,6 +50,11 @@ const privateRequest = async (endpoint, method = 'GET', data = {}) => {
         });
         return response.data;
     } catch (error) {
+        if (error.response?.status === 418 || error.response?.status === 429) {
+            console.error(`🚨 [CRITICAL] IP BANNED DETECTED in privateRequest [${endpoint}].`);
+            marketWorker.isBanned = true;
+            redis.setex('sentinel_rest_banned', 900, 'true').catch(() => { });
+        }
         console.error(`🚨 BINANCE API ERROR [${endpoint}]:`, error.response?.data || error.message);
         throw error; // Rethrow to be caught by caller
     }

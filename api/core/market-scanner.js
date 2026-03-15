@@ -3,18 +3,44 @@ import * as analysis from '../../src/utils/analysis.js';
 import binanceClient from '../utils/binance-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sendServerTelegram } from '../utils/telegram-server.js';
+import marketWorker from '../stream/market-worker.js';
+
+function checkBan() {
+    return marketWorker.isBanned;
+}
 
 // --- HELPERS (Reused) ---
 async function fetchGlobalKlines(symbol, interval, limit = 150) {
+    if (checkBan()) return null;
+
     const sources = [
         { url: `https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'EU_GCP' },
+        { url: `https://api1.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'API1' },
         { url: `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'GLOBAL' }
     ];
+
     for (const src of sources) {
         try {
-            const res = await axios.get(src.url, { timeout: 5000 });
+            const res = await axios.get(src.url, { timeout: 4000 });
             if (res.data && Array.isArray(res.data)) { return res.data; }
-        } catch (e) { if (!e.response || e.response.status !== 403) break; }
+        } catch (e) {
+            const status = e.response?.status;
+            if (status === 418 || status === 429) {
+                console.error(`🚨 [REST BAN] detected on ${src.label}. Status: ${status}. Cooling down for 10 mins.`);
+                isRestBanned = true;
+                banExpiration = Date.now() + 600000; // 10 minutes
+                marketWorker.isBanned = true;
+
+                // Report to Redis (Fire and forget)
+                import('../utils/redisClient.js').then(r => {
+                    r.default.setex('sentinel_rest_banned', 600, 'true');
+                }).catch(() => { });
+
+                return null;
+            }
+            // If it's just a timeout or other error, try next mirror
+            continue;
+        }
     }
     return null;
 }
@@ -133,8 +159,7 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                     mode: mode,
                     isManual: false,
                     stopLoss: finalAnalysis.obZone?.sl || null,
-                    takeProfit: finalAnalysis.obZone?.tp || null,
-                    odds: odds
+                    takeProfit: finalAnalysis.obZone?.tp || null
                 };
 
                 newTrades.push(tradeRecord);

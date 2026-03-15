@@ -2,29 +2,55 @@ import WebSocket from 'ws';
 
 class MarketWorker {
     constructor() {
-        this.symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT'];
+        this.symbols = [];
         this.cache = {}; // symbol -> { price, bid, ask, depth }
         this.sockets = {};
         this.isInitialized = false;
+        this.isBanned = false; // Flag to stop spamming if banned
+        this.checkBanStatus(); // Initial check
 
-        console.log('📡 MARKET WORKER: Initializing Zero-Latency Stream...');
+        console.log('📡 MARKET WORKER: Initializing Dynamic Stream...');
+    }
+
+    async checkBanStatus() {
+        try {
+            const redis = (await import('../utils/redisClient.js')).default;
+            const banned = await redis.get('sentinel_rest_banned');
+            if (banned === 'true') {
+                this.isBanned = true;
+                console.warn('📡 MARKET WORKER: IP is marked as BANNED in Redis.');
+            }
+        } catch (e) { }
+    }
+
+    updateSymbols(newSymbols) {
+        if (!Array.isArray(newSymbols)) return;
+        const toAdd = newSymbols.filter(s => !this.symbols.includes(s));
+        const toRemove = this.symbols.filter(s => !newSymbols.includes(s));
+
+        toAdd.forEach(s => {
+            if (!this.cache[s]) {
+                this.cache[s] = { price: 0, bid: 0, ask: 0, depth: { bids: [], asks: [] }, lastUpdate: 0 };
+            }
+            this.connectSymbol(s);
+        });
+
+        toRemove.forEach(s => {
+            if (this.sockets[s]) {
+                this.sockets[s].close();
+                delete this.sockets[s];
+            }
+        });
+
+        this.symbols = [...newSymbols];
+        if (toAdd.length > 0 || toRemove.length > 0) {
+            console.log(`📡 MARKET WORKER: Symbols Updated. Monitoring ${this.symbols.length} pairs.`);
+        }
     }
 
     start() {
-        if (this.isInitialized) return;
+        // Initialization handled by first updateSymbols or default
         this.isInitialized = true;
-
-        // Initialize cache for all symbols
-        this.symbols.forEach(s => {
-            this.cache[s] = {
-                price: 0,
-                bid: 0,
-                ask: 0,
-                depth: { bids: [], asks: [] },
-                lastUpdate: 0
-            };
-            this.connectSymbol(s);
-        });
     }
 
     connectSymbol(symbol) {
@@ -51,9 +77,13 @@ class MarketWorker {
             console.error(`📡 MARKET WORKER: Error on ${symbol} socket:`, err.message);
         });
 
-        ws.on('close', () => {
-            console.warn(`📡 MARKET WORKER: Connection closed for ${symbol}. Reconnecting...`);
-            setTimeout(() => this.connectSymbol(symbol), 5000);
+        ws.on('close', (code) => {
+            if (this.sockets[symbol]) {
+                const delay = this.isBanned ? 60000 : 5000;
+                setTimeout(() => {
+                    if (this.symbols.includes(symbol)) this.connectSymbol(symbol);
+                }, delay);
+            }
         });
 
         this.sockets[symbol] = ws;

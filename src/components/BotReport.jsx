@@ -4,20 +4,11 @@ import { ShieldCheck, Brain, Activity, Zap, History, Settings } from 'lucide-rea
 import { API_BASE } from '../config/api';
 
 const BotReport = ({ config, cloudStatus }) => {
-    const blacklistCount = cloudStatus?.blacklist?.length || 0;
     const strategyConf = config?.strategyConfig?.HYBRID_VORTEX || {};
-    const useVortex = strategyConf.useVortex !== false;
-    const useHybrid = strategyConf.useHybrid !== false;
-    const useUnixa = strategyConf.useUnixa === true;
+    const useVolcano = strategyConf.useVolcano !== false;
     const minOdds = strategyConf.minOdds || 67;
 
-    let activeModules = [];
-    if (useVortex) activeModules.push('VORTEX');
-    if (useHybrid) activeModules.push('HYBRID');
-    if (useUnixa) activeModules.push('UNIXA');
-
-    let strategyName = activeModules.length > 0 ? activeModules.join(' + ') : 'MONITOR (INACTIVO)';
-
+    const strategyName = useVolcano ? 'VOLCANO' : 'MONITOR (INACTIVO)';
     const [displayOdds, setDisplayOdds] = React.useState(minOdds);
 
     // Sync local state when prop updates (from server polling)
@@ -55,8 +46,6 @@ const BotReport = ({ config, cloudStatus }) => {
                     tradingMode: config.tradingMode
                 })
             });
-            // UX Feedback: simple alert for now, polling will update UI shortly
-            // alert(`✅ Filtro actualizado a ${newOdds}%`); 
         } catch (e) {
             console.error("Error updating odds:", e);
             alert("❌ Error al guardar configuración");
@@ -76,7 +65,7 @@ const BotReport = ({ config, cloudStatus }) => {
                     <div className={styles.statLabel}>
                         <Zap size={12} /> ESTRATEGIA
                     </div>
-                    <div className={styles.statValue} style={{ fontSize: '0.8rem' }}>{strategyName}</div>
+                    <div className={styles.statValue} style={{ fontSize: '0.8rem', color: '#EF4444', fontWeight: 'bold' }}>{strategyName}</div>
                 </div>
 
                 <div className={styles.statItem}>
@@ -95,13 +84,11 @@ const BotReport = ({ config, cloudStatus }) => {
                     </div>
                 </div>
 
-
-
                 <div className={styles.statItem}>
                     <div className={styles.statLabel}>
                         <Activity size={12} /> ESCANEO
                     </div>
-                    <div className={styles.statValue}>12 Pares (Live)</div>
+                    <div className={styles.statValue}>20 Pares (Live)</div>
                 </div>
             </div>
 

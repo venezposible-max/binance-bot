@@ -46,6 +46,9 @@ async function getDynamicTopPairs() {
                 lastTopPairs = finalPairs;
                 lastPairSync = now;
 
+                // 🔄 SYNC WORKER: Tell the WebSocket stream to track these 20 coins
+                marketWorker.updateSymbols(finalPairs);
+
                 try {
                     await redis.set('sentinel_active_pairs', JSON.stringify(finalPairs));
                 } catch (redisErr) { console.warn('⚠️ Failed to save top pairs to Redis:', redisErr.message); }
@@ -53,14 +56,19 @@ async function getDynamicTopPairs() {
                 return finalPairs;
             }
         } catch (e) {
+            if (e.response?.status === 418 || e.response?.status === 429) {
+                marketWorker.isBanned = true;
+            }
             console.warn(`⚠️ Dynamic Pairs [${src.label}] Fail: ${e.message}`);
         }
     }
-    return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT'];
+    return lastTopPairs.length > 0 ? lastTopPairs : ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'TRXUSDT', 'BNBUSDT', 'AVAXUSDT', 'LINKUSDT'];
 }
 
 async function fetchGlobalPrice(symbol, cache = null) {
-    if (cache && cache[symbol]) return { ...cache[symbol], source: 'WS_CACHE' };
+    if (cache && cache[symbol]?.price > 0) return { ...cache[symbol], source: 'WS_CACHE' };
+    if (marketWorker.isBanned) return null;
+
     const sources = [
         { url: `https://api-gcp.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU_GCP' },
         { url: `https://api1.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU_ALT' },
@@ -70,7 +78,13 @@ async function fetchGlobalPrice(symbol, cache = null) {
         try {
             const res = await axios.get(src.url, { timeout: 3000 });
             return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: src.label };
-        } catch (e) { continue; }
+        } catch (e) {
+            if (e.response?.status === 418 || e.response?.status === 429) {
+                marketWorker.isBanned = true;
+                break;
+            }
+            continue;
+        }
     }
     return null;
 }
@@ -96,7 +110,7 @@ async function processMode(mode, marketPairs, marketCache) {
 
     // SYNC BALANCE LIVE (Slowed down to 60s for Rate Limit Safety)
     const now = Date.now();
-    if (mode === 'LIVE' && (now - lastBalanceSync) > 60000) {
+    if (mode === 'LIVE' && (now - lastBalanceSync) > 60000 && !marketWorker.isBanned) {
         try {
             const usdt = await binanceClient.getAccountBalance('USDT');
             if (usdt && !usdt.error) {
@@ -105,6 +119,8 @@ async function processMode(mode, marketPairs, marketCache) {
                 await redis.set(configKey, JSON.stringify(wallet));
                 lastBalanceSync = now;
                 console.log(`⚖️ [LIVE] Usable Balance Synced: $${wallet.currentBalance}`);
+            } else if (usdt?.error?.status === 418 || usdt?.error?.status === 429) {
+                marketWorker.isBanned = true;
             }
         } catch (e) { }
     }
@@ -221,8 +237,8 @@ async function processMode(mode, marketPairs, marketCache) {
                 }
             }
 
-            // Cap History
-            if (dbHistory.length > 50) dbHistory = dbHistory.slice(0, 50);
+            // Cap History (Aumentado para mejor visualización)
+            if (dbHistory.length > 500) dbHistory = dbHistory.slice(0, 500);
 
             // C. WRITE
             await redis.set(activeKey, JSON.stringify(nextActiveList));

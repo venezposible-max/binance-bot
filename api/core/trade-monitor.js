@@ -3,6 +3,12 @@ import binanceClient from '../utils/binance-client.js';
 import { sendServerTelegram } from '../utils/telegram-server.js';
 import axios from 'axios';
 import { RSI } from 'technicalindicators';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * CORE MODULE: TRADE MONITOR
@@ -70,9 +76,11 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
             updatedTrade.stopLoss = trailingLine;
             updatedTrade.isTrailing = true;
 
-            // 5. CONDICIÓN DE VENTA (El Perro de Presa)
-            // Si el precio baja o toca nuestra línea trazada desde el pico: ¡VENDER!
-            if (currentPrice <= trailingLine) {
+            // 5. CONDICIÓN DE VENTA (Solo en Ganancia + Trailing) 🚀
+            // Solo vendemos si:
+            // 1. El precio toca o baja del trailing line (-1.5% desde el pico).
+            // 2. El precio sigue siendo mayor al de entrada (Aseguramos no vender en pérdida).
+            if (currentPrice <= trailingLine && currentPrice > updatedTrade.entryPrice) {
                 isExit = true;
                 exitReason = 'TRAILING_STOP_HIT';
             }
@@ -167,6 +175,15 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                 // Notification - USING SERVER DIRECT SEND
                 const emoji = netProfit >= 0 ? '🟢' : '🔴';
                 await sendServerTelegram(`🚨 <b>[${mode}] AUTO CLOSE: ${symbol}</b>\n${emoji} ROI: ${finalPercent.toFixed(2)}%\n💰 $${netProfit.toFixed(2)} (${exitReason})`);
+
+                // --- PERSISTENCIA TOTAL (Txt Log) ---
+                try {
+                    const logEntry = `[${new Date().toLocaleString('es-VE')}] [${mode}] ${symbol} | ${trade.type} | PnL: ${finalPercent.toFixed(2)}% | Profit: $${netProfit.toFixed(2)} | Reason: ${exitReason}\n`;
+                    const logPath = path.join(process.cwd(), 'TRADE_HISTORY_LOG.txt'); // Use process.cwd() to reach root
+                    fs.appendFileSync(logPath, logEntry);
+                } catch (logErr) {
+                    console.error("❌ Failed to write to TRADE_HISTORY_LOG.txt:", logErr.message);
+                }
 
                 history.push(winRecord);
 
