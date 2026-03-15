@@ -51,25 +51,14 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         // 5. [NEW] Strategy Modules Configuration
         const currentConfig = wallet.strategyConfig?.HYBRID_VORTEX || {};
 
-        // Vortex Toggle (Visual button controls this now)
-        const useVortex = currentConfig.useVortex !== false;
-
-        // Hybrid Toggle (Visual button controls this now)
-        const useHybrid = currentConfig.useHybrid !== false;
-
-        // UNIXA Toggle (Visual button controls this now)
-        const useUnixa = currentConfig.useUnixa === true;
+        // Volcano Toggle
+        const useVolcano = currentConfig.useVolcano !== false;
 
         let minOdds = currentConfig.minOdds || 67;
-        if (useHybrid) {
-            const minOddsInput = prompt('🧬 Umbral Mínimo de Probabilidad (%):', currentConfig.minOdds || 67);
-            if (minOddsInput === null) return;
-            minOdds = parseFloat(minOddsInput);
-        }
 
         const confirmMsg = isLive
-            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Vortex: ${useVortex ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
-            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Vortex: ${useVortex ? 'ON' : 'OFF'}] [Hybrid: ${useHybrid ? 'ON' : 'OFF'}]`;
+            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Volcano: ${useVolcano ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
+            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Volcano: ${useVolcano ? 'ON' : 'OFF'}]`;
 
         if (confirm(confirmMsg)) {
             // OPTIMISTIC UPDATE: Update UI immediately
@@ -88,9 +77,7 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                     HYBRID_VORTEX: {
                         ...(wallet.strategyConfig?.HYBRID_VORTEX || {}),
                         minOdds: minOdds,
-                        useVortex: useVortex,
-                        useHybrid: useHybrid,
-                        useUnixa: useUnixa
+                        useVolcano: useVolcano
                     }
                 }
             };
@@ -117,9 +104,7 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                             HYBRID_VORTEX: {
                                 ...(wallet.strategyConfig?.HYBRID_VORTEX || {}),
                                 minOdds: minOdds,
-                                useVortex: useVortex,
-                                useHybrid: useHybrid,
-                                useUnixa: useUnixa
+                                useVolcano: useVolcano
                             }
                         }
                     })
@@ -190,12 +175,10 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
     // DYNAMIC STRATEGY LABEL: Detects active modules to show precise state
     const getActiveStrategyLabel = () => {
-        if (!wallet?.strategyConfig?.HYBRID_VORTEX) return 'VORTEX';
+        if (!wallet?.strategyConfig?.HYBRID_VORTEX) return '🌋 VOLCANO';
         const cfg = wallet.strategyConfig.HYBRID_VORTEX;
-        if (cfg.useUnixa) return '🪐 UNIXA';
-        if (cfg.useVortex && cfg.useHybrid) return '⚡ VORTEX+HYBRID';
-        if (cfg.useHybrid) return '🧬 HYBRID';
-        return '⚡ VORTEX';
+        if (cfg.useVolcano) return '🌋 VOLCANO';
+        return 'DISABLED';
     };
     const currentStrategy = getActiveStrategyLabel();
 
@@ -265,8 +248,7 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         const baseConfig = pendingStrategies.current || wallet.strategyConfig || {};
         const moduleConfig = baseConfig[moduleName] || {};
 
-        // Default to true for most, except guard/unixa. We'll read the previous carefully or provide sensible defaults.
-        const defaultState = (paramName === 'useBtcGuard' || paramName === 'useUnixa') ? false : true;
+        const defaultState = paramName === 'useBtcGuard' ? false : true;
         const currentState = moduleConfig[paramName] !== undefined ? moduleConfig[paramName] : defaultState;
         const newState = !currentState;
 
@@ -303,10 +285,8 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         }, 400); // Wait 400ms after last click to execute API
     };
 
-    const toggleHybridVortex = () => updateStrategyModule('HYBRID_VORTEX', 'useHybrid');
-    const toggleVortexOnly = () => updateStrategyModule('HYBRID_VORTEX', 'useVortex');
+    const toggleVolcano = () => updateStrategyModule('HYBRID_VORTEX', 'useVolcano');
     const toggleBtcGuard = () => updateStrategyModule('HYBRID_VORTEX', 'useBtcGuard');
-    const toggleUnixa = () => updateStrategyModule('HYBRID_VORTEX', 'useUnixa');
 
     // Replaced by debounced updater above
 
@@ -345,52 +325,20 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
 
                 {/* RIGHT PANEL - STRATEGY CONTROLS */}
                 <div className={styles.rightPanel}>
-                    <div style={{ marginBottom: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(245, 158, 11, 0.1)', padding: '6px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }} onClick={onOpenUnixaBacktest}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#FBBF24' }}>🧪 SIMULADOR UNIXA BACKTEST (24H)</span>
-                    </div>
+
                     <div className={styles.strategyGrid}>
 
-                        {/* 1. VORTEX TOGGLE (Interactive) */}
+                        {/* 1. VOLCANO TOGGLE */}
                         {(() => {
-                            const isVortexOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useVortex !== false; // Default ON
+                            const isVolcanoOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useVolcano !== false; // Default ON
                             return (
                                 <div
-                                    onClick={readOnly ? null : toggleVortexOnly}
-                                    title="Activar/Desactivar Análisis Técnico (Dips)"
+                                    onClick={readOnly ? null : toggleVolcano}
+                                    title="Activar Estrategia Volcano de Ruptura"
                                     style={{
-                                        flex: 1,
-                                        background: isVortexOn ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: isVortexOn ? '1px solid #06B6D4' : '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                        cursor: readOnly ? 'default' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        userSelect: 'none',
-                                        padding: '8px',
-                                        opacity: readOnly ? 0.7 : 1
-                                    }}
-                                >
-                                    <div style={{ fontSize: '0.9rem', color: isVortexOn ? '#22D3EE' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        ⚡ VORTEX
-                                    </div>
-                                    <div style={{ fontSize: '0.55rem', color: isVortexOn ? '#fff' : '#64748B', marginTop: '2px' }}>
-                                        {isVortexOn ? 'TECHNICAL' : 'DISABLED'}
-                                    </div>
-                                </div>
-                            );
-                        })()}
-
-                        {/* 2. HYBRID TOGGLE */}
-                        {(() => {
-                            const isHybridOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useHybrid !== false; // Default ON
-                            return (
-                                <div
-                                    onClick={readOnly ? null : toggleHybridVortex}
-                                    title="Activar/Desactivar Filtro Estadístico"
-                                    style={{
-                                        flex: 1,
-                                        background: isHybridOn ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: isHybridOn ? '1px solid #8B5CF6' : '1px solid rgba(255,255,255,0.1)',
+                                        flex: 2,
+                                        background: isVolcanoOn ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: isVolcanoOn ? '1px solid #EF4444' : '1px solid rgba(255,255,255,0.1)',
                                         borderRadius: '8px',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                         cursor: readOnly ? 'default' : 'pointer',
@@ -400,11 +348,11 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                                         opacity: readOnly ? 0.7 : 1
                                     }}
                                 >
-                                    <div style={{ fontSize: '0.9rem', color: isHybridOn ? '#A78BFA' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        🧬 HYBRID
+                                    <div style={{ fontSize: '0.9rem', color: isVolcanoOn ? '#F87171' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        🌋 VOLCANO
                                     </div>
-                                    <div style={{ fontSize: '0.55rem', color: isHybridOn ? '#fff' : '#64748B', marginTop: '2px' }}>
-                                        {isHybridOn ? 'STATS' : 'DISABLED'}
+                                    <div style={{ fontSize: '0.55rem', color: isVolcanoOn ? '#fff' : '#64748B', marginTop: '2px' }}>
+                                        {isVolcanoOn ? 'ACTIVE' : 'DISABLED'}
                                     </div>
                                 </div>
                             );
@@ -442,35 +390,7 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                             );
                         })()}
 
-                        {/* 4. UNIXA TOGGLE */}
-                        {(() => {
-                            const isUnixaOn = wallet?.strategyConfig?.HYBRID_VORTEX?.useUnixa === true;
-                            return (
-                                <div
-                                    onClick={readOnly ? null : toggleUnixa}
-                                    title="Activar entradas Ultra-Filtro (RSI < 2)"
-                                    style={{
-                                        flex: 1,
-                                        background: isUnixaOn ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: isUnixaOn ? '1px solid #F59E0B' : '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                        cursor: readOnly ? 'default' : 'pointer',
-                                        padding: '8px',
-                                        transition: 'all 0.2s ease',
-                                        userSelect: 'none',
-                                        opacity: readOnly ? 0.7 : 1
-                                    }}
-                                >
-                                    <div style={{ fontSize: '0.9rem', color: isUnixaOn ? '#FBBF24' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        🪐 UNIXA
-                                    </div>
-                                    <div style={{ fontSize: '0.55rem', color: isUnixaOn ? '#fff' : '#64748B', marginTop: '2px', fontWeight: 'bold' }}>
-                                        {isUnixaOn ? 'ULTRA' : 'OFF'}
-                                    </div>
-                                </div>
-                            );
-                        })()}
+
                     </div>
 
                     {/* STATS MINI */}
