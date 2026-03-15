@@ -295,10 +295,8 @@ function App() {
             <MarketGrid>
               {Object.keys(marketData).map(symbol => {
                 const stratConfig = walletConfig?.strategyConfig?.HYBRID_VORTEX || {};
+                const showVolcano = stratConfig.useVolcano !== false;
                 const minOdds = stratConfig.minOdds || 67;
-                const showDip = stratConfig.useVortex !== false; // Default ON
-                const showProb = stratConfig.useHybrid !== false; // Default ON
-                const showUnixa = stratConfig.useUnixa === true;
 
                 return (
                   <SentinelCard
@@ -308,9 +306,7 @@ function App() {
                     loading={loading}
                     onSimulate={handleSimulate}
                     minOdds={minOdds}
-                    showDip={showDip}
-                    showProb={showProb}
-                    showUnixa={showUnixa}
+                    showVolcano={showVolcano}
                     readOnly={isReadOnly}
                   />
                 );
@@ -344,7 +340,6 @@ function App() {
       {isLogOpen && <LogConsole onClose={() => setIsLogOpen(false)} />}
       <VESArbitrageModal isOpen={isArbitrageOpen} onClose={() => setIsArbitrageOpen(false)} />
       <UnixaBacktestModal isOpen={isUnixaBacktestOpen} onClose={() => setIsUnixaBacktestOpen(false)} />
-      <MobileNavbar activeTab={mobileTab} onTabChange={handleMobileNav} />
     </div>
   );
 }

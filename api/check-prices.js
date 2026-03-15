@@ -231,9 +231,7 @@ async function processMode(mode, marketPairs, marketCache) {
 
             const strategyConfig = wallet.strategyConfig?.HYBRID_VORTEX || {};
             const enabledStrats = [];
-            if (strategyConfig.useVortex !== false) enabledStrats.push('VTX');
-            if (strategyConfig.useHybrid !== false) enabledStrats.push('HYB');
-            if (strategyConfig.useUnixa === true) enabledStrats.push('UNX');
+            if (strategyConfig.useVolcano !== false) enabledStrats.push('VOL');
 
             console.log(`✅ [${mode}] Cycle Complete | Active: ${nextActiveList.length} | Strats: ${enabledStrats.join('+')}`);
             activeTrades = nextActiveList; // For return display

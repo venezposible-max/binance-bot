@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { TOP_PAIRS as INITIAL_PAIRS, fetchTopPairs, fetchCandles, fetchTickerPrices } from '../api/binance';
-import { analyzePair, analyzeFlow, analyzeVortex, calculateForecast } from '../utils/analysis';
+import { analyzePair, analyzeFlow, analyzeVolcano, calculateForecast } from '../utils/analysis';
 
 export function useMarketData(activeStrategy, timeframe, tradingMode, walletConfig, cloudStatus) {
     const [pairs, setPairs] = useState(INITIAL_PAIRS);
@@ -70,7 +70,7 @@ export function useMarketData(activeStrategy, timeframe, tradingMode, walletConf
                         analysis = {
                             ...analyzePair(klines),
                             ...analyzeFlow(null, klines), // Flow indicators (Depth null for now)
-                            ...analyzeVortex(null, klines), // VORTEX Signal (Depth null for now)
+                            ...analyzeVolcano(null, klines), // VOLCANO Signal
                             forecast: calculateForecast(klines)
                         };
 
