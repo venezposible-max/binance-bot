@@ -158,8 +158,8 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
                     strategy: strategyLabel,
                     mode: mode,
                     isManual: false,
-                    stopLoss: finalAnalysis.obZone?.sl || null,
-                    takeProfit: finalAnalysis.obZone?.tp || null
+                    stopLoss: null, // Volcano starts without Stop Loss per user request
+                    takeProfit: null
                 };
 
                 newTrades.push(tradeRecord);

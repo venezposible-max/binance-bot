@@ -143,7 +143,7 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
                             <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)', fontSize: '0.75rem' }}>
                                 ⛓️ TRAILING ACTIVO
                             </span>
-                        ) : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN S/L')}
+                        ) : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN STOP LOSS')}
                     </span>
                 </div>
             </div>

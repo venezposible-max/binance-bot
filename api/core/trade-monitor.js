@@ -53,36 +53,62 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                 pnl = ((currentBid - trade.entryPrice) / trade.entryPrice) * 100;
             }
 
-            // 4. TRAILING STOP LOGIC (Puro Volcano 🌋)
-            // Olvidamos el Take Profit clásico. Solo salimos cuando el precio retroceda un -1.5% desde su pico máximo.
+            // 4. RISK MANAGEMENT (Estrategia Volcano 🌋 vs EL RESTO)
             let updatedTrade = { ...trade };
             let isExit = false;
             let exitReason = '';
 
-            // Inicializar línea de agua máxima si no existe (al comprar, el max es el precio de entrada)
-            if (!updatedTrade.highestWatermark) {
-                updatedTrade.highestWatermark = updatedTrade.entryPrice;
-            }
+            if (trade.strategy === 'VOLCANO') {
+                // 🌋 VOLCANO SPECIAL STEPPED TRAILING
+                // Requested: Initial No SL. Trigger 0.70% Profit -> SL 0.50% | 0.90% Profit -> SL 0.70%
+                
+                const wasTrailing = trade.isTrailing;
 
-            // Actualizar el pico máximo si la moneda explota
-            if (currentPrice > updatedTrade.highestWatermark) {
-                updatedTrade.highestWatermark = currentPrice;
-            }
+                if (pnl >= 0.90) {
+                    const targetSL = trade.entryPrice * (1 + 0.007); // Lock in 0.7%
+                    if (!updatedTrade.stopLoss || targetSL > updatedTrade.stopLoss) {
+                        updatedTrade.stopLoss = targetSL;
+                        updatedTrade.isTrailing = true;
+                    }
+                } else if (pnl >= 0.70) {
+                    const targetSL = trade.entryPrice * (1 + 0.005); // Lock in 0.5%
+                    if (!updatedTrade.stopLoss || targetSL > updatedTrade.stopLoss) {
+                        updatedTrade.stopLoss = targetSL;
+                        updatedTrade.isTrailing = true;
+                    }
+                }
 
-            // Calcular el Trailing Stop (-1.5% desde el pico)
-            const trailingPercent = 0.015; // 1.5%
-            const trailingLine = updatedTrade.highestWatermark * (1 - trailingPercent);
+                // Notificar activación por Telegram
+                if (!wasTrailing && updatedTrade.isTrailing) {
+                    console.log(`[${mode}] ⛓️ TRAILING ACTIVO para ${symbol} (PnL: ${pnl.toFixed(2)}%)`);
+                    await sendServerTelegram(`⛓️ <b>[${mode}] TRAILING ACTIVO: ${symbol}</b>\n💰 Protegiendo profit en zona positiva para VOLCANO.`);
+                }
 
-            updatedTrade.stopLoss = trailingLine;
-            updatedTrade.isTrailing = true;
+                // Condición de Salida Volcano (Solo si el trailing está activo)
+                if (updatedTrade.isTrailing && currentBid <= updatedTrade.stopLoss) {
+                    isExit = true;
+                    exitReason = 'TRAILING_STEP_HIT';
+                }
+            } else {
+                // 🔄 LÓGICA POR DEFECTO (VORTEX/HYBRID) - 1.5% Trailing desde el pico
+                if (!updatedTrade.highestWatermark) {
+                    updatedTrade.highestWatermark = updatedTrade.entryPrice;
+                }
 
-            // 5. CONDICIÓN DE VENTA (Solo en Ganancia + Trailing) 🚀
-            // Solo vendemos si:
-            // 1. El precio toca o baja del trailing line (-1.5% desde el pico).
-            // 2. El precio sigue siendo mayor al de entrada (Aseguramos no vender en pérdida).
-            if (currentPrice <= trailingLine && currentPrice > updatedTrade.entryPrice) {
-                isExit = true;
-                exitReason = 'TRAILING_STOP_HIT';
+                if (currentPrice > updatedTrade.highestWatermark) {
+                    updatedTrade.highestWatermark = currentPrice;
+                }
+
+                const trailingPercent = 0.015; // 1.5%
+                const trailingLine = updatedTrade.highestWatermark * (1 - trailingPercent);
+
+                updatedTrade.stopLoss = trailingLine;
+                updatedTrade.isTrailing = true;
+
+                if (currentBid <= trailingLine && currentBid > updatedTrade.entryPrice) {
+                    isExit = true;
+                    exitReason = 'TRAILING_STOP_HIT';
+                }
             }
 
 
