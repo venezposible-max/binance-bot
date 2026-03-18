@@ -21,8 +21,19 @@ export default async function handler(req, res) {
         let history = winHistoryStr ? JSON.parse(winHistoryStr) : [];
         let btcChange = btcChangeStr ? parseFloat(btcChangeStr) : null;
 
-        // 💀 PAIN MEMORY: Disabled
+        // 💀 PAIN MEMORY (Dynamic Blacklist)
         const blacklist = [];
+        try {
+            const keys = await redis.keys('sentinel_blacklist:*');
+            if (keys && keys.length > 0) {
+                keys.forEach(k => {
+                    const symbol = k.split(':')[1];
+                    if (symbol) blacklist.push(symbol);
+                });
+            }
+        } catch (e) {
+            console.error("Blacklist Fetch Error:", e.message);
+        }
 
         // 🛡️ SELF-HEALING HISTORY (PnL Fix & Unixa Strategy Label Fix)
         let fixNeeded = false;

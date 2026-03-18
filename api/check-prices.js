@@ -67,7 +67,7 @@ async function getDynamicTopPairs() {
 
 async function fetchGlobalPrice(symbol, cache = null) {
     if (cache && cache[symbol]?.price > 0) return { ...cache[symbol], source: 'WS_CACHE' };
-    if (marketWorker.isBanned) return null;
+    if (marketWorker.activeBan) return null;
 
     const sources = [
         { url: `https://api-gcp.binance.com/api/v3/ticker/bookTicker?symbol=${symbol}`, label: 'REST_EU_GCP' },
@@ -121,6 +121,7 @@ async function processMode(mode, marketPairs, marketCache) {
                 console.log(`⚖️ [LIVE] Usable Balance Synced: $${wallet.currentBalance}`);
             } else if (usdt?.error?.status === 418 || usdt?.error?.status === 429) {
                 marketWorker.isBanned = true;
+                marketWorker.banExpiration = Date.now() + 600000;
             }
         } catch (e) { }
     }

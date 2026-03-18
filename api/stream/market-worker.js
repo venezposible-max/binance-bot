@@ -7,6 +7,7 @@ class MarketWorker {
         this.sockets = {};
         this.isInitialized = false;
         this.isBanned = false; // Flag to stop spamming if banned
+        this.banExpiration = 0;
         this.checkBanStatus(); // Initial check
 
         console.log('📡 MARKET WORKER: Initializing Dynamic Stream...');
@@ -18,9 +19,20 @@ class MarketWorker {
             const banned = await redis.get('sentinel_rest_banned');
             if (banned === 'true') {
                 this.isBanned = true;
+                this.banExpiration = Date.now() + 600000; // Assume 10 min if found in redis
                 console.warn('📡 MARKET WORKER: IP is marked as BANNED in Redis.');
             }
         } catch (e) { }
+    }
+
+    // Add a helper to check ban with auto-recovery
+    get activeBan() {
+        if (this.isBanned && Date.now() > this.banExpiration && this.banExpiration > 0) {
+            this.isBanned = false;
+            this.banExpiration = 0;
+            return false;
+        }
+        return this.isBanned;
     }
 
     updateSymbols(newSymbols) {

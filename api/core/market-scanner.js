@@ -4,8 +4,22 @@ import binanceClient from '../utils/binance-client.js';
 import { v4 as uuidv4 } from 'uuid';
 import { sendServerTelegram } from '../utils/telegram-server.js';
 import marketWorker from '../stream/market-worker.js';
+import redis from '../utils/redisClient.js';
+
+// --- BAN MANAGEMENT ---
+let isRestBanned = false;
+let banExpiration = 0;
 
 function checkBan() {
+    if (isRestBanned) {
+        if (Date.now() > banExpiration) {
+            console.log('🔄 [REST BAN] Cooldown finished. Attempting to resume...');
+            isRestBanned = false;
+            marketWorker.isBanned = false;
+            return false;
+        }
+        return true;
+    }
     return marketWorker.isBanned;
 }
 
@@ -30,6 +44,7 @@ async function fetchGlobalKlines(symbol, interval, limit = 150) {
                 isRestBanned = true;
                 banExpiration = Date.now() + 600000; // 10 minutes
                 marketWorker.isBanned = true;
+                marketWorker.banExpiration = banExpiration;
 
                 // Report to Redis (Fire and forget)
                 import('../utils/redisClient.js').then(r => {
@@ -76,13 +91,23 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
         }
 
         try {
-            // 1. Get Candles (150 limit)
-            const candles = await fetchGlobalKlines(symbol, '5m', 150);
-            if (!candles) continue; // Skip to next iteration
+            // --- BLACKLIST CHECK (Mejora 6) ---
+            const isBlacklisted = await redis.get(`sentinel_blacklist:${symbol}`);
+            if (isBlacklisted) {
+                // console.log(`⏭️ [${mode}] Skipping ${symbol} (Blacklisted)`);
+                continue;
+            }
 
-            // 2. Run Analysis (Volcano)
-            const analysisRes = analysis.analyzeVolcano(null, candles);
+            // --- RATE LIMIT PROTECTION (Anti-Ban) ---
+            await new Promise(r => setTimeout(r, 150)); 
 
+            // 1. Get Candles (5m first - Mejora 4 Optimizada)
+            const candles5m = await fetchGlobalKlines(symbol, '5m', 100);
+            if (!candles5m) continue; 
+
+            // 2. Run Analysis 5m (Volcano)
+            const analysis5m = analysis.analyzeVolcano(null, candles5m);
+            
             // 🧬 CONFIG: STRATEGY TOGGLES
             const strategyConfig = walletConfig.strategyConfig?.HYBRID_VORTEX || {};
             const useVolcano = strategyConfig.useVolcano !== false;
@@ -91,17 +116,33 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
             let volcanoSignal = false;
 
             if (useVolcano) {
-                if (analysisRes.prediction?.signal.includes('BUY') && analysisRes.prediction.intensity > 80) {
-                    volcanoSignal = true;
+                const triggered5m = analysis5m.prediction?.signal.includes('BUY') && analysis5m.prediction.intensity > 80;
+                
+                if (triggered5m) {
+                    // Solo consultamos 15m si el 5m ya explotó (Ahorro de API Weight)
+                    const candles15m = await fetchGlobalKlines(symbol, '15m', 100);
+                    if (candles15m) {
+                        const analysis15m = analysis.analyzeVolcano(null, candles15m);
+
+                        // CONFIRMACIÓN: En 15m solo necesitamos que esté al menos "DORMIDA" (Intensidad >= 20)
+                        // No esperamos a que explote el 15m también, porque para ese entonces ya se fue el tren.
+                        const triggered15m = (analysis15m.prediction?.intensity >= 20);
+
+                        if (triggered15m) {
+                            volcanoSignal = true;
+                            console.log(`🎯 [Dual TF] ${symbol} Confirmado (5m 🌋 + 15m 💤)`);
+                        } else {
+                            // console.log(`⏭️ [Dual TF] ${symbol} Rechazado (5m 🌋 pero 15m no estaba dormida)`);
+                        }
+                    }
                 }
             }
 
             // --- FINAL DECISION ---
-            // Winning Condition: Volcano triggered and BTC Guard allows it.
             const entryTriggered = (useVolcano && volcanoSignal && !btcVeto);
 
             if (entryTriggered) {
-                const finalAnalysis = analysisRes;
+                const finalAnalysis = analysis5m;
 
                 // 4. Get Price (Real-time)
                 let currentPrice = marketCache[symbol]?.price;

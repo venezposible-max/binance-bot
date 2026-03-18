@@ -137,7 +137,7 @@ const runInternalScan = async (source = 'TIMER') => {
     console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
 
     try {
-        if (marketWorker.isBanned) {
+        if (marketWorker.activeBan) {
             console.log(`⏳ [${source}] Scan skipped - IP BANNED. Waiting for cooldown...`);
             return;
         }

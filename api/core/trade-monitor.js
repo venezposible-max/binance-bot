@@ -6,6 +6,7 @@ import { RSI } from 'technicalindicators';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import redis from '../utils/redisClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -209,6 +210,14 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                     fs.appendFileSync(logPath, logEntry);
                 } catch (logErr) {
                     console.error("❌ Failed to write to TRADE_HISTORY_LOG.txt:", logErr.message);
+                }
+
+                // --- DYNAMIC BLACKLIST ON LOSS (Mejora 6) ---
+                if (finalPercent < 0) {
+                    const blackKey = `sentinel_blacklist:${symbol}`;
+                    const TTL_4H = 4 * 60 * 60; 
+                    redis.setex(blackKey, TTL_4H, 'true').catch(e => console.error(`Error blacklisting ${symbol}:`, e.message));
+                    console.log(`🚫 [${mode}] ${symbol} blacklisted for 4 hours (Loss Protection)`);
                 }
 
                 history.push(winRecord);

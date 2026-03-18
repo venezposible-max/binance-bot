@@ -44,8 +44,8 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
         if (canShowSL) {
             if (trade.stopLoss || trade.dynamicSL) {
                 slPrice = trade.stopLoss || trade.dynamicSL;
-            } else {
-                // Default Global SL
+            } else if (trade.strategy !== 'VOLCANO') {
+                // Default Global SL (Skip for Volcano to show "SIN STOP LOSS" at start)
                 const dist = walletConfig.stopLoss || 3.0;
                 slDist = -dist;
                 slPrice = trade.entryPrice * (1 + (slDist / 100));
@@ -138,12 +138,36 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
                     <div className={styles.tagGroup}>
                         <span style={{ fontSize: '0.65rem', color: slPrice > 0 ? '#EF4444' : '#94A3B8', fontWeight: '800' }}>🛑 SL</span>
                     </div>
-                    <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold', color: slPrice > 0 ? '#fff' : '#94A3B8' }}>
+                    <span className={styles.infoVal} style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
                         {trade.isTrailing ? (
-                            <span style={{ color: '#3B82F6', textShadow: '0 0 5px rgba(59, 130, 246, 0.5)', fontSize: '0.75rem' }}>
+                            <span style={{ 
+                                color: '#3B82F6', 
+                                background: 'rgba(59, 130, 246, 0.15)',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(59, 130, 246, 0.3)',
+                                textShadow: '0 0 5px rgba(59, 130, 246, 0.3)', 
+                                fontSize: '0.65rem',
+                                fontWeight: '900'
+                            }}>
                                 ⛓️ TRAILING ACTIVO
                             </span>
-                        ) : (slPrice > 0 ? `${slDist > 0 ? '+' : ''}${slDist.toFixed(2)}%` : 'SIN STOP LOSS')}
+                        ) : (slPrice > 0 ? (
+                            <span style={{ color: '#fff' }}>
+                                {slDist > 0 ? '+' : ''}{slDist.toFixed(2)}%
+                            </span>
+                        ) : (
+                            <span style={{ 
+                                color: '#94A3B8', 
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                fontSize: '0.6rem'
+                            }}>
+                                SIN STOP LOSS
+                            </span>
+                        ))}
                     </span>
                 </div>
             </div>

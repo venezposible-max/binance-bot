@@ -4,7 +4,7 @@ import marketWorker from '../stream/market-worker.js';
 
 export default async function handler(req, res) {
     try {
-        if (marketWorker.isBanned) {
+        if (marketWorker.activeBan) {
             throw new Error('IP_BANNED');
         }
 
