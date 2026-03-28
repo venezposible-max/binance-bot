@@ -26,6 +26,7 @@ import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 import removeTrade from './api/remove-trade.js'; // NEW: Manual Trade Removal
 import arbitrageVes from './api/arbitrage-ves.js'; // NEW: Arbitrage Monitor
 import unixaBacktest from './api/unixa-backtest.js';
+import backtestDip from './api/backtest-dip.js'; // Backtest: Smart Dip vs Volcano
 
 
 // --- LOG CAPTURE HOOK ---
@@ -113,6 +114,7 @@ app.get('/api/market-cache', (req, res) => {
 
 app.get('/api/debug', vercelAdapter(debug));
 app.get('/api/cleanup', vercelAdapter(cleanup));
+app.get('/api/backtest-dip', vercelAdapter(backtestDip)); // Backtest endpoint
 
 // --- UNBAN ENDPOINT (Manual Recovery) ---
 app.post('/api/unban', (req, res) => {
