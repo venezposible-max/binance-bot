@@ -6,38 +6,20 @@ import styles from './DocumentationModal.module.css';
 const DocumentationModal = ({ isOpen, onClose }) => {
     const modes = [
         {
-            id: 'vortex-spot',
-            title: 'ESTRATEGIA VORTEX: SPOT ALPHA (Alta Frecuencia)',
-            icon: <Zap className={styles.modeIcon} style={{ color: '#00D9FF' }} size={28} />,
-            description: 'Estrategia propietaria de ejecución rápida diseñada para mercados Spot. Busca ineficiencias de precio en temporalidades cortas (1m/5m) para capturar rebotes técnicos con precisión quirúrgica, sin riesgo de liquidación por apalancamiento.',
-            indicators: ['RSI Estocástico', 'Price Action Concepts (SMC)', 'Order Block Detection'],
-            logic: 'Detección de sobreventa extrema en zonas de demanda institucional. El sistema no "adivina", reacciona a la liquidez.',
+            id: 'smart-dip',
+            title: 'ESTRATEGIA SMART DIP (Comprar el Dip)',
+            icon: <Zap className={styles.modeIcon} style={{ color: '#10B981' }} size={28} />,
+            description: 'Estrategia probabilística y conservadora para mercado Spot. Diseñada para operar exclusivamente sobre activos de alta capitalización (Top 20 en volumen) que tienden a rebotar rápido luego de caídas bruscas.',
+            indicators: ['% de Caída de Precio (desde Máximo de 24h)', 'RSI (Sobreventa extrema)', 'Manejo de Trailing Stop Escalonado'],
+            logic: 'El bot busca un "Dip" (caída fuerte) de al menos -3% desde el máximo de las últimas 24 horas, confirmando la validez de la entrada exigiendo además una condición de sobreventa extrema (RSI menor a 35) en temporalidades de 1 hora.',
             examples: [
                 {
-                    title: 'Escenario de Compra Ideal',
-                    text: 'El precio de BTC cae bruscamente un 2% en 5 minutos. El RSI toca 25 (Sobreventa) y el precio entra en un "Order Block" (zona de compras anteriores). VORTEX detecta la confluencia y ejecuta una compra de mercado.'
+                    title: 'Entrada tipo HODL (Sin Stop Loss inicial)',
+                    text: 'Ideada matemáticamente para spot, al entrar asume una mentalidad de acumulación (Hold) si el mercado cae fuertemente, eliminando las pérdidas forzadas ("Sin Stop Loss"). Espera pacientemente el rebote del mercado para sacar ganancia.'
                 },
                 {
-                    title: 'Gestión de Salida (Take Profit)',
-                    text: 'Una vez dentro, el bot coloca órdenes de venta escalonadas. Si el precio sube un 1.5%, asegura ganancias. Si baja más, espera (HODL) ya que en Spot no hay liquidación, aprovechando la recuperación natural del activo.'
-                }
-            ]
-        },
-        {
-            id: 'hybrid-protect',
-            title: 'HYBRID PROTECT: FILTRO GENÉTICO',
-            icon: <ShieldCheck className={styles.modeIcon} style={{ color: '#8B5CF6' }} size={28} />,
-            description: 'Un "portero" inteligente que valida todas las señales del bot técnico antes de dejarlas pasar. Utiliza modelos probabilísticos basados en historia reciente para evitar "trampas de mercado".',
-            indicators: ['Odds Probability (Calculated)', 'Volatility Context'],
-            logic: 'Si el Bot Técnico dice "COMPRA", el Filtro Genético pregunta: "¿Qué probabilidad tiene este patrón de ganar hoy?". Si la respuesta es menor que tu umbral configurado (ej. 67%), la operación se bloquea para proteger tu capital.',
-            examples: [
-                {
-                    title: 'Filtrado de Señal Débil',
-                    text: 'El bot detecta una compra en PEPEUSDT. El filtro calcula que, dada la volatilidad actual, la probabilidad de éxito es solo del 45%. Como tú configuraste el mínimo en 60%, la operación se descarta.'
-                },
-                {
-                    title: 'Configuración de Riesgo',
-                    text: 'Puedes ajustar este filtro en ⚙️ CONFIG. Un valor alto (70%+) hará que el bot sea muy selectivo (pocas operaciones, alta seguridad). Un valor bajo (40%) permitirá más operaciones con mayor riesgo.'
+                    title: 'Protección de Ganancia (Trailing Stop)',
+                    text: 'Una vez el precio rebota a zona de ganancia, usa el mecanismo de candado. Al alcanzar +0.70% de ganancia, asegura la salida en +0.50%. Si llega a +0.90%, la asegura en +0.70%. Garantiza cerrar siempre en verde una vez alcanzado el umbral.'
                 }
             ]
         }
@@ -117,7 +99,7 @@ const DocumentationModal = ({ isOpen, onClose }) => {
                         </div>
 
                         <footer style={{ textAlign: 'center', marginTop: '40px', color: '#4B5563', fontSize: '0.8rem' }}>
-                            BINANCE SENTINEL AI v5.0 • SISTEMA AUTÓNOMO DE ALTA PRECISIÓN • NFA (Not Financial Advice)
+                            BINANCE SMART DIP AI v6.0 • SISTEMA AUTÓNOMO DE ALTA PRECISIÓN • NFA (Not Financial Advice)
                         </footer>
                     </motion.div>
                 </motion.div>
