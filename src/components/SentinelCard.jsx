@@ -23,7 +23,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showVolcano 
     const signal = prediction.signal || data?.signal || 'WAIT';
     const intensity = prediction.intensity || data?.intensity || 0;
 
-    // --- VOLCANO DECISION LOGIC ---
+    // --- SMART DIP DECISION LOGIC ---
     let finalDecision = false;
     if (showVolcano !== false) {
         finalDecision = signal === 'STRONG_BUY';
@@ -31,21 +31,21 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showVolcano 
 
     // DETERMINE SIGNAL LABEL & COLOR
     let label = 'ESCANNEANDO';
-    let subLabel = 'BUSCANDO COMPRESIÓN';
+    let subLabel = 'BUSCANDO OPORTUNIDAD';
     let color = '#64748B'; // Neutral Slate
     let statusBg = 'rgba(100, 116, 139, 0.1)';
     let isSignal = false;
 
     // PRIORITY: SIGNAL DETECTED
     if (finalDecision) {
-        label = 'ERUPCIÓN DETECTADA';
-        subLabel = `VOLUMEN: ${indicators.volumeRatio}x`;
-        color = '#EF4444';
-        statusBg = 'rgba(239, 68, 68, 0.2)';
+        label = 'DIP EXTREMO DETECTADO';
+        subLabel = `DIP: ${indicators.dipPercent}%`;
+        color = '#10B981'; // Green instead of Red
+        statusBg = 'rgba(16, 185, 129, 0.2)';
         isSignal = true;
-    } else if (prediction.label?.includes('DORMIDA')) {
-        label = 'DORMIDA (SQUEEZE)';
-        subLabel = `RANGO: ${indicators.volatility}%`;
+    } else if (prediction.label?.includes('OBSER') || prediction.label?.includes('DIP')) {
+        label = 'OBSERVANDO (MERCADO)';
+        subLabel = `DIP: ${indicators.dipPercent || '---'}%`;
         color = '#F59E0B';
         statusBg = 'rgba(245, 158, 11, 0.1)';
     }
@@ -89,7 +89,7 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showVolcano 
                 </div>
                 <div>
                     <div className={styles.symbol}>{cleanSymbol}</div>
-                    <div className={styles.subSymbol}>VOLCANO ALPHA</div>
+                    <div className={styles.subSymbol}>SMART DIP</div>
                 </div>
             </div>
 
@@ -108,20 +108,20 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showVolcano 
             <div className={styles.statusSection} style={{ flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
                 <div style={{
                     fontSize: '0.7rem', fontWeight: 'bold',
-                    color: indicators.volatility <= 2.5 ? '#10B981' : '#64748B',
+                    color: indicators.dipPercent <= -3.0 ? '#10B981' : '#64748B',
                     display: 'flex', alignItems: 'center', gap: '4px'
                 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.volatility <= 2.5 ? '#10B981' : '#334155' }}></div>
-                    SQUEEZE: {indicators.volatility}%
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.dipPercent <= -3.0 ? '#10B981' : '#334155' }}></div>
+                    DIP: {indicators.dipPercent}%
                 </div>
 
                 <div style={{
                     fontSize: '0.7rem', fontWeight: 'bold',
-                    color: indicators.volumeRatio >= 3.0 ? '#EF4444' : '#64748B',
+                    color: indicators.rsi < 35 ? '#10B981' : '#64748B',
                     display: 'flex', alignItems: 'center', gap: '4px'
                 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.volumeRatio >= 3.0 ? '#EF4444' : '#334155' }}></div>
-                    VOL: {indicators.volumeRatio}x
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: indicators.rsi < 35 ? '#10B981' : '#334155' }}></div>
+                    RSI: {indicators.rsi}
                 </div>
             </div>
 
@@ -132,16 +132,16 @@ const SentinelCard = ({ symbol, data, loading, onSimulate, minOdds, showVolcano 
                         whileTap={!readOnly ? { scale: 0.95 } : {}}
                         onClick={() => !readOnly && onSimulate(symbol, price)}
                         style={{
-                            background: readOnly ? 'rgba(51, 65, 85, 0.4)' : 'rgba(239, 68, 68, 0.15)',
-                            color: readOnly ? '#64748B' : '#EF4444',
-                            border: readOnly ? '1px solid rgba(255,255,255,0.05)' : '1px solid #EF4444',
+                            background: readOnly ? 'rgba(51, 65, 85, 0.4)' : 'rgba(16, 185, 129, 0.15)',
+                            color: readOnly ? '#64748B' : '#10B981',
+                            border: readOnly ? '1px solid rgba(255,255,255,0.05)' : '1px solid #10B981',
                             padding: '10px 20px', borderRadius: '12px',
                             cursor: readOnly ? 'default' : 'pointer',
                             fontWeight: 'bold',
                             fontSize: '0.75rem', width: '100%', maxWidth: '140px'
                         }}
                     >
-                        {readOnly ? '👁️ VISOR' : '🔥 ERUPCIÓN'}
+                        {readOnly ? '👁️ VISOR' : '🔥 BUY DIP'}
                     </motion.button>
                 ) : (
                     <div style={{ textAlign: 'right' }}>
