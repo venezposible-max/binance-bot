@@ -6,26 +6,9 @@ import { sendServerTelegram } from '../utils/telegram-server.js';
 import marketWorker from '../stream/market-worker.js';
 import redis from '../utils/redisClient.js';
 
-// --- BAN MANAGEMENT ---
-let isRestBanned = false;
-let banExpiration = 0;
-
-function checkBan() {
-    if (isRestBanned) {
-        if (Date.now() > banExpiration) {
-            console.log('🔄 [REST BAN] Cooldown finished. Attempting to resume...');
-            isRestBanned = false;
-            marketWorker.isBanned = false;
-            return false;
-        }
-        return true;
-    }
-    return marketWorker.isBanned;
-}
-
 // --- HELPERS (Reused) ---
 async function fetchGlobalKlines(symbol, interval, limit = 150) {
-    if (checkBan()) return null;
+    if (marketWorker.activeBan) return null;
 
     const sources = [
         { url: `https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, label: 'EU_GCP' },
@@ -40,16 +23,10 @@ async function fetchGlobalKlines(symbol, interval, limit = 150) {
         } catch (e) {
             const status = e.response?.status;
             if (status === 418 || status === 429) {
-                console.error(`🚨 [REST BAN] detected on ${src.label}. Status: ${status}. Cooling down for 10 mins.`);
-                isRestBanned = true;
-                banExpiration = Date.now() + 600000; // 10 minutes
-                marketWorker.isBanned = true;
-                marketWorker.banExpiration = banExpiration;
+                marketWorker.setBan(`klines:${src.label}`);
 
                 // Report to Redis (Fire and forget)
-                import('../utils/redisClient.js').then(r => {
-                    r.default.setex('sentinel_rest_banned', 600, 'true');
-                }).catch(() => { });
+                redis.setex('sentinel_rest_banned', 600, 'true').catch(() => { });
 
                 return null;
             }

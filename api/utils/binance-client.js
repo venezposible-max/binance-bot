@@ -27,7 +27,7 @@ const sign = (queryString) => {
 
 // Wrapper para Peticiones Firmadas (Privadas)
 const privateRequest = async (endpoint, method = 'GET', data = {}) => {
-    if (marketWorker.isBanned) {
+    if (marketWorker.activeBan) {
         throw new Error('IP_BANNED');
     }
     if (!API_KEY || !API_SECRET) {
@@ -52,7 +52,7 @@ const privateRequest = async (endpoint, method = 'GET', data = {}) => {
     } catch (error) {
         if (error.response?.status === 418 || error.response?.status === 429) {
             console.error(`🚨 [CRITICAL] IP BANNED DETECTED in privateRequest [${endpoint}].`);
-            marketWorker.isBanned = true;
+            marketWorker.setBan(`privateRequest:${endpoint}`);
             redis.setex('sentinel_rest_banned', 900, 'true').catch(() => { });
         }
         console.error(`🚨 BINANCE API ERROR [${endpoint}]:`, error.response?.data || error.message);

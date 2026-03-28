@@ -114,6 +114,16 @@ app.get('/api/market-cache', (req, res) => {
 app.get('/api/debug', vercelAdapter(debug));
 app.get('/api/cleanup', vercelAdapter(cleanup));
 
+// --- UNBAN ENDPOINT (Manual Recovery) ---
+app.post('/api/unban', (req, res) => {
+    marketWorker.clearBan();
+    // Also clear Redis ban flag
+    import('./api/utils/redisClient.js').then(mod => {
+        mod.default.del('sentinel_rest_banned').catch(() => {});
+    }).catch(() => {});
+    res.json({ status: 'OK', message: 'Ban cleared. Bot will resume on next cycle.' });
+});
+
 // --- SERVE FRONTEND (VITE BUILD) ---
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -128,38 +138,50 @@ app.get('*', (req, res) => {
 
 // --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
 let isScanRunning = false;
+let lastBanLog = 0; // Throttle ban logs
 const runInternalScan = async (source = 'TIMER') => {
     if (isScanRunning) {
-        console.log(`⚠️ [${source}] Scan already in progress. Skipping overlap.`);
-        return;
+        return; // Silent skip — no log spam
     }
     isScanRunning = true;
-    console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
 
     try {
         if (marketWorker.activeBan) {
-            console.log(`⏳ [${source}] Scan skipped - IP BANNED. Waiting for cooldown...`);
+            const now = Date.now();
+            // Only log ban status every 2 minutes instead of every cycle
+            if (now - lastBanLog > 120000) {
+                const remainMs = marketWorker.banExpiration - now;
+                const remainMin = (remainMs / 60000).toFixed(1);
+                console.log(`🚫 [${source}] IP BANNED — Auto-recovery in ~${remainMin}min`);
+                lastBanLog = now;
+            }
             return;
         }
 
+        console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
+
         const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
-            headers: { 'x-cron-secret': process.env.CRON_SECRET }, // SECURE HANDSHAKE
-            timeout: 60000 // Increased to 60s for heavy scanning
+            headers: { 'x-cron-secret': process.env.CRON_SECRET },
+            timeout: 60000
         });
 
         const activeCount = response.data.activeCount || 0;
         const alerts = response.data.newAlerts?.length || 0;
         console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts`);
 
-        // Keep heartbeat alive in Redis (if available)
+        // Reset ban counter on successful scan
+        if (marketWorker.banCount > 0) {
+            marketWorker.banCount = 0;
+            console.log('✅ Ban counter reset after successful scan.');
+        }
+
+        // Keep heartbeat alive in Redis
         try {
             const redis = await import('./src/utils/redisClient.js');
             if (redis.default) {
                 redis.default.set('sentinel_last_heartbeat', new Date().toISOString());
             }
         } catch (e) { }
-
-
 
     } catch (e) {
         console.error(`❌ CRON FAIL [${source}]:`, e.message);
@@ -183,9 +205,8 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
 });
 
-// Loop every 10 seconds to stay within RPC limits
-// Loop every 20 seconds to be safer with weight (20 coins x 3 cycles = 60 weight/min)
-setInterval(() => runInternalScan('HEARTBEAT'), 20000);
+// Loop every 30 seconds (safer rate limit: ~20 coins x 2 cycles = 40 weight/min)
+setInterval(() => runInternalScan('HEARTBEAT'), 30000);
 
 // --- KEEPALIVE LOG (Every 2 minutes) ---
 setInterval(() => {

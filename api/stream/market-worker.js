@@ -6,8 +6,9 @@ class MarketWorker {
         this.cache = {}; // symbol -> { price, bid, ask, depth }
         this.sockets = {};
         this.isInitialized = false;
-        this.isBanned = false; // Flag to stop spamming if banned
+        this.isBanned = false;
         this.banExpiration = 0;
+        this.banCount = 0; // Track consecutive bans for exponential backoff
         this.checkBanStatus(); // Initial check
 
         console.log('📡 MARKET WORKER: Initializing Dynamic Stream...');
@@ -18,21 +19,41 @@ class MarketWorker {
             const redis = (await import('../utils/redisClient.js')).default;
             const banned = await redis.get('sentinel_rest_banned');
             if (banned === 'true') {
-                this.isBanned = true;
-                this.banExpiration = Date.now() + 600000; // Assume 10 min if found in redis
-                console.warn('📡 MARKET WORKER: IP is marked as BANNED in Redis.');
+                this.setBan('REDIS_RESTORE');
             }
         } catch (e) { }
     }
 
-    // Add a helper to check ban with auto-recovery
+    // Centralized ban setter — ALWAYS sets expiration
+    setBan(source = 'UNKNOWN') {
+        this.banCount++;
+        // Exponential backoff: 5min, 10min, 15min... max 30min
+        const cooldownMs = Math.min(this.banCount * 5 * 60 * 1000, 30 * 60 * 1000);
+        this.isBanned = true;
+        this.banExpiration = Date.now() + cooldownMs;
+        const cooldownMin = (cooldownMs / 60000).toFixed(0);
+        console.warn(`🚫 [BAN SET by ${source}] Cooldown: ${cooldownMin}min | Ban #${this.banCount} | Expires: ${new Date(this.banExpiration).toISOString()}`);
+    }
+
+    // Manual unban
+    clearBan() {
+        this.isBanned = false;
+        this.banExpiration = 0;
+        this.banCount = 0;
+        console.log('✅ [BAN CLEARED] Manual unban executed. Bot will resume scanning.');
+    }
+
+    // Auto-recovery check
     get activeBan() {
-        if (this.isBanned && Date.now() > this.banExpiration && this.banExpiration > 0) {
+        if (!this.isBanned) return false;
+        if (Date.now() > this.banExpiration) {
             this.isBanned = false;
             this.banExpiration = 0;
+            // Don't reset banCount here — keeps escalating if bans keep happening
+            console.log(`✅ [BAN EXPIRED] Auto-recovery. Resuming operations. (Previous bans: ${this.banCount})`);
             return false;
         }
-        return this.isBanned;
+        return true;
     }
 
     updateSymbols(newSymbols) {
@@ -86,12 +107,15 @@ class MarketWorker {
         });
 
         ws.on('error', (err) => {
-            console.error(`📡 MARKET WORKER: Error on ${symbol} socket:`, err.message);
+            // Only log if it's not a routine reconnect
+            if (!this.isBanned) {
+                console.error(`📡 MARKET WORKER: Error on ${symbol} socket:`, err.message);
+            }
         });
 
         ws.on('close', (code) => {
             if (this.sockets[symbol]) {
-                const delay = this.isBanned ? 60000 : 5000;
+                const delay = this.activeBan ? 120000 : 5000; // 2min if banned, 5s if not
                 setTimeout(() => {
                     if (this.symbols.includes(symbol)) this.connectSymbol(symbol);
                 }, delay);

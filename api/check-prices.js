@@ -57,7 +57,7 @@ async function getDynamicTopPairs() {
             }
         } catch (e) {
             if (e.response?.status === 418 || e.response?.status === 429) {
-                marketWorker.isBanned = true;
+                marketWorker.setBan('getDynamicTopPairs');
             }
             console.warn(`⚠️ Dynamic Pairs [${src.label}] Fail: ${e.message}`);
         }
@@ -80,7 +80,7 @@ async function fetchGlobalPrice(symbol, cache = null) {
             return { price: parseFloat(res.data.bidPrice), bid: parseFloat(res.data.bidPrice), ask: parseFloat(res.data.askPrice), source: src.label };
         } catch (e) {
             if (e.response?.status === 418 || e.response?.status === 429) {
-                marketWorker.isBanned = true;
+                marketWorker.setBan('fetchGlobalPrice');
                 break;
             }
             continue;
@@ -120,8 +120,7 @@ async function processMode(mode, marketPairs, marketCache) {
                 lastBalanceSync = now;
                 console.log(`⚖️ [LIVE] Usable Balance Synced: $${wallet.currentBalance}`);
             } else if (usdt?.error?.status === 418 || usdt?.error?.status === 429) {
-                marketWorker.isBanned = true;
-                marketWorker.banExpiration = Date.now() + 600000;
+                marketWorker.setBan('balanceSync');
             }
         } catch (e) { }
     }
