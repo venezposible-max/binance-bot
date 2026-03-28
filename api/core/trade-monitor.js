@@ -59,8 +59,8 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
             let isExit = false;
             let exitReason = '';
 
-            if (trade.strategy === 'VOLCANO') {
-                // 🌋 VOLCANO SPECIAL STEPPED TRAILING
+            if (trade.strategy === 'SMART_DIP' || trade.strategy === 'VOLCANO') {
+                // 📉 SMART DIP SPECIAL STEPPED TRAILING
                 // Requested: Initial No SL. Trigger 0.70% Profit -> SL 0.50% | 0.90% Profit -> SL 0.70%
                 
                 const wasTrailing = trade.isTrailing;
@@ -82,10 +82,10 @@ export async function monitorActiveTrades(activeTrades, marketCache, mode, walle
                 // Notificar activación por Telegram
                 if (!wasTrailing && updatedTrade.isTrailing) {
                     console.log(`[${mode}] ⛓️ TRAILING ACTIVO para ${symbol} (PnL: ${pnl.toFixed(2)}%)`);
-                    await sendServerTelegram(`⛓️ <b>[${mode}] TRAILING ACTIVO: ${symbol}</b>\n💰 Protegiendo profit en zona positiva para VOLCANO.`);
+                    await sendServerTelegram(`⛓️ <b>[${mode}] TRAILING ACTIVO: ${symbol}</b>\n💰 Protegiendo profit en zona positiva para SMART DIP.`);
                 }
 
-                // Condición de Salida Volcano (Solo si el trailing está activo)
+                // Condición de Salida (Solo si el trailing está activo)
                 if (updatedTrade.isTrailing && currentBid <= updatedTrade.stopLoss) {
                     isExit = true;
                     exitReason = 'TRAILING_STEP_HIT';

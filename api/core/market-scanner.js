@@ -39,158 +39,119 @@ async function fetchGlobalKlines(symbol, interval, limit = 150) {
 
 /**
  * CORE MODULE: MARKET SCANNER
- * Responsibility: Scan candidate pairs, check logic (Vortex/Hybrid), and execute NEW entries.
- * It uses a SEQUENTIAL LOOP to strict enforcement of trade limits (preventing race conditions).
+ * Strategy: SMART DIP — Buy when top coins dip ≥3% + RSI < 35
+ * Uses 1H candles for more reliable dip/RSI detection.
+ * Sequential loop to enforce trade limits.
  */
 
 export async function scanMarketOpportunities(candidates, mode, walletConfig, marketCache, activeTradesCount = 0, btcVeto = false) {
     const newTrades = [];
-    const activeStrategy = walletConfig.strategy || 'HYBRID_BLITZ';
     const MAX_TRADES = walletConfig.maxTrades || 3;
 
-    // Log intent (Sequential)
     const strategyConfig = walletConfig.strategyConfig?.HYBRID_VORTEX || {};
-    const enabledStrats = [];
-    if (strategyConfig.useVolcano !== false) enabledStrats.push('VOLCANO');
+    const useSmartDip = strategyConfig.useVolcano !== false; // Reuse same toggle
 
-    console.log(`📡 [${mode}] SCANNING ${candidates.length} COINS | STRATS: [${enabledStrats.join(' + ')}]`);
+    console.log(`📡 [${mode}] SCANNING ${candidates.length} COINS | STRAT: SMART_DIP`);
 
-    // SEQUENTIAL LOOP (Prevents Race Conditions)
     for (const symbol of candidates) {
         if (symbol.includes('PEPE') || symbol.includes('NEAR')) continue;
 
-        // 🛑 CRITICAL LIMIT CHECK
-        // We check this at the START of every iteration.
-        // If we already filled the bag, we STOP immediately.
         if ((activeTradesCount + newTrades.length) >= MAX_TRADES) {
             console.log(`⛔ [${mode}] MAX TRADES REACHED (${activeTradesCount + newTrades.length}/${MAX_TRADES}). Stopping Scan.`);
             break;
         }
 
         try {
-            // --- BLACKLIST CHECK (Mejora 6) ---
+            // --- BLACKLIST CHECK ---
             const isBlacklisted = await redis.get(`sentinel_blacklist:${symbol}`);
-            if (isBlacklisted) {
-                // console.log(`⏭️ [${mode}] Skipping ${symbol} (Blacklisted)`);
+            if (isBlacklisted) continue;
+
+            // --- RATE LIMIT PROTECTION ---
+            await new Promise(r => setTimeout(r, 150));
+
+            // 1. Get 1H candles (better for dip detection than 5m)
+            const candles1h = await fetchGlobalKlines(symbol, '1h', 100);
+            if (!candles1h) continue;
+
+            // 2. Run Smart Dip Analysis
+            const dipAnalysis = analysis.analyzeSmartDip(null, candles1h);
+
+            if (!useSmartDip) continue;
+
+            // --- EVALUATE SIGNAL ---
+            // STRONG_BUY = dip ≥ 3% + RSI < 35 (both confirmed)
+            const isSmartDipSignal = dipAnalysis.prediction?.signal === 'STRONG_BUY' && dipAnalysis.prediction.intensity >= 100;
+
+            if (!isSmartDipSignal) continue;
+
+            console.log(`📉 [Smart Dip] ${symbol} SEÑAL DETECTADA | Dip: ${dipAnalysis.indicators.dipPercent}% | RSI: ${dipAnalysis.indicators.rsi}`);
+
+            // 3. Get Price (Real-time from cache or API)
+            let currentPrice = marketCache[symbol]?.price;
+            if (!currentPrice) {
+                try {
+                    const res = await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                    currentPrice = parseFloat(res.data.price);
+                } catch (e) { continue; }
+            }
+
+            if (!currentPrice) continue;
+
+            // 4. EXECUTE ENTRY
+            const risk = walletConfig.riskPercentage || 10;
+            const safetyFactor = 0.997;
+            const invest = (walletConfig.currentBalance * (risk / 100)) * safetyFactor;
+            let qty = invest / currentPrice;
+            let realInvest = invest;
+
+            if (mode === 'LIVE') {
+                try {
+                    const order = await binanceClient.executeOrder(symbol, 'BUY', invest, currentPrice, 'MARKET', true);
+                    qty = parseFloat(order.executedQty) || 0;
+                    realInvest = parseFloat(order.cummulativeQuoteQty) || invest;
+                } catch (err) {
+                    console.error(`❌ ENTRY FAILED [${symbol}]:`, err.message);
+                    continue;
+                }
+            }
+
+            // --- SANITIZE ---
+            if (qty <= 0) {
+                console.error(`❌ EXECUTED QTY IS 0 for ${symbol}. Skipping.`);
                 continue;
             }
 
-            // --- RATE LIMIT PROTECTION (Anti-Ban) ---
-            await new Promise(r => setTimeout(r, 150)); 
+            let entryPrice = realInvest / qty;
+            if (isNaN(entryPrice) || !isFinite(entryPrice)) entryPrice = currentPrice;
+            if (isNaN(realInvest) || !isFinite(realInvest)) realInvest = invest;
 
-            // 1. Get Candles (5m first - Mejora 4 Optimizada)
-            const candles5m = await fetchGlobalKlines(symbol, '5m', 100);
-            if (!candles5m) continue; 
+            const tradeRecord = {
+                id: uuidv4(),
+                symbol,
+                entryPrice: entryPrice,
+                investedAmount: realInvest,
+                quantity: qty,
+                type: 'LONG',
+                timestamp: new Date().toISOString(),
+                strategy: 'SMART_DIP',
+                mode: mode,
+                isManual: false,
+                stopLoss: null,  // No stop loss — spot, we hold
+                takeProfit: null,
+                dipPercent: dipAnalysis.indicators.dipPercent,
+                rsiAtEntry: dipAnalysis.indicators.rsi
+            };
 
-            // 2. Run Analysis 5m (Volcano)
-            const analysis5m = analysis.analyzeVolcano(null, candles5m);
-            
-            // 🧬 CONFIG: STRATEGY TOGGLES
-            const strategyConfig = walletConfig.strategyConfig?.HYBRID_VORTEX || {};
-            const useVolcano = strategyConfig.useVolcano !== false;
+            newTrades.push(tradeRecord);
 
-            // --- EVALUATE SIGNALS ---
-            let volcanoSignal = false;
-
-            if (useVolcano) {
-                const triggered5m = analysis5m.prediction?.signal.includes('BUY') && analysis5m.prediction.intensity > 80;
-                
-                if (triggered5m) {
-                    // Solo consultamos 15m si el 5m ya explotó (Ahorro de API Weight)
-                    const candles15m = await fetchGlobalKlines(symbol, '15m', 100);
-                    if (candles15m) {
-                        const analysis15m = analysis.analyzeVolcano(null, candles15m);
-
-                        // CONFIRMACIÓN: En 15m solo necesitamos que esté al menos "DORMIDA" (Intensidad >= 20)
-                        // No esperamos a que explote el 15m también, porque para ese entonces ya se fue el tren.
-                        const triggered15m = (analysis15m.prediction?.intensity >= 20);
-
-                        if (triggered15m) {
-                            volcanoSignal = true;
-                            console.log(`🎯 [Dual TF] ${symbol} Confirmado (5m 🌋 + 15m 💤)`);
-                        } else {
-                            // console.log(`⏭️ [Dual TF] ${symbol} Rechazado (5m 🌋 pero 15m no estaba dormida)`);
-                        }
-                    }
-                }
-            }
-
-            // --- FINAL DECISION ---
-            const entryTriggered = (useVolcano && volcanoSignal && !btcVeto);
-
-            if (entryTriggered) {
-                const finalAnalysis = analysis5m;
-
-                // 4. Get Price (Real-time)
-                let currentPrice = marketCache[symbol]?.price;
-                if (!currentPrice) {
-                    try {
-                        const res = await axios.get(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
-                        currentPrice = parseFloat(res.data.price);
-                    } catch (e) { continue; }
-                }
-
-                if (!currentPrice) continue;
-
-                // 6. EXECUTE ENTRY
-                const risk = walletConfig.riskPercentage || 10;
-                // Factor de seguridad (99.7%) para evitar "insufficient balance" por decimales o micro-cambios de precio
-                const safetyFactor = 0.997;
-                const invest = (walletConfig.currentBalance * (risk / 100)) * safetyFactor;
-                let qty = invest / currentPrice;
-                let realInvest = invest;
-
-                // Live Execution
-                if (mode === 'LIVE') {
-                    try {
-                        const order = await binanceClient.executeOrder(symbol, 'BUY', invest, currentPrice, 'MARKET', true);
-                        qty = parseFloat(order.executedQty) || 0;
-                        realInvest = parseFloat(order.cummulativeQuoteQty) || invest;
-                    } catch (err) {
-                        console.error(`❌ ENTRY FAILED [${symbol}]:`, err.message);
-                        continue; // Abort entry, continue loop
-                    }
-                }
-
-                // --- SANITIZE NUMBERS (CRITICAL for Ghost Trade Prevention) ---
-                if (qty <= 0) {
-                    console.error(`❌ EXECUTED QTY IS 0 for ${symbol}. Skipping trade record.`);
-                    continue;
-                }
-
-                let entryPrice = realInvest / qty;
-                if (isNaN(entryPrice) || !isFinite(entryPrice)) entryPrice = currentPrice;
-                if (isNaN(realInvest) || !isFinite(realInvest)) realInvest = invest;
-
-                // Determine Dynamic Strategy Label
-                let strategyLabel = 'VOLCANO';
-
-                const tradeRecord = {
-                    id: uuidv4(),
-                    symbol,
-                    entryPrice: entryPrice,
-                    investedAmount: realInvest,
-                    quantity: qty,
-                    type: 'LONG',
-                    timestamp: new Date().toISOString(),
-                    strategy: strategyLabel,
-                    mode: mode,
-                    isManual: false,
-                    stopLoss: null, // Volcano starts without Stop Loss per user request
-                    takeProfit: null
-                };
-
-                newTrades.push(tradeRecord);
-
-                const emoji = '🌋';
-                console.log(`${emoji} [${mode}] AUTO-ENTRY: ${symbol} | Strat: ${strategyLabel} | Vol: ${finalAnalysis.indicators.volumeRatio}x`);
-                await sendServerTelegram(`🤖 <b>[${mode}] AUTO ENTRY</b>\n${emoji} ${symbol}\n🏷️ ${strategyLabel}\n📈 Compresión Rota: ${finalAnalysis.indicators.volatility}%`);
-            }
+            console.log(`📉 [${mode}] AUTO-ENTRY: ${symbol} | Strat: SMART_DIP | Dip: ${dipAnalysis.indicators.dipPercent}% | RSI: ${dipAnalysis.indicators.rsi}`);
+            await sendServerTelegram(`🤖 <b>[${mode}] AUTO ENTRY</b>\n📉 ${symbol}\n🏷️ SMART DIP\n💧 Dip: ${dipAnalysis.indicators.dipPercent}% | RSI: ${dipAnalysis.indicators.rsi}`);
 
         } catch (e) {
-            // console.warn(`Scan Error ${symbol}`, e.message);
+            // Silent scan errors
         }
     }
 
     return newTrades;
 }
+

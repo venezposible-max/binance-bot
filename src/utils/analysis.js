@@ -217,88 +217,79 @@ export const analyzeFlow = (depth, candles) => {
 };
 
 /**
- * STRATEGY: VOLCANO 🌋 (Range Breakout + Volume 3x)
- * Looks for flat consolidation (Squeeze) and strong volume breakout.
- * @param { Object } depth - Order Book depth (not heavily used in Volcano, priority is candles)
- * @param { Array } candles - Price history
+ * STRATEGY: SMART DIP 📉 (Buy The Dip + RSI Confirmation)
+ * Looks for significant dips from recent highs with RSI oversold confirmation.
+ * Designed for SPOT market: top coins tend to recover from dips.
+ * @param { Object } depth - Order Book depth (not used)
+ * @param { Array } candles - Price history (1h or 5m candles from Binance API)
  */
-export const analyzeVolcano = (depth, candles) => {
+export const analyzeSmartDip = (depth, candles) => {
     // Safety check
-    if (!candles || candles.length < 24) {
+    if (!candles || candles.length < 30) {
         return {
             price: 0,
-            prediction: { signal: 'NEUTRAL', label: 'BAJA LIQUIDEZ', color: '#94A3B8', intensity: 0 }
+            prediction: { signal: 'NEUTRAL', label: 'BAJA LIQUIDEZ', color: '#94A3B8', intensity: 0 },
+            indicators: { rsi: '---', dipPercent: '---', high24h: '---' }
         };
     }
 
-    // Extract basic data. candles come as [time, open, high, low, close, volume, ...] from binance API
-    // but the mapper in binance client usually makes them standard objects. We handle both just in case.
+    // Extract basic data
     const closes = candles.map(c => c.close || parseFloat(c[4] || 0));
     const highs = candles.map(c => c.high || parseFloat(c[2] || 0));
-    const lows = candles.map(c => c.low || parseFloat(c[3] || 0));
-    const volumes = candles.map(c => c.volume || parseFloat(c[5] || 0));
-
     const lastPrice = closes[closes.length - 1];
 
-    // --- FASE 1: SQUEEZE (Moneda Dormida) ---
-    // Analizar las 24 velas anteriores a la actual
-    // Si tenemos suficientes velas (ej. 150), tomar las de índice (length - 25) hasta (length - 1)
-    const prevCandlesHighs = highs.slice(-25, -1);
-    const prevCandlesLows = lows.slice(-25, -1);
-    const prevCandlesVolumes = volumes.slice(-21, -1); // Últimas 20 para el promedio de volumen
+    // --- FASE 1: DETECTAR DIP (Caída desde máximo reciente) ---
+    // Últimas 24 velas para calcular el máximo de 24h
+    const lookbackHighs = highs.slice(-25, -1);
+    const high24h = Math.max(...lookbackHighs);
 
-    const maxHigh = Math.max(...prevCandlesHighs);
-    const minLow = Math.min(...prevCandlesLows);
+    // Porcentaje de caída desde el máximo
+    const dipPercent = high24h > 0 ? ((lastPrice - high24h) / high24h) * 100 : 0;
 
-    // Distancia porcentual entre el punto más alto y más bajo de ese periodo de "consolidación"
-    const rangePercent = minLow > 0 ? ((maxHigh - minLow) / minLow) * 100 : 0;
+    // --- FASE 2: CONFIRMACIÓN RSI (Sobreventa) ---
+    const rsiValues = RSI.calculate({ values: closes, period: 14 });
+    const currentRSI = rsiValues.length > 0 ? rsiValues[rsiValues.length - 1] : 50;
 
-    // Si el rango es menor o igual a 2.5%, consideramos que está extremadamente comprimida (Moneda dormida)
-    const isSleeping = rangePercent <= 2.5;
-
-    // --- FASE 2: RUPTURA CON VOLUMEN INSTITUCIONAL ---
-    const avgVolume = prevCandlesVolumes.reduce((a, b) => a + b, 0) / prevCandlesVolumes.length;
-    const currentVolume = volumes[volumes.length - 1];
-    const currentHigh = highs[highs.length - 1];
-
-    // Si el volumen actual es > 3 veces el promedio
-    const volumeRatio = avgVolume > 0 ? (currentVolume / avgVolume) : 0;
-    const isVolumeExplosion = volumeRatio >= 3.0;
-
-    // Si el precio cierra o llega a romper el máximo de la consolidación
-    const isBreakout = lastPrice > maxHigh || currentHigh >= (maxHigh * 1.002);
+    // --- FASE 3: SEÑAL ---
+    const isDipping = dipPercent <= -3.0; // Caída de 3% o más
+    const isOversold = currentRSI < 35;
 
     let signal = 'NEUTRAL';
-    let label = `ESPERANDO (${rangePercent.toFixed(1)}% | ${volumeRatio.toFixed(1)}x)`;
+    let label = `OBSERVANDO (Dip: ${dipPercent.toFixed(1)}% | RSI: ${currentRSI.toFixed(0)})`;
     let color = '#94A3B8';
     let intensity = 0;
 
-    if (isSleeping && isBreakout && isVolumeExplosion) {
+    if (isDipping && isOversold) {
         signal = 'STRONG_BUY';
-        label = `🌋 ERUPCIÓN VOLCANO (${volumeRatio.toFixed(1)}x VOL)`;
-        color = '#EF4444'; // Red for Volcano
+        label = `📉 SMART DIP (${dipPercent.toFixed(1)}% | RSI: ${currentRSI.toFixed(0)})`;
+        color = '#10B981'; // Green for buy opportunity
         intensity = 100;
-    } else if (isSleeping) {
-        label = `💤 DORMIDA (${rangePercent.toFixed(1)}% | ${volumeRatio.toFixed(1)}x)`;
-        color = '#F59E0B'; // Orange/Yellow
-        intensity = 20;
-    } else {
-        label = `RANGO ACTIVO (${rangePercent.toFixed(1)}%)`;
+    } else if (isDipping && currentRSI < 45) {
+        signal = 'BUY';
+        label = `📉 DIP DETECTADO (${dipPercent.toFixed(1)}% | RSI: ${currentRSI.toFixed(0)})`;
+        color = '#34D399';
+        intensity = 60;
+    } else if (isOversold) {
+        label = `⚠️ RSI BAJO (${currentRSI.toFixed(0)}) pero sin dip suficiente (${dipPercent.toFixed(1)}%)`;
+        color = '#F59E0B';
+        intensity = 30;
+    } else if (dipPercent <= -2.0) {
+        label = `👀 DIP MENOR (${dipPercent.toFixed(1)}%) esperando RSI < 35`;
         color = '#64748B';
+        intensity = 15;
     }
 
     return {
         price: lastPrice,
         obZone: {
-            isVolcano: true,
+            isSmartDip: true,
             highWatermark: lastPrice,
-            // 1.5% para el trailing Stop dinámico
             trailingPercent: 1.5
         },
         indicators: {
-            volatility: rangePercent.toFixed(2),
-            volumeRatio: volumeRatio.toFixed(2),
-            rsi: '---',
+            rsi: currentRSI.toFixed(1),
+            dipPercent: dipPercent.toFixed(2),
+            high24h: high24h.toFixed(4),
             ema: '---'
         },
         prediction: {
@@ -309,6 +300,9 @@ export const analyzeVolcano = (depth, candles) => {
         }
     };
 };
+
+// Keep old name as alias for backward compatibility
+export const analyzeVolcano = analyzeSmartDip;
 
 /**
  * PHASE 7: FORECAST (Visual Only)
