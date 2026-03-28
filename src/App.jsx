@@ -93,8 +93,8 @@ function App() {
         <header className={styles.header}>
           <div className={styles.headerLeft}>
             <div className={styles.logo}>
-              <ShieldCheck size={20} color="#00D9FF" strokeWidth={2.5} />
-              <span>SENTINEL <span style={{ color: '#00D9FF' }}>AI</span></span>
+              <ShieldCheck size={20} color="#FF4D4D" strokeWidth={2.5} />
+              <span>SMART DIP <span style={{ color: '#10B981' }}>AI</span></span>
             </div>
 
             {/* --- MONITOR VES BUTTON --- */}
@@ -317,7 +317,7 @@ function App() {
 
         <footer className={styles.footer}>
           <div className={styles.copyright}>
-            <span>© 2026 Binance Sentinel AI • Todos los derechos reservados</span>
+            <span>© 2026 Binance Smart Dip AI • Todos los derechos reservados</span>
             <span style={{ marginLeft: '15px', color: '#EF4444', opacity: 0.8 }}><span>⚠️ El trading conlleva riesgos.</span></span>
           </div>
           <div className={styles.docsLink} onClick={() => setIsDocsOpen(true)}>

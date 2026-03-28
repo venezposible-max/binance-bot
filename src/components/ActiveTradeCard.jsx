@@ -44,8 +44,8 @@ const ActiveTradeCard = ({ trade, currentPrice, walletConfig, onClose, readOnly 
         if (canShowSL) {
             if (trade.stopLoss || trade.dynamicSL) {
                 slPrice = trade.stopLoss || trade.dynamicSL;
-            } else if (trade.strategy !== 'VOLCANO') {
-                // Default Global SL (Skip for Volcano to show "SIN STOP LOSS" at start)
+            } else if (trade.strategy !== 'VOLCANO' && trade.strategy !== 'SMART_DIP') {
+                // Default Global SL (Skip for Volcano/Smart Dip to show "SIN STOP LOSS" at start)
                 const dist = walletConfig.stopLoss || 3.0;
                 slDist = -dist;
                 slPrice = trade.entryPrice * (1 + (slDist / 100));

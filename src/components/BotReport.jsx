@@ -8,7 +8,7 @@ const BotReport = ({ config, cloudStatus }) => {
     const useVolcano = strategyConf.useVolcano !== false;
     const minOdds = strategyConf.minOdds || 67;
 
-    const strategyName = useVolcano ? 'VOLCANO' : 'MONITOR (INACTIVO)';
+    const strategyName = useVolcano ? 'SMART DIP' : 'MONITOR (INACTIVO)';
     const [displayOdds, setDisplayOdds] = React.useState(minOdds);
 
     // Sync local state when prop updates (from server polling)

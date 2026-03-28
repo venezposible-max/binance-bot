@@ -57,8 +57,8 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
         let minOdds = currentConfig.minOdds || 67;
 
         const confirmMsg = isLive
-            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Volcano: ${useVolcano ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
-            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Volcano: ${useVolcano ? 'ON' : 'OFF'}]`;
+            ? `🚨 AVISO DE RIESGO REAL 🚨\n\nVAS A OPERAR CON DINERO REAL.\nCapital: $${newCap}\nRiesgo: ${newRisk}%\nEstrategia: [Smart Dip: ${useVolcano ? 'ON' : 'OFF'}]\n\n¿Estás seguro?`
+            : `Confirmar cambios en SIMULACIÓN:\nCapital Virtual: $${newCap}\nRiesgo: ${newRisk}%\n[Smart Dip: ${useVolcano ? 'ON' : 'OFF'}]`;
 
         if (confirm(confirmMsg)) {
             // OPTIMISTIC UPDATE: Update UI immediately
@@ -333,11 +333,11 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                             return (
                                 <div
                                     onClick={readOnly ? null : toggleVolcano}
-                                    title="Activar Estrategia Volcano de Ruptura"
+                                    title="Activar Estrategia Smart Dip"
                                     style={{
                                         flex: 2,
-                                        background: isVolcanoOn ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                                        border: isVolcanoOn ? '1px solid #EF4444' : '1px solid rgba(255,255,255,0.1)',
+                                        background: isVolcanoOn ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                                        border: isVolcanoOn ? '1px solid #10B981' : '1px solid rgba(255,255,255,0.1)',
                                         borderRadius: '8px',
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                                         cursor: readOnly ? 'default' : 'pointer',
@@ -347,8 +347,8 @@ const WalletCard = forwardRef(({ config, onConfigChange, activeTrades, marketDat
                                         opacity: readOnly ? 0.7 : 1
                                     }}
                                 >
-                                    <div style={{ fontSize: '0.9rem', color: isVolcanoOn ? '#F87171' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        🌋 VOLCANO
+                                    <div style={{ fontSize: '0.9rem', color: isVolcanoOn ? '#10B981' : '#64748B', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        📉 SMART DIP
                                     </div>
                                     <div style={{ fontSize: '0.55rem', color: isVolcanoOn ? '#fff' : '#64748B', marginTop: '2px' }}>
                                         {isVolcanoOn ? 'ACTIVE' : 'DISABLED'}
