@@ -169,11 +169,16 @@ export default async function handler(req, res) {
                             const binanceErrorCode = err.response?.data?.code;
                             const binanceErrorMessage = err.response?.data?.msg || err.message;
 
-                            if (binanceErrorCode === -2010 || binanceErrorMessage.includes('insufficient') || binanceErrorMessage.includes('Account has insufficient balance')) {
-                                console.error(`⚠️ GHOST TRADE DETECTED: Removing ${trade.symbol} from Redis (Binance confirmed it is no longer open or accessible).`);
+                            const isGhostError = binanceErrorCode === -2010 || 
+                                               binanceErrorMessage.includes('insufficient') || 
+                                               binanceErrorMessage.includes('Account has insufficient balance') ||
+                                               binanceErrorMessage === 'IP_BANNED';
+
+                            if (isGhostError) {
+                                console.error(`⚠️ FORCE REMOVING TRADE: ${trade.symbol} (Reason: ${binanceErrorMessage}). Clear from Redis.`);
                                 netProfit = 0;
                                 finalRoi = 0;
-                                // We continue execution to ensure it's removed from activeTrades below
+                                // We continue to remove it from Redis regardless of Binance connection
                             } else {
                                 console.error("❌ Manual Close Failed (Real Error):", binanceErrorMessage);
                                 throw err;

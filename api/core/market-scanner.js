@@ -69,12 +69,12 @@ export async function scanMarketOpportunities(candidates, mode, walletConfig, ma
             // --- RATE LIMIT PROTECTION ---
             await new Promise(r => setTimeout(r, 150));
 
-            // 1. Get 1H candles (better for dip detection than 5m)
-            const candles1h = await fetchGlobalKlines(symbol, '1h', 100);
-            if (!candles1h) continue;
+            // 1. Get 5m candles (Sincronizado con el Dashboard UI para Match Exacto, 150 velas)
+            const candles5m = await fetchGlobalKlines(symbol, '5m', 150);
+            if (!candles5m) continue;
 
             // 2. Run Smart Dip Analysis
-            const dipAnalysis = analysis.analyzeSmartDip(null, candles1h);
+            const dipAnalysis = analysis.analyzeSmartDip(null, candles5m);
 
             if (!useSmartDip) continue;
 
