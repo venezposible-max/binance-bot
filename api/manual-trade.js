@@ -143,7 +143,24 @@ export default async function handler(req, res) {
                         } catch (e) { console.warn("Price fetch failed manual close", e); }
                     }
 
-                    const qty = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                    let qtyToSell = trade.quantity || (trade.investedAmount / trade.entryPrice);
+                    
+                    if (activeMode === 'LIVE') {
+                        try {
+                            const baseAsset = trade.symbol.replace('USDT', '');
+                            const balanceInfo = await binanceClient.getAccountBalance(baseAsset);
+                            if (balanceInfo && typeof balanceInfo.available === 'number') {
+                                // Evitar vender más de lo que realmente tenemos (por cobro de fees de Binance)
+                                if (qtyToSell > balanceInfo.available && balanceInfo.available > 0) {
+                                    console.log(`⚖️ Ajustando QTY de venta de ${qtyToSell} a ${balanceInfo.available} (Balance Real) para evitar error de Insufficient Balance`);
+                                    qtyToSell = balanceInfo.available;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn("⚠️ Fallo al obtener el balance exacto, usando QTY original.");
+                        }
+                    }
+
                     let netProfit = 0;
                     let executionPrice = currentPrice;
                     let finalRoi = 0;
@@ -151,7 +168,7 @@ export default async function handler(req, res) {
                     // Execute Real Sell
                     if (activeMode === 'LIVE') {
                         try {
-                            const order = await binanceClient.executeOrder(trade.symbol, 'SELL', qty, currentPrice, 'MARKET', true);
+                            const order = await binanceClient.executeOrder(trade.symbol, 'SELL', qtyToSell, currentPrice, 'MARKET', true);
 
                             if (!order || !order.orderId) throw new Error('Sell Logic Error: No response');
 
