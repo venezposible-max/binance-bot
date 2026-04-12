@@ -158,7 +158,7 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                             <div key={o.orderNo} style={{
                                 display: 'flex', flexDirection: 'column', gap: '10px',
                                 padding: '15px', borderRadius: '12px', background: '#1a1c24', border: '1px solid rgba(255,255,255,0.05)',
-                                borderLeft: `5px solid ${o.status === 'Successful' ? '#10B981' : '#EF4444'}`
+                                borderLeft: `5px solid ${(o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? '#10B981' : '#EF4444'}`
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div>
@@ -168,15 +168,16 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                                                 {o.customBank || 'Global'}
                                             </span>
                                         </div>
-                                        <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '4px' }}>{new Date(o.updateTime).toLocaleString()}</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '4px' }}>{new Date(o.updateTime).toLocaleString()} • {o.status}</div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: 'bold', color: o.status === 'Successful' ? '#fff' : '#EF4444', fontSize: '0.9rem' }}>{o.amount} USDT</div>
-                                        {o.status === 'Successful' && (
+                                        <div style={{ fontWeight: 'bold', color: (o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? '#fff' : '#EF4444', fontSize: '1rem' }}>{o.amount} USDT</div>
+                                        {(parseFloat(o.totalFee) > 0) && (
                                             <div style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 'bold', marginTop: '2px' }}>
                                                 -{o.totalFee} {o.fiatCurrency} ({((parseFloat(o.totalFee)/parseFloat(o.indicatedAmount))*100).toFixed(2)}%) Fee
                                             </div>
                                         )}
+
 
                                         <button 
                                             onClick={() => setEditingOrder(editingOrder === o.orderNo ? null : o.orderNo)} 
