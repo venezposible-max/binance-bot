@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, CreditCard, RefreshCcw, CheckCircle, AlertCircle, Building2, Power, Pencil } from 'lucide-react';
+import { X, CreditCard, RefreshCcw, CheckCircle, AlertCircle, AlertTriangle, Building2, Power, Pencil } from 'lucide-react';
 
 const FiatReportModal = ({ isOpen, onClose }) => {
     const [orders, setOrders] = useState([]);
@@ -163,7 +163,16 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div>
                                         <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            {(o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? (
+                                                <CheckCircle size={16} color="#10B981"/>
+                                            ) : (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#EF4444', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                                    <AlertTriangle size={18} color="#EF4444" /> FALLADO
+                                                </div>
+                                            )}
+
                                             {o.indicatedAmount} USD
+
                                             <span style={{ fontSize: '0.65rem', background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
                                                 {o.customBank || 'Global'}
                                             </span>
