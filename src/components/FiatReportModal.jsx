@@ -3,14 +3,7 @@ import axios from 'axios';
 import { X, CreditCard, Filter, AlertCircle, CheckCircle, RefreshCcw } from 'lucide-react';
 
 const FiatReportModal = ({ isOpen, onClose }) => {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [filterType, setFilterType] = useState('30'); // '1', '7', '30', '90', 'custom'
-    const [startDate, setStartDate] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() - 7);
-        return d.toISOString().split('T')[0];
-    });
+
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
     const [dataSource, setDataSource] = useState('api'); // 'api' | 'csv'
