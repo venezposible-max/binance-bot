@@ -26,6 +26,7 @@ import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
 import removeTrade from './api/remove-trade.js'; // NEW: Manual Trade Removal
 import arbitrageVes from './api/arbitrage-ves.js'; // NEW: Arbitrage Monitor
 import fiatOrders from './api/fiat-orders.js'; // NEW: Fiat Orders
+import fiatActiveBank from './api/fiat-active-bank.js'; // NEW: Fiat Active Bank Toggle
 import unixaBacktest from './api/unixa-backtest.js';
 import backtestDip from './api/backtest-dip.js'; // Backtest: Smart Dip vs Volcano
 
@@ -106,6 +107,8 @@ app.get('/api/olga/portfolio', vercelAdapter(portfolioHandler)); // NEW: Olga Sa
 app.get('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
 app.post('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
 app.get('/api/fiat-orders', vercelAdapter(fiatOrders));
+app.get('/api/fiat-active-bank', vercelAdapter(fiatActiveBank));
+app.post('/api/fiat-active-bank', vercelAdapter(fiatActiveBank));
 app.post('/api/unixa-backtest', vercelAdapter(unixaBacktest));
 
 
