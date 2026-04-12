@@ -168,7 +168,10 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                                                 {o.customBank || 'Global'}
                                             </span>
                                         </div>
-                                        <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '4px' }}>{new Date(o.updateTime).toLocaleString()} • {o.status}</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '4px' }}>
+                                            {new Date(o.updateTime).toLocaleString()} • {o.method} ({o.status})
+                                        </div>
+
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontWeight: 'bold', color: (o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? '#fff' : '#EF4444', fontSize: '1rem' }}>{o.amount} USDT</div>
