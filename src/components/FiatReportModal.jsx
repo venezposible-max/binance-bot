@@ -11,13 +11,25 @@ const FiatReportModal = ({ isOpen, onClose }) => {
         d.setDate(d.getDate() - 7);
         return d.toISOString().split('T')[0];
     });
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [dataSource, setDataSource] = useState('api'); // 'api' | 'csv'
+    
+    // --- Filters ---
+    const [filterType, setFilterType] = useState('30'); // '1', '7', '30', '90', 'custom'
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        return d.toISOString().split('T')[0];
+    });
     const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
 
     const loadOrders = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/api/fiat-orders');
+            const endpoint = dataSource === 'csv' ? '/api/fiat-store' : '/api/fiat-orders';
+            const res = await axios.get(endpoint);
             if (res.data && res.data.data) {
                 setOrders(res.data.data);
             }
@@ -27,11 +39,85 @@ const FiatReportModal = ({ isOpen, onClose }) => {
         setLoading(false);
     };
 
+    // --- CSV PARSER ---
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const text = event.target.result;
+                const lines = text.split('\n');
+                if (lines.length < 2) return alert("Archivo vacío o no válido");
+
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                const methodIdx = headers.findIndex(h => h.includes('method') || h.includes('método') || h.includes('pago'));
+                const amountIdx = headers.findIndex(h => h.includes('amount') || h.includes('monto') || h.includes('cantidad'));
+                const feeIdx = headers.findIndex(h => h.includes('fee') || h.includes('comisión') || h.includes('tarifa'));
+                const statusIdx = headers.findIndex(h => h.includes('status') || h.includes('estado'));
+                const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('fecha') || h.includes('time') || h.includes('tiempo'));
+
+                const newRecords = [];
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    // regex to split by comma ignoring commas inside quotes
+                    const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    
+                    const method = methodIdx >= 0 ? row[methodIdx].replace(/"/g, '').trim() : 'Tarjeta Desconocida';
+                    
+                    // Parse Amount safely (ignoring currency symbols)
+                    const rawAmount = amountIdx >= 0 ? row[amountIdx].replace(/[^\d.-]/g, '') : '0';
+                    const rawFee = feeIdx >= 0 ? row[feeIdx].replace(/[^\d.-]/g, '') : '0';
+                    
+                    const amount = parseFloat(rawAmount || 0);
+                    const fee = parseFloat(rawFee || 0);
+                    
+                    const statusStr = statusIdx >= 0 ? row[statusIdx].toLowerCase() : '';
+                    const status = (statusStr.includes('fail') || statusStr.includes('fall')) ? 'Failed' : 'Successful';
+                    
+                    const dateStr = dateIdx >= 0 ? row[dateIdx].replace(/"/g, '') : new Date().toISOString();
+                    const timestamp = new Date(dateStr).getTime() || Date.now();
+                    
+                    const id = btoa(dateStr + amount + method).substring(0, 20); // Virtual ID
+                    
+                    newRecords.push({
+                        id,
+                        orderNo: 'CSV-' + id,
+                        fiatCurrency: 'USD',
+                        indicatedAmount: amount + fee,
+                        amount: amount,
+                        totalFee: fee,
+                        method: method,
+                        status: status,
+                        updateTime: timestamp
+                    });
+                }
+
+                // Subir al servidor (Memoria Persistente)
+                setLoading(true);
+                const res = await axios.post('/api/fiat-store', { newRecords });
+                if (res.data.success) {
+                    setOrders(res.data.data);
+                    setDataSource('csv');
+                    alert(`¡Éxito! Base de datos actualizada interno del bot.\\nNuevas cargadas: ${res.data.inserted}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error leyendo CSV. Asegúrate de descargar el archivo correcto de Binance.');
+            }
+            setLoading(false);
+        };
+        reader.readAsText(file);
+    };
+
+
+
     useEffect(() => {
         if (isOpen) {
             loadOrders();
         }
-    }, [isOpen]);
+    }, [isOpen, dataSource]);
 
     if (!isOpen) return null;
 
@@ -54,9 +140,21 @@ const FiatReportModal = ({ isOpen, onClose }) => {
     const successful = filteredOrders.filter(o => o.status === 'Successful');
     const failed = filteredOrders.filter(o => o.status === 'Failed' || o.status === 'FailedToPay');
 
-    const totalUsd = successful.reduce((acc, o) => acc + parseFloat(o.amount), 0);
-    const totalFee = successful.reduce((acc, o) => acc + parseFloat(o.totalFee), 0);
-    const totalIndicated = successful.reduce((acc, o) => acc + parseFloat(o.indicatedAmount), 0);
+    const totalUsd = successful.reduce((acc, o) => acc + parseFloat(o.amount || 0), 0);
+    const totalFee = successful.reduce((acc, o) => acc + parseFloat(o.totalFee || 0), 0);
+    const totalIndicated = successful.reduce((acc, o) => acc + parseFloat(o.indicatedAmount || 0), 0);
+
+    // Group by Cards for CSV View
+    const cardsGroups = {};
+    if (dataSource === 'csv') {
+        successful.forEach(o => {
+            const method = o.method || 'Unknown';
+            if (!cardsGroups[method]) cardsGroups[method] = { vol: 0, fee: 0, count: 0 };
+            cardsGroups[method].vol += parseFloat(o.indicatedAmount || 0);
+            cardsGroups[method].fee += parseFloat(o.totalFee || 0);
+            cardsGroups[method].count += 1;
+        });
+    }
 
     return (
         <div style={{
@@ -86,6 +184,19 @@ const FiatReportModal = ({ isOpen, onClose }) => {
 
                 {/* BODY */}
                 <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+                    
+                    {/* Tab Navigation */}
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                        <button 
+                            onClick={() => setDataSource('api')}
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: dataSource === 'api' ? 'rgba(59, 130, 246, 0.2)' : '#1a1c24', color: dataSource === 'api' ? '#60A5FA' : '#94A3B8', cursor: 'pointer', fontWeight: 'bold' }}
+                        >🌐 1. Binance Vivo (Global)</button>
+                        <button 
+                            onClick={() => setDataSource('csv')}
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: dataSource === 'csv' ? 'rgba(16, 185, 129, 0.2)' : '#1a1c24', color: dataSource === 'csv' ? '#10B981' : '#94A3B8', cursor: 'pointer', fontWeight: 'bold' }}
+                        >📁 2. Base de Datos (Detallado)</button>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <select 
                             value={filterType} 
@@ -123,10 +234,19 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                         <button onClick={loadOrders} style={{ 
                             padding: '10px 15px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', 
                             border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60A5FA', cursor: 'pointer',
-                            display: 'flex', alignItems: 'center', gap: '8px'
+                            display: 'flex', alignItems: 'center', gap: '8px', marginRight: '10px'
                         }}>
                             <RefreshCcw size={14} className={loading ? 'spin' : ''} /> ACTUALIZAR
                         </button>
+                        
+                        <label style={{
+                            padding: '10px 15px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.1)', 
+                            border: '1px solid rgba(245, 158, 11, 0.3)', color: '#F59E0B', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold'
+                        }}>
+                            ⬆️ SUBIR EXCEL
+                            <input type="file" accept=".csv" onChange={handleFileUpload} style={{ display: 'none' }} />
+                        </label>
                     </div>
 
                     <div style={{ display: 'flex', gap: '15px', marginBottom: '25px', flexWrap: 'wrap' }}>
@@ -143,6 +263,21 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                             <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#EF4444' }}>${totalFee.toFixed(2)}</div>
                         </div>
                     </div>
+
+                    {dataSource === 'csv' && Object.keys(cardsGroups).length > 0 && (
+                        <div style={{ marginBottom: '25px', background: '#1a1c24', padding: '15px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <h4 style={{ margin: '0 0 10px 0', color: '#10B981', fontSize: '0.9rem' }}>Detalle Discriminado por Tarjeta</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+                                {Object.entries(cardsGroups).map(([method, stats]) => (
+                                    <div key={method} style={{ background: '#0a0b10', padding: '10px', borderRadius: '8px', borderLeft: '3px solid #10B981' }}>
+                                        <div style={{ fontSize: '0.8rem', color: '#fff', fontWeight: 'bold' }}>{method.slice(0, 20)}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '4px' }}>Volumen: <span style={{ color: '#10B981'}}>${stats.vol.toFixed(2)}</span> ({stats.count})</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Comisiones: <span style={{ color: '#EF4444'}}>${stats.fee.toFixed(2)}</span></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <h3 style={{ margin: '0 0 15px 0', fontSize: '1rem', color: '#94A3B8' }}>
                         Detalle de Transacciones ({filteredOrders.length})
