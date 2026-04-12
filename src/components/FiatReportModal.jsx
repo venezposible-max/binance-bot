@@ -70,8 +70,9 @@ const FiatReportModal = ({ isOpen, onClose }) => {
     const bankStats = {};
     successful.forEach(o => {
         const b = o.customBank || 'Global';
-        if (!bankStats[b]) bankStats[b] = { vol: 0, count: 0 };
+        if (!bankStats[b]) bankStats[b] = { vol: 0, count: 0, fee: 0 };
         bankStats[b].vol += parseFloat(o.indicatedAmount);
+        bankStats[b].fee += parseFloat(o.totalFee || 0);
         bankStats[b].count += 1;
     });
 
@@ -127,12 +128,14 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '20px' }}>
                         {Object.entries(bankStats).map(([name, stats]) => (
                             <div key={name} style={{ background: '#0a0b10', padding: '12px', borderRadius: '10px', borderLeft: `3px solid ${name==='Global'?'#475569':'#3B82F6'}` }}>
-                                <div style={{ fontSize: '0.7rem', color: '#64748B' }}>{name}</div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff' }}>${stats.vol.toFixed(2)}</div>
-                                <div style={{ fontSize: '0.6rem', color: '#475569' }}>{stats.count} Trans.</div>
+                                <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 'bold' }}>{name}</div>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#fff' }}>${stats.vol.toFixed(2)}</div>
+                                <div style={{ fontSize: '0.7rem', color: '#EF4444', fontWeight: 'bold', marginTop: '2px' }}>-${stats.fee.toFixed(2)} Fee</div>
+                                <div style={{ fontSize: '0.6rem', color: '#475569', marginTop: '4px' }}>{stats.count} Transacciones</div>
                             </div>
                         ))}
                     </div>
+
 
                     {/* Filters Row */}
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
