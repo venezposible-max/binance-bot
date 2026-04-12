@@ -5,7 +5,14 @@ import { X, CreditCard, Filter, AlertCircle, CheckCircle, RefreshCcw } from 'luc
 const FiatReportModal = ({ isOpen, onClose }) => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [filterDays, setFilterDays] = useState(30);
+    const [filterType, setFilterType] = useState('30'); // '1', '7', '30', '90', 'custom'
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        return d.toISOString().split('T')[0];
+    });
+    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
 
     const loadOrders = async () => {
         setLoading(true);
@@ -28,9 +35,20 @@ const FiatReportModal = ({ isOpen, onClose }) => {
 
     if (!isOpen) return null;
 
-    // Filter by days
-    const cutoffTime = Date.now() - (filterDays * 24 * 60 * 60 * 1000);
-    const filteredOrders = orders.filter(o => o.updateTime >= cutoffTime);
+    // Filter logic
+    const filteredOrders = orders.filter(o => {
+        const txDate = new Date(o.updateTime);
+        if (filterType === 'custom') {
+            const start = new Date(startDate);
+            start.setHours(0,0,0,0);
+            const end = new Date(endDate);
+            end.setHours(23,59,59,999);
+            return txDate >= start && txDate <= end;
+        } else {
+            const cutoffTime = Date.now() - (Number(filterType) * 24 * 60 * 60 * 1000);
+            return o.updateTime >= cutoffTime;
+        }
+    });
 
     // Calc totals
     const successful = filteredOrders.filter(o => o.status === 'Successful');
@@ -68,20 +86,40 @@ const FiatReportModal = ({ isOpen, onClose }) => {
 
                 {/* BODY */}
                 <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <select 
-                            value={filterDays} 
-                            onChange={e => setFilterDays(Number(e.target.value))}
+                            value={filterType} 
+                            onChange={e => setFilterType(e.target.value)}
                             style={{ 
                                 padding: '10px 15px', borderRadius: '8px', background: '#1a1c24', 
                                 border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none'
                             }}
                         >
-                            <option value={1}>Últimas 24 Horas</option>
-                            <option value={7}>Últimos 7 Días</option>
-                            <option value={30}>Últimos 30 Días</option>
-                            <option value={90}>Últimos 3 Meses</option>
+                            <option value="1">Últimas 24 Horas</option>
+                            <option value="7">Últimos 7 Días</option>
+                            <option value="30">Últimos 30 Días</option>
+                            <option value="90">Últimos 3 Meses</option>
+                            <option value="custom">Rango Personalizado</option>
                         </select>
+                        
+                        {filterType === 'custom' && (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input 
+                                    type="date" 
+                                    value={startDate} 
+                                    onChange={e => setStartDate(e.target.value)}
+                                    style={{ padding: '9px 12px', borderRadius: '8px', background: '#1a1c24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', colorScheme: 'dark' }}
+                                />
+                                <span style={{ color: '#64748B' }}>hasta</span>
+                                <input 
+                                    type="date" 
+                                    value={endDate} 
+                                    onChange={e => setEndDate(e.target.value)}
+                                    style={{ padding: '9px 12px', borderRadius: '8px', background: '#1a1c24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', colorScheme: 'dark' }}
+                                />
+                            </div>
+                        )}
+
                         <button onClick={loadOrders} style={{ 
                             padding: '10px 15px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', 
                             border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60A5FA', cursor: 'pointer',
