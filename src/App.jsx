@@ -47,8 +47,10 @@ function App() {
   const [mobileTab, setMobileTab] = useState('dashboard');
 
   const walletRef = useRef(null);
-  // --- GUEST MODE DETECTION ---
-  const isReadOnly = (new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('view') === 'guest') || isVercelGuest();
+  // --- URL PARAMETERS ---
+  const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const isReadOnly = urlParams.get('view') === 'guest' || isVercelGuest();
+  const isFiatOnly = urlParams.get('view') === 'fiat';
 
   // --- HANDLERS ---
   const handleMobileNav = (tab) => {
@@ -86,6 +88,14 @@ function App() {
     handleManualAction('CLOSE', { id, exitPrice: currentPrice, source: 'user' });
   }, [cloudStatus.active, marketData, handleManualAction, isReadOnly]);
 
+  // --- STANDALONE FIAT VIEW ---
+  if (isFiatOnly) {
+    return (
+      <div style={{ background: '#0a0b10', minHeight: '100vh', width: '100vw' }}>
+        <FiatReportModal isOpen={true} onClose={() => window.location.href = '/'} />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.appContainer}>
