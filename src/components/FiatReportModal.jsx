@@ -174,9 +174,10 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                                         <div style={{ fontWeight: 'bold', color: o.status === 'Successful' ? '#fff' : '#EF4444', fontSize: '0.9rem' }}>{o.amount} USDT</div>
                                         {o.status === 'Successful' && (
                                             <div style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 'bold', marginTop: '2px' }}>
-                                                -{o.totalFee} {o.fiatCurrency} Fee
+                                                -{o.totalFee} {o.fiatCurrency} ({((parseFloat(o.totalFee)/parseFloat(o.indicatedAmount))*100).toFixed(2)}%) Fee
                                             </div>
                                         )}
+
                                         <button 
                                             onClick={() => setEditingOrder(editingOrder === o.orderNo ? null : o.orderNo)} 
                                             style={{ background: 'none', border: 'none', color: '#3B82F6', cursor: 'pointer', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px', padding: 0, marginLeft: 'auto' }}
