@@ -161,18 +161,24 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                             <div key={o.orderNo} style={{
                                 display: 'flex', flexDirection: 'column', gap: '10px',
                                 padding: '15px', borderRadius: '12px', background: '#1a1c24', border: '1px solid rgba(255,255,255,0.05)',
-                                borderLeft: `5px solid ${(o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? '#10B981' : '#EF4444'}`
+                                borderLeft: `5px solid ${(o.status.toLowerCase().includes('fail') || o.status.toLowerCase().includes('fall')) ? '#EF4444' : (o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? '#10B981' : '#EF4444'}`
                             }}>
+
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                     <div>
                                         <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            {(o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? (
+                                            {(o.status.toLowerCase().includes('fail') || o.status.toLowerCase().includes('fall')) ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#EF4444', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                                    <AlertTriangle size={18} color="#EF4444" /> FALLADO
+                                                </div>
+                                            ) : (o.status === 'Successful' || o.status === 'Finished' || parseFloat(o.amount) > 0) ? (
                                                 <CheckCircle size={16} color="#10B981"/>
                                             ) : (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#EF4444', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#EF4444', fontSize: '0.85rem', fontWeight: 'bold' }}>
                                                     <AlertTriangle size={18} color="#EF4444" /> FALLADO
                                                 </div>
                                             )}
+
 
                                             {o.indicatedAmount} USD
 
