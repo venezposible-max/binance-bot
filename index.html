@@ -27,9 +27,17 @@
   <meta name="twitter:image" content="https://binance-bot-production-28a6.up.railway.app/logo-192.png" />
 
   <meta name="app-version" content="FINAL-FIX-MOBILE-READY" />
-  <!-- PWA Setup RESTORED -->
-  <link rel="icon" type="image/png" href="/logo-192.png" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <!-- PWA Setup DYNAMIC ICON -->
+  <script>
+    if (window.location.search.includes('view=fiat')) {
+      document.title = "Reporte USD 💳";
+      document.write('<link rel="icon" type="image/png" href="/fiat-icon.png" />');
+      document.write('<link rel="apple-touch-icon" href="/fiat-icon.png" />');
+    } else {
+      document.write('<link rel="icon" type="image/png" href="/logo-192.png" />');
+      document.write('<link rel="apple-touch-icon" href="/apple-touch-icon.png" />');
+    }
+  </script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
