@@ -139,6 +139,15 @@ const FiatReportModal = ({ isOpen, onClose }) => {
                         <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ padding: '8px 12px', borderRadius: '8px', background: '#1a1c24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none' }}>
                             <option value="1">24h</option><option value="7">7d</option><option value="30">30d</option><option value="custom">Rango</option>
                         </select>
+                        
+                        {filterType === 'custom' && (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ padding: '8px 10px', borderRadius: '8px', background: '#1a1c24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.85rem', colorScheme: 'dark' }} />
+                                <span style={{ color: '#444' }}>-</span>
+                                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ padding: '8px 10px', borderRadius: '8px', background: '#1a1c24', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', fontSize: '0.85rem', colorScheme: 'dark' }} />
+                            </div>
+                        )}
+
                         <button onClick={loadOrders} style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60A5FA', cursor: 'pointer', marginLeft: 'auto' }}>
                             <RefreshCcw size={14} className={loading ? 'spin' : ''} />
                         </button>
