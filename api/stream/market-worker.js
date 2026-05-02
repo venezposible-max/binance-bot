@@ -84,6 +84,17 @@ class MarketWorker {
     start() {
         // Initialization handled by first updateSymbols or default
         this.isInitialized = true;
+        console.log('📡 MARKET WORKER: Stream started');
+    }
+
+    stop() {
+        // Close all WebSocket connections to save resources
+        for (const [symbol, ws] of Object.entries(this.sockets)) {
+            try { ws.close(); } catch (e) {}
+            delete this.sockets[symbol];
+        }
+        this.isInitialized = false;
+        console.log('⛔ MARKET WORKER: All streams STOPPED (Lockdown mode)');
     }
 
     connectSymbol(symbol) {

@@ -148,6 +148,9 @@ app.get('*', (req, res) => {
 // --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
 let isScanRunning = false;
 let lastBanLog = 0; // Throttle ban logs
+let isScanPaused = false; // TRUE = lockdown active, skip everything
+let lastLockdownCheck = 0;
+
 const runInternalScan = async (source = 'TIMER') => {
     if (isScanRunning) {
         return; // Silent skip — no log spam
@@ -155,9 +158,39 @@ const runInternalScan = async (source = 'TIMER') => {
     isScanRunning = true;
 
     try {
+        // --- CHECK LOCKDOWN FROM REDIS (every 10s max to avoid spamming Redis) ---
+        const now = Date.now();
+        if (now - lastLockdownCheck > 10000) {
+            lastLockdownCheck = now;
+            try {
+                const redis = await import('./api/utils/redisClient.js');
+                const lockdownFlag = await redis.default.get('sentinel_lockdown');
+                const wasRunning = !isScanPaused;
+                isScanPaused = lockdownFlag === 'true';
+                
+                // Transition: was running -> now paused
+                if (wasRunning && isScanPaused) {
+                    console.log('⛔ LOCKDOWN DETECTED — Stopping all scans & market stream to save resources');
+                    marketWorker.stop?.();
+                }
+                // Transition: was paused -> now unlocked
+                if (!wasRunning && !isScanPaused) {
+                    console.log('✅ LOCKDOWN LIFTED — Resuming scans & market stream');
+                    marketWorker.start?.();
+                }
+            } catch (e) { /* Redis down, keep last state */ }
+        }
+
+        // If paused, skip everything (no HTTP calls = no Railway compute)
+        if (isScanPaused) {
+            if (now - lastBanLog > 120000) {
+                console.log(`⛔ [${source}] SCAN PAUSED (Lockdown) — No API calls being made`);
+                lastBanLog = now;
+            }
+            return;
+        }
+
         if (marketWorker.activeBan) {
-            const now = Date.now();
-            // Only log ban status every 2 minutes instead of every cycle
             if (now - lastBanLog > 120000) {
                 const remainMs = marketWorker.banExpiration - now;
                 const remainMin = (remainMs / 60000).toFixed(1);
