@@ -1,4 +1,4 @@
-const CACHE_NAME = 'p2p-radar-v2';
+const CACHE_NAME = 'p2p-radar-v3';
 const ASSETS = [
   '/',
   '/index.html',

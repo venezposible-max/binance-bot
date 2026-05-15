@@ -350,18 +350,18 @@
     </div>
 
     <!-- WIDGET PREDICTIVO -->
-    <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 20px; display: flex; justify-content: space-around; align-items: center; border-color: rgba(0, 242, 255, 0.4); background: linear-gradient(90deg, rgba(0, 242, 255, 0.05), transparent, rgba(0, 242, 255, 0.05));">
-        <div style="text-align: center;">
-            <div class="card-label" style="justify-content: center;">TENDENCIA</div>
-            <div id="pred-direction" style="font-family: 'Orbitron'; font-size: 1.5rem; color: var(--cyber-blue);">ANALIZANDO...</div>
+    <div class="holo-card" style="width: 95%; max-width: 1000px; margin: 20px auto; display: flex; justify-content: space-around; align-items: center; border: 2px solid var(--cyber-blue); background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 20px rgba(0, 242, 255, 0.2); position: relative; z-index: 100;">
+        <div style="text-align: center; flex: 1;">
+            <div class="card-label" style="justify-content: center; color: var(--cyber-blue);">TENDENCIA</div>
+            <div id="pred-direction" style="font-family: 'Orbitron'; font-size: 1.4rem; color: #fff; text-shadow: 0 0 10px var(--cyber-blue);">ANALIZANDO...</div>
         </div>
-        <div style="text-align: center; border-left: 1px solid rgba(0, 242, 255, 0.2); border-right: 1px solid rgba(0, 242, 255, 0.2); padding: 0 40px;">
-            <div class="card-label" style="justify-content: center;">CONFIANZA DEL ALGO</div>
-            <div id="pred-confidence" style="font-family: 'Orbitron'; font-size: 2.2rem; color: var(--cyber-yellow);">--%</div>
+        <div style="text-align: center; flex: 1; border-left: 1px solid rgba(0, 242, 255, 0.3); border-right: 1px solid rgba(0, 242, 255, 0.3); padding: 10px 0;">
+            <div class="card-label" style="justify-content: center; color: var(--cyber-yellow);">CONFIANZA</div>
+            <div id="pred-confidence" style="font-family: 'Orbitron'; font-size: 2rem; color: var(--cyber-yellow); text-shadow: 0 0 15px rgba(255, 213, 0, 0.4);">--%</div>
         </div>
-        <div style="text-align: center;">
-            <div class="card-label" style="justify-content: center;">SENTIMIENTO</div>
-            <div id="pred-sentiment" style="font-family: 'Orbitron'; font-size: 1.2rem; color: #fff;">ESPERANDO...</div>
+        <div style="text-align: center; flex: 1;">
+            <div class="card-label" style="justify-content: center; color: #fff;">SENTIMIENTO</div>
+            <div id="pred-sentiment" style="font-family: 'Orbitron'; font-size: 1.1rem; color: #fff; opacity: 0.9;">ESPERANDO...</div>
         </div>
     </div>
 
@@ -585,7 +585,7 @@
                             const secs = ex.secondsLeft % 60;
                             document.getElementById('sentinel-time').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
                         } else {
-                            document.getElementById('sentinel-time').innerText = '--:--';
+                            document.getElementById('sentinel-time').innerText = 'INFINITO';
                         }
 
                         const statusEl = document.getElementById('sentinel-status');
