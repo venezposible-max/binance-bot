@@ -444,28 +444,51 @@
 
             let totalInversionVES = 0;
             let totalRetornoVES = 0;
+            let totalCriptoComprado = 0;
+            let totalCriptoVendido = 0;
 
             checkboxes.forEach(cb => {
                 const type = cb.getAttribute('data-type');
                 const fiat = cb.getAttribute('data-fiat');
                 const ves = parseFloat(cb.getAttribute('data-ves'));
+                const usdt = parseFloat(cb.getAttribute('data-usdt'));
 
                 // Omitir calculo si hay un trade en USD mezclado
                 if (fiat !== 'VES') return;
 
                 if (type === 'COMPRA') {
                     totalInversionVES += ves;
+                    totalCriptoComprado += usdt;
                 } else if (type === 'VENTA') {
                     totalRetornoVES += ves;
+                    totalCriptoVendido += usdt;
                 }
             });
 
-            const ganancia = totalRetornoVES - totalInversionVES;
+            if (totalCriptoComprado === 0 || totalCriptoVendido === 0) {
+                document.getElementById('calcResult').innerText = '⚠️ Debes seleccionar al menos una compra y una venta válida en VES.';
+                return;
+            }
+
+            // Calculo inteligente (Ponderado)
+            const precioPromedioCompra = totalInversionVES / totalCriptoComprado;
+            const precioPromedioVenta = totalRetornoVES / totalCriptoVendido;
+            
+            // Determinar el tamaño del ciclo cerrado (el menor volumen entre compras y ventas seleccionadas)
+            const usdtCompletados = Math.min(totalCriptoComprado, totalCriptoVendido);
+            
+            // Calcular ganancias sobre exactamente la cantidad de USDT que dio la vuelta completa
+            const costoReal = usdtCompletados * precioPromedioCompra;
+            const retornoReal = usdtCompletados * precioPromedioVenta;
+            const ganancia = retornoReal - costoReal;
+
             const color = ganancia >= 0 ? 'var(--buy-color)' : 'var(--sell-color)';
             
             document.getElementById('calcResult').innerHTML = `
-                <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">Has invertido: <span style="color:var(--sell-color)">-${totalInversionVES.toFixed(2)} VES</span> | Has recibido: <span style="color:var(--buy-color)">+${totalRetornoVES.toFixed(2)} VES</span></div>
-                Ganancia Neta del Ciclo: <span style="color: ${color}; font-size: 1.3rem;">${ganancia > 0 ? '+' : ''}${ganancia.toFixed(2)} VES</span>
+                <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">
+                    Ciclo de <strong>${usdtCompletados.toFixed(2)} USDT</strong> | Prom. Compra: <span style="color:var(--sell-color)">${precioPromedioCompra.toFixed(2)}</span> | Prom. Venta: <span style="color:var(--buy-color)">${precioPromedioVenta.toFixed(2)}</span>
+                </div>
+                Ganancia Neta Ponderada: <span style="color: ${color}; font-size: 1.3rem;">${ganancia > 0 ? '+' : ''}${ganancia.toFixed(2)} VES</span>
             `;
         }
 
