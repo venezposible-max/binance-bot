@@ -307,33 +307,25 @@ async function updateMarketData() {
                     
                     if (liquidityTracker[adId]) {
                         const firstEntry = liquidityTracker[adId].first;
-                        const lastEntry = liquidityTracker[adId].last;
-                        
-                        // Solo calcular si ha pasado al menos 10 segundos desde la primera vez que lo vimos
                         const totalTimeDiff = (now - firstEntry.time) / 1000;
                         const totalVolDiff = firstEntry.vol - currentVol;
                         
-                        if (totalVolDiff > 0 && totalTimeDiff > 10) {
-                            const avgRate = totalVolDiff / totalTimeDiff; // USDT/seg promedio
+                        if (totalVolDiff > 0 && totalTimeDiff > 2) { // Reducido a 2s para respuesta rápida
+                            const avgRate = totalVolDiff / totalTimeDiff;
                             const secondsLeft = currentVol / avgRate;
                             
                             marketDataCache.exhaustion = {
-                                imminent: secondsLeft < 300, // Alerta si queda menos de 5 min
+                                imminent: secondsLeft < 300,
                                 adId: adId,
                                 secondsLeft: Math.round(secondsLeft),
                                 rate: avgRate.toFixed(2),
-                                status: secondsLeft < 180 ? '⚠️ AGOTÁNDOSE' : 'ACTIVO'
+                                status: secondsLeft < 120 ? '⚠️ AGOTÁNDOSE' : 'OBSERVANDO VENTAS'
                             };
-                        } else if (totalVolDiff === 0 && totalTimeDiff > 30) {
-                            marketDataCache.exhaustion.status = 'SIN MOVIMIENTO (30s+)';
+                        } else if (totalVolDiff === 0) {
+                            marketDataCache.exhaustion.status = totalTimeDiff > 20 ? 'MERCADO PAUSADO' : 'ESCUCHANDO...';
                             marketDataCache.exhaustion.rate = "0.00";
-                            marketDataCache.exhaustion.secondsLeft = 0;
                         }
-                        
-                        // Actualizar último avistamiento
-                        liquidityTracker[adId].last = { vol: currentVol, time: now };
                     } else {
-                        // Nuevo anuncio detectado: Iniciamos seguimiento
                         liquidityTracker[adId] = {
                             first: { vol: currentVol, time: now },
                             last: { vol: currentVol, time: now }
@@ -343,14 +335,15 @@ async function updateMarketData() {
                             adId: adId,
                             secondsLeft: 0,
                             rate: 0,
-                            status: 'CALIBRANDO...'
+                            status: 'SINCRONIZANDO...'
                         };
                     }
                     
-                    // Limpiar basura antigua (solo nos interesa el líder actual)
                     Object.keys(liquidityTracker).forEach(id => {
                         if (id !== adId) delete liquidityTracker[id];
                     });
+                } else {
+                    marketDataCache.exhaustion.status = 'SIN COMPETENCIA';
                 }
 
                 console.log(`[DASHBOARD] Muro Compra: ${makerBuyPrice} | Muro Venta: ${makerSellPrice} | Predicción: ${marketDataCache.prediction.direction}`);
