@@ -4,6 +4,7 @@ import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -24,6 +25,10 @@ const TRADE_TYPES = ['BUY', 'SELL']; // BUY = Anuncios de Venta (Maker SELL). SE
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 let lastAlertTime = 0;
+
+// Binance API Config
+const BINANCE_API_KEY = process.env.BINANCE_API_KEY;
+const BINANCE_API_SECRET = process.env.BINANCE_API_SECRET;
 
 // Cache para no saturar la API
 let marketDataCache = {
@@ -205,6 +210,36 @@ app.post('/api/arbitrage/config', (req, res) => {
     updateMarketData();
     
     res.json({ success: true, config: botConfig });
+});
+
+// BÓVEDA SECRETA: Historial de P2P
+app.post('/api/arbitrage/vault', async (req, res) => {
+    const { pin } = req.body;
+    if (pin !== '228922') {
+        return res.status(401).json({ success: false, message: 'PIN Incorrecto' });
+    }
+
+    if (!BINANCE_API_KEY || !BINANCE_API_SECRET) {
+        return res.status(500).json({ success: false, message: 'Faltan credenciales de API en .env' });
+    }
+
+    const timestamp = Date.now();
+    const queryString = `timestamp=${timestamp}&rows=50`; // Últimos 50 trades
+    const signature = crypto.createHmac('sha256', BINANCE_API_SECRET).update(queryString).digest('hex');
+    
+    try {
+        const response = await axios.get(`https://api.binance.com/sapi/v1/c2c/orderMatch/listUserOrderHistory?${queryString}&signature=${signature}`, {
+            headers: { 'X-MBX-APIKEY': BINANCE_API_KEY }
+        });
+        
+        // Filtrar solo las completadas
+        const completedTrades = (response.data.data || []).filter(t => t.orderStatus === 'COMPLETED');
+        
+        res.json({ success: true, data: completedTrades });
+    } catch (e) {
+        console.error('Error en Bóveda:', e.response ? e.response.data : e.message);
+        res.status(500).json({ success: false, message: 'Error consultando Binance' });
+    }
 });
 
 const PORT = process.env.PORT || 3000;

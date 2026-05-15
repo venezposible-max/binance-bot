@@ -153,9 +153,92 @@
             color: var(--text-muted);
             font-size: 0.8rem;
         }
+
+        /* BOVEDA SECRETA CSS */
+        .vault-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-muted);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 1.2rem;
+        }
+        .vault-btn:hover { background: rgba(255,255,255,0.1); color: var(--primary); }
+
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--panel-bg);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%; max-width: 600px;
+            text-align: center;
+        }
+        .modal input {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 10px; border-radius: 6px; font-size: 1.2rem;
+            text-align: center; margin-bottom: 15px; width: 200px; letter-spacing: 5px;
+        }
+        .table-container {
+            max-height: 400px; overflow-y: auto; margin-top: 20px;
+        }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+        th, td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { color: var(--primary); }
+        .buy-row td { color: var(--buy-color); }
+        .sell-row td { color: var(--sell-color); }
+        .close-btn { margin-top: 20px; background: #333; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
+    <button class="vault-btn" onclick="openPinModal()">🔒</button>
+
+    <!-- MODAL PIN -->
+    <div id="pinModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 350px;">
+            <h2 style="color: var(--primary)">Bóveda Secreta</h2>
+            <p>Ingresa tu PIN de seguridad</p>
+            <input type="password" id="vaultPin" placeholder="******" maxlength="6">
+            <br>
+            <button class="save-btn" onclick="accessVault()">Acceder</button>
+            <button class="close-btn" onclick="closeModals()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL BOVEDA -->
+    <div id="vaultModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
+            <h2 style="color: var(--primary)">Historial Contable P2P</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Fiat (VES)</th>
+                            <th>Cripto (USDT)</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vaultTableBody">
+                        <!-- Llenado por JS -->
+                    </tbody>
+                </table>
+            </div>
+            <button class="close-btn" onclick="closeModals()">Cerrar Bóveda</button>
+        </div>
+    </div>
 
     <h1>📊 ARBITRAJE BOT (P2P RADAR)</h1>
     <p style="color: var(--text-muted)">Escaneando oportunidades Maker en Binance P2P (USDT/VES)</p>
@@ -262,6 +345,72 @@
                 console.error("Error saving config", e);
                 alert('Error al guardar configuración');
             }
+        }
+
+        async function accessVault() {
+            const pin = document.getElementById('vaultPin').value;
+            const btn = document.querySelector('#pinModal .save-btn');
+            btn.innerText = 'Verificando...';
+            
+            try {
+                const res = await fetch('/api/arbitrage/vault', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin })
+                });
+                const json = await res.json();
+                
+                if (json.success) {
+                    document.getElementById('pinModal').style.display = 'none';
+                    document.getElementById('vaultModal').style.display = 'flex';
+                    renderVault(json.data);
+                } else {
+                    alert(json.message);
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+            btn.innerText = 'Acceder';
+            document.getElementById('vaultPin').value = '';
+        }
+
+        function renderVault(trades) {
+            const tbody = document.getElementById('vaultTableBody');
+            tbody.innerHTML = '';
+            
+            if(trades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay operaciones recientes</td></tr>';
+                return;
+            }
+
+            trades.forEach(t => {
+                const isBuy = t.tradeType === 'BUY';
+                const row = document.createElement('tr');
+                row.className = isBuy ? 'buy-row' : 'sell-row';
+                
+                const date = new Date(t.createTime).toLocaleString();
+                const type = isBuy ? 'COMPRA' : 'VENTA';
+                
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td><strong>${type}</strong></td>
+                    <td>${parseFloat(t.amount).toFixed(2)}</td>
+                    <td>${parseFloat(t.assetAmount).toFixed(2)}</td>
+                    <td>${parseFloat(t.unitPrice).toFixed(2)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function openPinModal() {
+            document.getElementById('pinModal').style.display = 'flex';
+            document.getElementById('vaultPin').focus();
+        }
+
+        function closeModals() {
+            document.getElementById('pinModal').style.display = 'none';
+            document.getElementById('vaultModal').style.display = 'none';
+            document.getElementById('vaultPin').value = '';
         }
 
         let firstLoad = true;
