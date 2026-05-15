@@ -123,17 +123,14 @@ async function scrapeBCV() {
     }
 }
 
-async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct, bcvRate, gap) {
+async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
     
     // Solo enviar 1 alerta cada 5 minutos máximo para no hacer spam
     const now = Date.now();
     if (now - lastAlertTime < 5 * 60 * 1000) return;
 
-    const bcvText = bcvRate !== '---' ? `🏛️ *BCV:* ${bcvRate} Bs\n📉 *Brecha/Gap:* ${gap}%\n\n` : '';
-
-    const message = `🚨 *MONITOR ARBITRAJE* 🚨\n\n` +
-                    bcvText +
+    const message = `🚨 *OPORTUNIDAD P2P (BDV)* 🚨\n\n` +
                     `💰 *Ganancia Neta:* +${profit.toFixed(2)} Bs (al mover 60k)\n` +
                     `📊 *Spread:* ${spreadPct}%\n\n` +
                     `🟢 *Crea Compra a:* ${buyPrice} Bs\n` +
@@ -266,9 +263,7 @@ async function updateMarketData() {
                     telProfit60k, 
                     telMyBuyPrice.toFixed(2), 
                     telMySellPrice.toFixed(2), 
-                    telSpreadPct.toFixed(2),
-                    marketDataCache.bcv.rate,
-                    bcvGap
+                    telSpreadPct.toFixed(2)
                 );
             }
         }
