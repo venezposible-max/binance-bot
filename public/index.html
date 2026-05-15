@@ -326,6 +326,14 @@
             <div class="volume-badge" id="sell-wall">Muro: --- USDT</div>
             <div class="bank-info" id="sell-bank">Referencia: ---</div>
         </div>
+
+        <!-- Tarjeta BCV -->
+        <div class="card" id="bcv-card" style="border: 1px solid rgba(0, 184, 212, 0.3);">
+            <div class="card-title" style="color: #00b8d4">INTERVENCIÓN BCV</div>
+            <div class="price" id="bcv-status" style="font-size: 1.8rem;">Cargando...</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;" id="bcv-rate">Tasa: Bs. ---</div>
+            <div style="margin-top: 10px; font-size: 0.75rem; color: #aaa;" id="bcv-update">Actualizado: ---</div>
+        </div>
     </div>
 
     <div class="action-box">
@@ -548,11 +556,22 @@
                     document.getElementById('sell-bank').innerText = 'Competencia: ' + data.topSellAdBank;
                     
                     document.getElementById('action-buy').innerText = data.makerBuyPrice;
-                    document.getElementById('action-buy-bank').innerText = data.topBuyAdBank;
-                    
                     document.getElementById('action-sell').innerText = data.makerSellPrice;
+                    document.getElementById('action-buy-bank').innerText = data.topBuyAdBank;
                     document.getElementById('action-sell-bank').innerText = data.topSellAdBank;
-                    
+
+                    // Actualizar Info BCV
+                    if (data.bcv) {
+                        const bcvStatus = document.getElementById('bcv-status');
+                        bcvStatus.innerText = data.bcv.status.toUpperCase();
+                        bcvStatus.style.color = data.bcv.status === 'Abierto' ? '#00b8d4' : '#ff4d4d';
+                        document.getElementById('bcv-rate').innerText = 'Tasa: Bs. ' + data.bcv.rate;
+                        document.getElementById('bcv-update').innerText = 'Canal: @BancaVenezolana (' + data.bcv.lastUpdate + ')';
+                        
+                        const bcvCard = document.getElementById('bcv-card');
+                        bcvCard.style.boxShadow = data.bcv.status === 'Abierto' ? '0 0 15px rgba(0, 184, 212, 0.4)' : 'none';
+                    }
+
                     document.getElementById('last-update').innerText = 'Última actualización: ' + new Date(data.lastUpdate).toLocaleTimeString();
                 }
             } catch (e) {

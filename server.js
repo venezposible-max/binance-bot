@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -36,7 +37,12 @@ let marketDataCache = {
     makerSellPrice: 0,
     spreadPct: 0,
     lastUpdate: 0,
-    banks: [] // Lista de mejores precios por banco
+    banks: [], // Lista de mejores precios por banco
+    bcv: {
+        status: 'Cerrado',
+        rate: '---',
+        lastUpdate: 'Esperando datos...'
+    }
 };
 
 // Configuración Dinámica
@@ -44,6 +50,57 @@ let botConfig = {
     mode: 'SOLO_BDV', // 'SOLO_BDV' o 'MULTI_BANK'
     selectedBanks: ['BancoDeVenezuela']
 };
+
+async function scrapeBCV() {
+    try {
+        const url = 'https://t.me/s/BancaVenezolana';
+        const { data } = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+
+        const $ = cheerio.load(data);
+        const messages = [];
+
+        $('.tgme_widget_message_text').each((i, el) => {
+            messages.push($(el).text().trim());
+        });
+
+        let interventionInfo = {
+            status: 'Cerrado',
+            rate: '---',
+            lastUpdate: new Date().toLocaleTimeString('es-VE', {timeZone: 'America/Caracas'})
+        };
+
+        // Recorrer de atrás hacia adelante para encontrar el estado más reciente
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i].toLowerCase();
+            
+            if (msg.includes('intervención') || msg.includes('intervencion')) {
+                if (msg.includes('vta') || msg.includes('venta') || msg.includes('digital')) {
+                    interventionInfo.status = 'Abierto';
+                } else if (msg.includes('cerrada') || msg.includes('finalizó') || msg.includes('finalizo')) {
+                    interventionInfo.status = 'Cerrado';
+                }
+                
+                // Intentar extraer tasa
+                const tasaMatch = msg.match(/tasa:\s*bs\.\s*([\d,.]+)/i);
+                if (tasaMatch) {
+                    interventionInfo.rate = tasaMatch[1];
+                }
+                break; 
+            }
+        }
+
+        // Si cambió el estado o la tasa, podríamos enviar una alerta específica si se desea
+        marketDataCache.bcv = interventionInfo;
+        console.log(`📡 BCV Scraper: ${interventionInfo.status} | Tasa: ${interventionInfo.rate}`);
+
+    } catch (error) {
+        console.error('Error scraping BCV:', error.message);
+    }
+}
 
 async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
@@ -183,10 +240,6 @@ async function updateMarketData() {
     }
 }
 
-// Iniciar ciclo de escaneo cada 15 segundos
-setInterval(updateMarketData, 5000);
-updateMarketData(); // Llamada inicial
-
 // Endpoints de la API
 app.get('/api/arbitrage/status', (req, res) => {
     res.json({
@@ -241,6 +294,13 @@ app.post('/api/arbitrage/vault', async (req, res) => {
         res.status(500).json({ success: false, message: 'Error consultando Binance' });
     }
 });
+
+// Iniciar ciclos de escaneo
+updateMarketData();
+setInterval(updateMarketData, 5000); // Cada 5 segundos
+
+scrapeBCV();
+setInterval(scrapeBCV, 60000); // Cada 1 minuto para el canal de Telegram
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
