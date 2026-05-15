@@ -20,6 +20,11 @@ const FIAT = 'VES';
 const ASSET = 'USDT';
 const TRADE_TYPES = ['BUY', 'SELL']; // BUY = Anuncios de Venta (Maker SELL). SELL = Anuncios de Compra (Maker BUY).
 
+// Telegram Config
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+let lastAlertTime = 0;
+
 // Cache para no saturar la API
 let marketDataCache = {
     makerBuyPrice: 0,
@@ -28,6 +33,33 @@ let marketDataCache = {
     lastUpdate: 0,
     banks: [] // Lista de mejores precios por banco
 };
+
+async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+    
+    // Solo enviar 1 alerta cada 5 minutos máximo para no hacer spam
+    const now = Date.now();
+    if (now - lastAlertTime < 5 * 60 * 1000) return;
+
+    const message = `🚨 *OPORTUNIDAD P2P (BDV)* 🚨\n\n` +
+                    `💰 *Ganancia Neta:* +${profit.toFixed(2)} Bs (al mover 60k)\n` +
+                    `📊 *Spread:* ${spreadPct}%\n\n` +
+                    `🟢 *Crea Anuncio de Compra a:* ${buyPrice} Bs\n` +
+                    `🔴 *Crea Anuncio de Venta a:* ${sellPrice} Bs\n\n` +
+                    `⏱️ _${new Date().toLocaleTimeString('es-VE', {timeZone: 'America/Caracas'})}_`;
+
+    try {
+        await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'Markdown'
+        });
+        lastAlertTime = now;
+        console.log('✅ Alerta de Telegram enviada!');
+    } catch (e) {
+        console.error('❌ Error enviando Telegram:', e.message);
+    }
+}
 
 async function fetchBinanceP2P(tradeType, fiat, asset) {
     try {
@@ -107,6 +139,13 @@ async function updateMarketData() {
             };
             
             console.log(`[P2P] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
+            
+            // Lógica de Disparo de Alerta Telegram
+            // Configurado para alertar si la ganancia es mayor a 50 Bs (puedes ajustar esto)
+            const profit60k = (60000 / myBuyPrice) * spreadBruto;
+            if (profit60k >= 50 && spreadPct > 0.2) {
+                sendTelegramAlert(profit60k, myBuyPrice.toFixed(2), mySellPrice.toFixed(2), spreadPct.toFixed(2));
+            }
         }
     } catch (e) {
         console.error('Error in updateMarketData:', e.message);
