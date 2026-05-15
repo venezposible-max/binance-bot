@@ -1,267 +1,118 @@
-import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
+import dotenv from 'dotenv';
 
-// --- MODULE IMPORTS (Consolidated) ---
-import { LogStore } from './api/utils/logger.js';
-import logsHandler from './api/logs.js';
-import telegramProxy from './api/telegram-proxy.js';
-import checkPrices from './api/check-prices.js';
-import manualTrade from './api/manual-trade.js';
-import getStatus from './api/get-status.js';
-import walletConfig from './api/wallet/config.js';
-import candles from './api/candles.js';
-import ticker from './api/ticker.js';
-import walletBalance from './api/wallet/balance.js'; // Restored Import ✅
-import portfolioHandler from './api/olga/portfolio.js'; // Olga is back!
-import activeMode from './api/wallet/active-mode.js';
-import marketWorker from './api/stream/market-worker.js';
-import debug from './api/debug.js';
-import cleanup from './api/cleanup.js';
-import getMarketPairs from './api/get-market-pairs.js'; // NEW: Sync Endpoint
-import lockdown from './api/lockdown.js'; // NEW: Emergency Switch
-import removeTrade from './api/remove-trade.js'; // NEW: Manual Trade Removal
-import arbitrageVes from './api/arbitrage-ves.js'; // NEW: Arbitrage Monitor
-import fiatOrders from './api/fiat-orders.js'; // NEW: Fiat Orders
-import fiatActiveBank from './api/fiat-active-bank.js'; // NEW: Fiat Active Bank Toggle
-import fiatUpdateTag from './api/fiat-update-tag.js'; // NEW: Manual Tag Update
-import unixaBacktest from './api/unixa-backtest.js';
-import backtestDip from './api/backtest-dip.js'; // Backtest: Smart Dip vs Volcano
+dotenv.config();
 
-
-// --- LOG CAPTURE HOOK ---
-// Capture logs for the frontend console
-const originalLog = console.log;
-const originalError = console.error;
-const originalWarn = console.warn;
-
-// Initialize overrides safely
-console.log = (...args) => { originalLog(...args); try { LogStore.add('INFO', ...args); } catch (e) { } };
-console.error = (...args) => { originalError(...args); try { LogStore.add('ERROR', ...args); } catch (e) { } };
-console.warn = (...args) => { originalWarn(...args); try { LogStore.add('WARN', ...args); } catch (e) { } };
-
-// --- CRASH PREVENTION & LOGGING ---
-console.log('========================================');
-console.log('🔥 SERVER STARTING...');
-console.log('🚀 DEPLOYMENT TRIGGER CHECK: V_0_0_4_FORCE_PERSISTENCE (TIMESTAMP: ' + new Date().toISOString() + ')');
-console.log('Node Version:', process.version);
-console.log('========================================');
-
-process.on('uncaughtException', (err) => {
-    console.error('💥 CRITICAL ERROR (Uncaught Exception):', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('💥 CRITICAL ERROR (Unhandled Rejection):', reason);
-});
-
-// Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 8080;
-
-console.log(`🔌 Configured PORT: ${PORT}`);
-
-app.use(cors({
-    origin: '*', // Allow all (Vercel, Localhost, etc.)
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-cron-secret']
-}));
+app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// --- API ROUTES (Adapter) ---
-const vercelAdapter = (handler) => async (req, res) => {
-    try {
-        await handler(req, res);
-    } catch (error) {
-        console.error('API Error:', error);
-        res.status(500).json({ error: error.message });
-    }
+// Configuración de Búsqueda P2P
+const FIAT = 'VES';
+const ASSET = 'USDT';
+const TRADE_TYPES = ['BUY', 'SELL']; // BUY = Anuncios de Venta (Maker SELL). SELL = Anuncios de Compra (Maker BUY).
+
+// Cache para no saturar la API
+let marketDataCache = {
+    makerBuyPrice: 0,
+    makerSellPrice: 0,
+    spreadPct: 0,
+    lastUpdate: 0,
+    banks: [] // Lista de mejores precios por banco
 };
 
-// Registered Routes
-app.post('/api/check-prices', vercelAdapter(checkPrices));
-app.post('/api/check-prices', vercelAdapter(checkPrices));
-app.get('/api/check-prices', vercelAdapter(checkPrices));
-app.get('/api/get-market-pairs', vercelAdapter(getMarketPairs)); // NEW: Sync Endpoint
-app.post('/api/manual-trade', vercelAdapter(manualTrade));
-app.get('/api/get-status', vercelAdapter(getStatus));
-app.get('/api/wallet/config', vercelAdapter(walletConfig));
-app.post('/api/wallet/config', vercelAdapter(walletConfig));
-app.get('/api/wallet/balance', vercelAdapter(walletBalance));
-app.get('/api/wallet/active-mode', vercelAdapter(activeMode));
-app.post('/api/wallet/active-mode', vercelAdapter(activeMode));
-
-app.post('/api/lockdown', vercelAdapter(lockdown)); // NEW: Emergency
-app.get('/api/logs', vercelAdapter(logsHandler)); // Live Logs
-app.get('/api/telegram-proxy', vercelAdapter(telegramProxy)); // Telegram Proxy
-app.get('/api/remove-trade', vercelAdapter(removeTrade)); // NEW: Manual Trade Removal
-
-app.get('/api/candles', vercelAdapter(candles)); // Chart Proxy
-app.get('/api/ticker', vercelAdapter(ticker)); // Real-time Price Proxy
-app.get('/api/olga/portfolio', vercelAdapter(portfolioHandler)); // NEW: Olga Safe Endpoint 👩‍💼
-app.get('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
-app.post('/api/arbitrage/ves', vercelAdapter(arbitrageVes));
-app.get('/api/fiat-orders', vercelAdapter(fiatOrders));
-app.get('/api/fiat-active-bank', vercelAdapter(fiatActiveBank));
-app.post('/api/fiat-active-bank', vercelAdapter(fiatActiveBank));
-app.post('/api/fiat-update-tag', vercelAdapter(fiatUpdateTag));
-app.post('/api/unixa-backtest', vercelAdapter(unixaBacktest));
-
-
-// Phase 1: High-Speed Market Cache
-app.get('/api/market-cache', (req, res) => {
-    res.json(marketWorker.getAllMarketData());
-});
-
-app.get('/api/debug', vercelAdapter(debug));
-app.get('/api/cleanup', vercelAdapter(cleanup));
-app.get('/api/backtest-dip', vercelAdapter(backtestDip)); // Backtest endpoint
-
-// --- UNBAN ENDPOINT (Manual Recovery) ---
-app.post('/api/unban', (req, res) => {
-    marketWorker.clearBan();
-    // Also clear Redis ban flag
-    import('./api/utils/redisClient.js').then(mod => {
-        mod.default.del('sentinel_rest_banned').catch(() => {});
-    }).catch(() => {});
-    res.json({ status: 'OK', message: 'Ban cleared. Bot will resume on next cycle.' });
-});
-
-// --- SERVE FRONTEND (VITE BUILD) ---
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// Handle React Routing (SPA) with explicit NO-CACHE for index.html
-app.get('*', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('Surrogate-Control', 'no-store');
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-// --- ROBUST INTERNAL CRON (HTTP Self-Call) ---
-let isScanRunning = false;
-let lastBanLog = 0; // Throttle ban logs
-let isScanPaused = false; // TRUE = lockdown active, skip everything
-let lastLockdownCheck = 0;
-
-const runInternalScan = async (source = 'TIMER') => {
-    if (isScanRunning) {
-        return; // Silent skip — no log spam
-    }
-    isScanRunning = true;
-
+async function fetchBinanceP2P(tradeType, fiat, asset, payTypes = []) {
     try {
-        // --- CHECK LOCKDOWN FROM REDIS (every 10s max to avoid spamming Redis) ---
-        const now = Date.now();
-        if (now - lastLockdownCheck > 10000) {
-            lastLockdownCheck = now;
-            try {
-                const redis = await import('./api/utils/redisClient.js');
-                const lockdownFlag = await redis.default.get('sentinel_lockdown');
-                const wasRunning = !isScanPaused;
-                isScanPaused = lockdownFlag === 'true';
-                
-                // Transition: was running -> now paused
-                if (wasRunning && isScanPaused) {
-                    console.log('⛔ LOCKDOWN DETECTED — Stopping all scans & market stream to save resources');
-                    marketWorker.stop?.();
-                }
-                // Transition: was paused -> now unlocked
-                if (!wasRunning && !isScanPaused) {
-                    console.log('✅ LOCKDOWN LIFTED — Resuming scans & market stream');
-                    marketWorker.start?.();
-                }
-            } catch (e) { /* Redis down, keep last state */ }
-        }
-
-        // If paused, skip everything (no HTTP calls = no Railway compute)
-        if (isScanPaused) {
-            if (now - lastBanLog > 120000) {
-                console.log(`⛔ [${source}] SCAN PAUSED (Lockdown) — No API calls being made`);
-                lastBanLog = now;
+        const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
+            fiat: fiat,
+            page: 1,
+            rows: 5,
+            tradeType: tradeType,
+            asset: asset,
+            countries: [],
+            proMerchantAds: false,
+            shieldMerchantAds: false,
+            publisherType: null,
+            payTypes: payTypes,
+            classifies: ['mass', 'profession']
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0'
             }
-            return;
-        }
-
-        if (marketWorker.activeBan) {
-            if (now - lastBanLog > 120000) {
-                const remainMs = marketWorker.banExpiration - now;
-                const remainMin = (remainMs / 60000).toFixed(1);
-                console.log(`🚫 [${source}] IP BANNED — Auto-recovery in ~${remainMin}min`);
-                lastBanLog = now;
-            }
-            return;
-        }
-
-        console.log(`\n⏳ [${new Date().toISOString()}] INTERNAL CRON (${source}): Triggering Scan...`);
-
-        const response = await axios.get(`http://127.0.0.1:${PORT}/api/check-prices`, {
-            headers: { 'x-cron-secret': process.env.CRON_SECRET },
-            timeout: 60000
         });
-
-        const activeCount = response.data.activeCount || 0;
-        const alerts = response.data.newAlerts?.length || 0;
-        console.log(`✅ SCAN COMPLETE: ${activeCount} Active Trades | ${alerts} New Alerts`);
-
-        // Reset ban counter on successful scan
-        if (marketWorker.banCount > 0) {
-            marketWorker.banCount = 0;
-            console.log('✅ Ban counter reset after successful scan.');
+        
+        if (response.data && response.data.data && response.data.data.length > 0) {
+            // Retorna el mejor anuncio (el primero de la lista suele ser el mejor precio)
+            return response.data.data[0].adv;
         }
+        return null;
+    } catch (error) {
+        console.error(`Error fetching P2P data for ${tradeType}:`, error.message);
+        return null;
+    }
+}
 
-        // Keep heartbeat alive in Redis
-        try {
-            const redis = await import('./src/utils/redisClient.js');
-            if (redis.default) {
-                redis.default.set('sentinel_last_heartbeat', new Date().toISOString());
-            }
-        } catch (e) { }
+async function updateMarketData() {
+    try {
+        // "BUY" tab = Taker buys from Maker. So this is the lowest price a Maker is selling at.
+        const makerSellAdv = await fetchBinanceP2P('BUY', FIAT, ASSET);
+        // "SELL" tab = Taker sells to Maker. So this is the highest price a Maker is buying at.
+        const makerBuyAdv = await fetchBinanceP2P('SELL', FIAT, ASSET);
 
+        if (makerSellAdv && makerBuyAdv) {
+            const makerSellPrice = parseFloat(makerSellAdv.price);
+            const makerBuyPrice = parseFloat(makerBuyAdv.price);
+            
+            // Para ganar, como Maker debes comprar barato y vender caro
+            // Tu precio de compra sería (makerBuyPrice + 0.01) para estar de primero
+            // Tu precio de venta sería (makerSellPrice - 0.01) para estar de primero
+            const myBuyPrice = makerBuyPrice + 0.01;
+            const mySellPrice = makerSellPrice - 0.01;
+            
+            const spreadBruto = mySellPrice - myBuyPrice;
+            const spreadPct = (spreadBruto / myBuyPrice) * 100;
+
+            marketDataCache = {
+                makerBuyPrice: myBuyPrice.toFixed(2),
+                makerSellPrice: mySellPrice.toFixed(2),
+                spreadBruto: spreadBruto.toFixed(2),
+                spreadPct: spreadPct.toFixed(2),
+                lastUpdate: Date.now(),
+                topBuyAdBank: makerBuyAdv.tradeMethods[0]?.identifier || 'Varios',
+                topSellAdBank: makerSellAdv.tradeMethods[0]?.identifier || 'Varios'
+            };
+            
+            console.log(`[P2P] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
+        }
     } catch (e) {
-        console.error(`❌ CRON FAIL [${source}]:`, e.message);
-    } finally {
-        isScanRunning = false;
+        console.error('Error in updateMarketData:', e.message);
     }
-};
+}
 
-// START SERVER
-const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log('='.repeat(60));
-    console.log('🚀 SENTINEL BOT SYSTEMS ONLINE & STABLE | PORT', PORT);
-    console.log('🌍 Environment:', process.env.NODE_ENV || 'production');
-    console.log('🔐 VIP DATA MODE:', process.env.BINANCE_API_KEY ? 'ENABLED' : 'DISABLED');
-    console.log('='.repeat(60));
+// Iniciar ciclo de escaneo cada 15 segundos
+setInterval(updateMarketData, 15000);
+updateMarketData(); // Llamada inicial
 
-    // START REAL-TIME MARKET WORKER
-    marketWorker.start();
-
-    // FORCE IMMEDIATE RUN
-    setTimeout(() => runInternalScan('STARTUP_FAST'), 3000);
+// Endpoints de la API
+app.get('/api/arbitrage/status', (req, res) => {
+    res.json({
+        success: true,
+        data: marketDataCache
+    });
 });
 
-// Loop every 30 seconds (safer rate limit: ~20 coins x 2 cycles = 40 weight/min)
-setInterval(() => runInternalScan('HEARTBEAT'), 30000);
-
-// --- KEEPALIVE LOG (Every 2 minutes) ---
-setInterval(() => {
-    const memUsage = process.memoryUsage();
-    console.log(`🟢 [${new Date().toISOString()}] SYSTEM HEARTBEAT | RAM: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB | Uptime: ${process.uptime().toFixed(0)}s`);
-}, 120000);
-
-// Handle server errors
-server.on('error', (error) => {
-    console.error('❌ SERVER ERROR:', error);
-    if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use`);
-        process.exit(1);
-    }
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log('=============================================');
+    console.log(`🤖 ARBITRAJE BOT (P2P Radar) ONLINE -> Puerto ${PORT}`);
+    console.log('=============================================');
 });
-// FORCE DEPLOY

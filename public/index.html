@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arbitraje Bot | P2P Radar</title>
+    <style>
+        :root {
+            --bg-color: #0b0e14;
+            --panel-bg: rgba(20, 25, 35, 0.7);
+            --primary: #fcd535; /* Binance yellow */
+            --buy-color: #0ecb81;
+            --sell-color: #f6465d;
+            --text-light: #eaecef;
+            --text-muted: #848e9c;
+        }
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-light);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-weight: 600;
+            margin-top: 40px;
+            letter-spacing: 1px;
+        }
+
+        .dashboard {
+            display: flex;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .card {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 30px;
+            width: 300px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+        }
+
+        .price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .buy-price { color: var(--buy-color); }
+        .sell-price { color: var(--sell-color); }
+        .spread-price { color: var(--primary); }
+
+        .bank-info {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 15px;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .action-box {
+            margin-top: 40px;
+            background: rgba(252, 213, 53, 0.1);
+            border: 1px solid rgba(252, 213, 53, 0.3);
+            padding: 20px 40px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .action-box p {
+            margin: 5px 0;
+            font-size: 1.1rem;
+        }
+
+        .last-update {
+            margin-top: 50px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📊 ARBITRAJE BOT (P2P RADAR)</h1>
+    <p style="color: var(--text-muted)">Escaneando oportunidades Maker en Binance P2P (USDT/VES)</p>
+
+    <div class="dashboard">
+        <!-- Tarjeta Compra -->
+        <div class="card">
+            <div class="card-title">TU ANUNCIO DE COMPRA (Maker Buy)</div>
+            <div class="price buy-price" id="buy-price">---</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Bs / USDT</div>
+            <div class="bank-info" id="buy-bank">Referencia: ---</div>
+        </div>
+
+        <!-- Tarjeta Spread -->
+        <div class="card" style="border: 1px solid rgba(252, 213, 53, 0.3);">
+            <div class="card-title" style="color: var(--primary)">SPREAD (Ganancia)</div>
+            <div class="price spread-price" id="spread-pct">---%</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;" id="spread-bruto">--- Bs por USDT</div>
+        </div>
+
+        <!-- Tarjeta Venta -->
+        <div class="card">
+            <div class="card-title">TU ANUNCIO DE VENTA (Maker Sell)</div>
+            <div class="price sell-price" id="sell-price">---</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">Bs / USDT</div>
+            <div class="bank-info" id="sell-bank">Referencia: ---</div>
+        </div>
+    </div>
+
+    <div class="action-box">
+        <strong style="color: var(--primary); font-size: 1.2rem;">⚡ Estrategia Sugerida:</strong>
+        <p>Crea un anuncio de Compra en <b id="action-buy">---</b></p>
+        <p>Crea un anuncio de Venta en <b id="action-sell">---</b></p>
+        <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">El bot calcula estar en la 1ra posición de la lista de Binance.</p>
+    </div>
+
+    <div class="last-update" id="last-update">Última actualización: ---</div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const res = await fetch('/api/arbitrage/status');
+                const json = await res.json();
+                if (json.success && json.data.makerBuyPrice > 0) {
+                    const data = json.data;
+                    
+                    document.getElementById('buy-price').innerText = data.makerBuyPrice;
+                    document.getElementById('sell-price').innerText = data.makerSellPrice;
+                    document.getElementById('spread-pct').innerText = data.spreadPct + '%';
+                    document.getElementById('spread-bruto').innerText = '+' + data.spreadBruto + ' Bs por USDT';
+                    
+                    document.getElementById('buy-bank').innerText = 'Competencia: ' + data.topBuyAdBank;
+                    document.getElementById('sell-bank').innerText = 'Competencia: ' + data.topSellAdBank;
+                    
+                    document.getElementById('action-buy').innerText = data.makerBuyPrice;
+                    document.getElementById('action-sell').innerText = data.makerSellPrice;
+                    
+                    document.getElementById('last-update').innerText = 'Última actualización: ' + new Date(data.lastUpdate).toLocaleTimeString();
+                }
+            } catch (e) {
+                console.error("Error fetching data:", e);
+            }
+        }
+
+        // Fetch initial data
+        fetchData();
+        // Update every 10 seconds
+        setInterval(fetchData, 10000);
+    </script>
+</body>
+</html>
