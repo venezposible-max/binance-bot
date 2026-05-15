@@ -220,6 +220,12 @@
     <div id="vaultModal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 800px;">
             <h2 style="color: var(--primary)">Historial Contable P2P</h2>
+            
+            <div id="vaultSummary" style="display: flex; justify-content: space-around; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05);">
+                <div>Volumen USDT: <br><strong id="volUsdt" style="color: var(--primary); font-size: 1.2rem;">0.00</strong></div>
+                <div>Volumen VES: <br><strong id="volVes" style="color: var(--primary); font-size: 1.2rem;">0.00</strong></div>
+            </div>
+
             <div class="table-container">
                 <table>
                     <thead>
@@ -379,12 +385,22 @@
             const tbody = document.getElementById('vaultTableBody');
             tbody.innerHTML = '';
             
+            let totalUsdt = 0;
+            let totalVes = 0;
+
             if(trades.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay operaciones recientes</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay operaciones recientes</td></tr>';
+                document.getElementById('volUsdt').innerText = '0.00';
+                document.getElementById('volVes').innerText = '0.00';
                 return;
             }
 
             trades.forEach(t => {
+                totalUsdt += parseFloat(t.amount);
+                if (t.fiat === 'VES') {
+                    totalVes += parseFloat(t.totalPrice);
+                }
+
                 const isBuy = t.tradeType === 'BUY';
                 const row = document.createElement('tr');
                 row.className = isBuy ? 'buy-row' : 'sell-row';
@@ -402,6 +418,9 @@
                 `;
                 tbody.appendChild(row);
             });
+
+            document.getElementById('volUsdt').innerText = totalUsdt.toFixed(2);
+            document.getElementById('volVes').innerText = totalVes.toFixed(2);
         }
 
         function openPinModal() {
