@@ -219,8 +219,8 @@
 
     <div class="action-box">
         <strong style="color: var(--primary); font-size: 1.2rem;">⚡ Estrategia Sugerida:</strong>
-        <p>Crea un anuncio de Compra en <b id="action-buy">---</b></p>
-        <p>Crea un anuncio de Venta en <b id="action-sell">---</b></p>
+        <p>Crea un anuncio de Compra en <b id="action-buy">---</b> <span style="color: var(--text-muted); font-size: 0.9rem;">(vía <span id="action-buy-bank">---</span>)</span></p>
+        <p>Crea un anuncio de Venta en <b id="action-sell">---</b> <span style="color: var(--text-muted); font-size: 0.9rem;">(vía <span id="action-sell-bank">---</span>)</span></p>
         <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">El bot calcula estar en la 1ra posición de la lista de Binance.</p>
     </div>
 
@@ -296,7 +296,10 @@
                     document.getElementById('sell-bank').innerText = 'Competencia: ' + data.topSellAdBank;
                     
                     document.getElementById('action-buy').innerText = data.makerBuyPrice;
+                    document.getElementById('action-buy-bank').innerText = data.topBuyAdBank;
+                    
                     document.getElementById('action-sell').innerText = data.makerSellPrice;
+                    document.getElementById('action-sell-bank').innerText = data.topSellAdBank;
                     
                     document.getElementById('last-update').innerText = 'Última actualización: ' + new Date(data.lastUpdate).toLocaleTimeString();
                 }
