@@ -394,8 +394,8 @@
                 row.innerHTML = `
                     <td>${date}</td>
                     <td><strong>${type}</strong></td>
+                    <td>${parseFloat(t.totalPrice).toFixed(2)}</td>
                     <td>${parseFloat(t.amount).toFixed(2)}</td>
-                    <td>${parseFloat(t.assetAmount).toFixed(2)}</td>
                     <td>${parseFloat(t.unitPrice).toFixed(2)}</td>
                 `;
                 tbody.appendChild(row);
