@@ -29,19 +29,20 @@ let marketDataCache = {
     banks: [] // Lista de mejores precios por banco
 };
 
-async function fetchBinanceP2P(tradeType, fiat, asset, payTypes = []) {
+async function fetchBinanceP2P(tradeType, fiat, asset) {
     try {
         const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
             fiat: fiat,
             page: 1,
-            rows: 5,
+            rows: 10,
             tradeType: tradeType,
             asset: asset,
             countries: [],
             proMerchantAds: false,
             shieldMerchantAds: false,
             publisherType: null,
-            payTypes: payTypes,
+            payTypes: ["Mercantil", "Banesco", "BancoDeVenezuela", "PagoMovilVenezuela"],
+            transAmount: "60000",
             classifies: ['mass', 'profession']
         }, {
             headers: {
@@ -51,8 +52,22 @@ async function fetchBinanceP2P(tradeType, fiat, asset, payTypes = []) {
         });
         
         if (response.data && response.data.data && response.data.data.length > 0) {
-            // Retorna el mejor anuncio (el primero de la lista suele ser el mejor precio)
-            return response.data.data[0].adv;
+            const ads = response.data.data;
+            if (ads.length === 1) return ads[0].adv;
+            
+            // Filtro Anti-Outlier: Buscar el primer anuncio que esté cerca del siguiente (mercado real)
+            for (let i = 0; i < ads.length - 1; i++) {
+                const currentPrice = parseFloat(ads[i].adv.price);
+                const nextPrice = parseFloat(ads[i+1].adv.price);
+                
+                // Si la diferencia con el siguiente competidor es menor a 0.5%, es un precio real
+                const diffPct = Math.abs(currentPrice - nextPrice) / nextPrice;
+                if (diffPct < 0.005) {
+                    return ads[i].adv;
+                }
+            }
+            // Si no encuentra cluster, ignora el primero que suele ser un outlier promocionado
+            return ads[1].adv || ads[0].adv;
         }
         return null;
     } catch (error) {
