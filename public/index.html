@@ -293,32 +293,32 @@
     <!-- MODAL PIN -->
     <div id="pinModal" class="modal">
         <div class="modal-box" style="max-width: 400px; text-align: center;">
-            <h2>SECURITY CHECK</h2>
-            <p style="color: var(--cyber-blue)">ACCESS KEY REQUIRED</p>
+            <h2>CONTROL DE SEGURIDAD</h2>
+            <p style="color: var(--cyber-blue)">SE REQUIERE CLAVE DE ACCESO</p>
             <input type="password" id="vaultPin" maxlength="6" style="background: transparent; border: 1px solid var(--cyber-blue); color: #fff; padding: 15px; font-size: 2rem; text-align: center; width: 220px; margin: 20px 0; letter-spacing: 10px; outline: none; font-family: 'Orbitron';">
-            <button class="cyber-btn" onclick="accessVault()">AUTHORIZE</button>
-            <button class="cyber-btn" style="border-color: #666; color: #666; margin-top: 10px;" onclick="closeModals()">ABORT</button>
+            <button class="cyber-btn" onclick="accessVault()">AUTORIZAR</button>
+            <button class="cyber-btn" style="border-color: #666; color: #666; margin-top: 10px;" onclick="closeModals()">ABORTAR</button>
         </div>
     </div>
 
     <!-- MODAL VAULT -->
     <div id="vaultModal" class="modal">
         <div class="modal-box">
-            <h2>P2P FINANCIAL LEDGER</h2>
+            <h2>LIBRO CONTABLE P2P</h2>
             <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                 <div style="flex: 1; background: rgba(255,255,255,0.05); padding: 15px; border-left: 4px solid var(--cyber-blue);">
-                    <small>USDT VOLUME</small><br>
+                    <small>VOLUMEN USDT</small><br>
                     <span id="volUsdt" style="font-size: 1.5rem; font-weight: bold;">0.00</span>
                 </div>
                 <div style="flex: 1; background: rgba(255,255,255,0.05); padding: 15px; border-left: 4px solid var(--cyber-yellow);">
-                    <small>VES VOLUME</small><br>
+                    <small>VOLUMEN VES</small><br>
                     <span id="volVes" style="font-size: 1.5rem; font-weight: bold;">0.00</span>
                 </div>
             </div>
             
             <div style="background: rgba(14,203,129,0.05); border: 1px dashed var(--buy-glow); padding: 15px; margin-bottom: 20px;">
-                <button class="cyber-btn" style="margin-top:0; border-color: var(--buy-glow); color: var(--buy-glow);" onclick="calculateSelected()">RUN CROSS-CALCULATION</button>
-                <div id="calcResult" style="margin-top: 15px; font-size: 0.9rem;">Select Buy/Sell entries to analyze spread cycle.</div>
+                <button class="cyber-btn" style="margin-top:0; border-color: var(--buy-glow); color: var(--buy-glow);" onclick="calculateSelected()">EJECUTAR CRUCE DE DATOS</button>
+                <div id="calcResult" style="margin-top: 15px; font-size: 0.9rem;">Selecciona entradas de Compra/Venta para analizar el ciclo de ganancia.</div>
             </div>
 
             <div style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1);">
@@ -326,28 +326,28 @@
                     <thead>
                         <tr>
                             <th>[X]</th>
-                            <th>TIMESTAMP</th>
-                            <th>TYPE</th>
-                            <th>VES AMOUNT</th>
-                            <th>UNIT PRICE</th>
+                            <th>FECHA/HORA</th>
+                            <th>TIPO</th>
+                            <th>MONTO VES</th>
+                            <th>PRECIO UNIT.</th>
                         </tr>
                     </thead>
                     <tbody id="vaultTableBody"></tbody>
                 </table>
             </div>
-            <button class="cyber-btn" style="width: auto; float: right; margin-top: 20px;" onclick="closeModals()">CLOSE LEDGER</button>
+            <button class="cyber-btn" style="width: auto; float: right; margin-top: 20px;" onclick="closeModals()">CERRAR LIBRO</button>
         </div>
     </div>
 
     <div class="header">
-        <h1>ANTIGRAVITY RADAR</h1>
-        <p>Quantum P2P Market Scanner // USDT-VES</p>
+        <h1>RADAR ANTIGRAVEDAD</h1>
+        <p>Escáner Cuántico de Mercado P2P // USDT-VES</p>
     </div>
 
     <div class="cyber-settings">
         <div style="display: flex; gap: 30px; margin-bottom: 20px;">
-            <label class="bank-item"><input type="radio" name="scanMode" value="SOLO_BDV" checked onchange="toggleBankList()"> <span>SINGLE HUB (BDV)</span></label>
-            <label class="bank-item"><input type="radio" name="scanMode" value="MULTI_BANK" onchange="toggleBankList()"> <span>MULTI-BANK GRID</span></label>
+            <label class="bank-item"><input type="radio" name="scanMode" value="SOLO_BDV" checked onchange="toggleBankList()"> <span>HUB INDIVIDUAL (BDV)</span></label>
+            <label class="bank-item"><input type="radio" name="scanMode" value="MULTI_BANK" onchange="toggleBankList()"> <span>RED MULTI-BANCO</span></label>
         </div>
 
         <div class="bank-grid" id="bank-list" style="display: none;">
@@ -364,45 +364,45 @@
             <label class="bank-item"><input type="checkbox" value="BancoPlaza"> Banco Plaza</label>
             <label class="bank-item"><input type="checkbox" value="BancodelCaribe"> Banco del Caribe</label>
         </div>
-        <button class="cyber-btn" onclick="saveConfig()">INITIALIZE FILTERS</button>
+        <button class="cyber-btn" onclick="saveConfig()">INICIALIZAR FILTROS</button>
     </div>
 
     <div class="dashboard">
         <!-- BUY CARD -->
         <div class="holo-card">
-            <div class="card-label">MAKER BUY SIGNAL</div>
+            <div class="card-label">SEÑAL DE COMPRA MAKER</div>
             <div class="main-value buy-txt" id="buy-price">---</div>
             <div class="sub-value">VES / USDT</div>
-            <div class="wall-badge" id="buy-wall">LIQUIDITY: ---</div>
-            <div class="competitor" id="buy-bank">HUB: ---</div>
+            <div class="wall-badge" id="buy-wall">LIQUIDEZ: ---</div>
+            <div class="competitor" id="buy-bank">BANCO: ---</div>
         </div>
 
         <!-- SPREAD CARD -->
         <div class="holo-card spread-card">
-            <div class="card-label">MARKET SPREAD</div>
+            <div class="card-label">SPREAD DE MERCADO</div>
             <div class="main-value spread-txt" id="spread-pct">---%</div>
-            <div class="sub-value" id="spread-bruto">NET MARGIN: --- BS</div>
-            <div class="profit-bubble" id="profit-60k">CALCULATING ROI...</div>
+            <div class="sub-value" id="spread-bruto">MARGEN NETO: --- BS</div>
+            <div class="profit-bubble" id="profit-60k">CALCULANDO ROI...</div>
         </div>
 
         <!-- SELL CARD -->
         <div class="holo-card">
-            <div class="card-label">MAKER SELL SIGNAL</div>
+            <div class="card-label">SEÑAL DE VENTA MAKER</div>
             <div class="main-value sell-txt" id="sell-price">---</div>
             <div class="sub-value">VES / USDT</div>
-            <div class="wall-badge" id="sell-wall">LIQUIDITY: ---</div>
-            <div class="competitor" id="sell-bank">HUB: ---</div>
+            <div class="wall-badge" id="sell-wall">LIQUIDEZ: ---</div>
+            <div class="competitor" id="sell-bank">BANCO: ---</div>
         </div>
     </div>
 
     <div class="hud-action">
-        <div class="card-label" style="justify-content: center;">STRATEGIC RECOMMENDATION</div>
-        <p style="margin: 15px 0;">PLACE BUY ORDER AT <b id="action-buy">---</b> <small>(VIA <span id="action-buy-bank">---</span>)</small></p>
-        <p style="margin: 15px 0;">PLACE SELL ORDER AT <b id="action-sell">---</b> <small>(VIA <span id="action-sell-bank">---</span>)</small></p>
-        <small style="color: var(--cyber-blue); font-size: 0.7rem; opacity: 0.6;">POSITIONING TARGET: 1st PLACE // AUTO-CALCULATED BY RADAR</small>
+        <div class="card-label" style="justify-content: center;">RECOMENDACIÓN ESTRATÉGICA</div>
+        <p style="margin: 15px 0;">COLOCA ORDEN DE COMPRA A <b id="action-buy">---</b> <small>(VÍA <span id="action-buy-bank">---</span>)</small></p>
+        <p style="margin: 15px 0;">COLOCA ORDEN DE VENTA A <b id="action-sell">---</b> <small>(VÍA <span id="action-sell-bank">---</span>)</small></p>
+        <small style="color: var(--cyber-blue); font-size: 0.7rem; opacity: 0.6;">OBJETIVO DE POSICIÓN: 1er LUGAR // AUTO-CALCULADO POR EL RADAR</small>
     </div>
 
-    <div class="footer" id="last-update">SYS_UPDATE: WAITING FOR DATA...</div>
+    <div class="footer" id="last-update">ACTUALIZACIÓN: ESPERANDO DATOS...</div>
 
     <script>
         // --- LOGICA DE INTERFAZ ---
