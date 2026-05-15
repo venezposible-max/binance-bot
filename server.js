@@ -122,37 +122,54 @@ async function fetchBinanceP2P(tradeType, fiat, asset, customPayTypes = null) {
 
 async function updateMarketData() {
     try {
+        const threshold = 100; // Un "muro" es un anuncio con al menos 100 USDT
+
         // --- 1. SCAN PARA EL DASHBOARD (Dinámico) ---
-        const makerSellAdv = await fetchBinanceP2P('BUY', FIAT, ASSET);
-        const makerBuyAdv = await fetchBinanceP2P('SELL', FIAT, ASSET);
+        const buyResponse = await fetchBinanceP2P('BUY', FIAT, ASSET); // Vendedores (nosotros seremos Vendedores)
+        const sellResponse = await fetchBinanceP2P('SELL', FIAT, ASSET); // Compradores (nosotros seremos Compradores)
 
-        if (makerSellAdv && makerBuyAdv) {
-            const makerSellPrice = parseFloat(makerSellAdv.price);
-            const makerBuyPrice = parseFloat(makerBuyAdv.price);
-            const myBuyPrice = makerBuyPrice + 0.01;
-            const mySellPrice = makerSellPrice - 0.01;
-            const spreadBruto = mySellPrice - myBuyPrice;
-            const spreadPct = (spreadBruto / myBuyPrice) * 100;
+        if (buyResponse && sellResponse) {
+            const buyAds = buyResponse.data || [];
+            const sellAds = sellResponse.data || [];
 
-            const formatBanks = (adv, selectedBanks) => {
-                if (botConfig.mode === 'SOLO_BDV') return 'Banco de Venezuela';
-                const matched = adv.tradeMethods
-                    .map(m => m.identifier)
-                    .filter(id => selectedBanks.includes(id));
-                return matched.length > 0 ? matched.join(', ') : adv.tradeMethods.map(m => m.identifier).join(', ');
-            };
-
-            marketDataCache = {
-                makerBuyPrice: myBuyPrice.toFixed(2),
-                makerSellPrice: mySellPrice.toFixed(2),
-                spreadBruto: spreadBruto.toFixed(2),
-                spreadPct: spreadPct.toFixed(2),
-                lastUpdate: Date.now(),
-                topBuyAdBank: formatBanks(makerBuyAdv, botConfig.selectedBanks),
-                topSellAdBank: formatBanks(makerSellAdv, botConfig.selectedBanks)
-            };
+            // Encontrar el "Muro" en las compras (donde nosotros queremos vender caro)
+            // Buscamos el primer vendedor que tenga volumen real para competir
+            const makerSellAdv = buyAds.find(a => parseFloat(a.adv.surplusAmount) >= threshold)?.adv || buyAds[0]?.adv;
             
-            console.log(`[DASHBOARD] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
+            // Encontrar el "Muro" en las ventas (donde nosotros queremos comprar barato)
+            // Buscamos el primer comprador que tenga volumen real para competir
+            const makerBuyAdv = sellAds.find(a => parseFloat(a.adv.surplusAmount) >= threshold)?.adv || sellAds[0]?.adv;
+
+            if (makerSellAdv && makerBuyAdv) {
+                const makerSellPrice = parseFloat(makerSellAdv.price);
+                const makerBuyPrice = parseFloat(makerBuyAdv.price);
+                const myBuyPrice = makerBuyPrice + 0.01;
+                const mySellPrice = makerSellPrice - 0.01;
+                const spreadBruto = mySellPrice - myBuyPrice;
+                const spreadPct = (spreadBruto / myBuyPrice) * 100;
+
+                const formatBanks = (adv, selectedBanks) => {
+                    if (botConfig.mode === 'SOLO_BDV') return 'Banco de Venezuela';
+                    const matched = adv.tradeMethods
+                        .map(m => m.identifier)
+                        .filter(id => selectedBanks.includes(id));
+                    return matched.length > 0 ? matched.join(', ') : adv.tradeMethods.map(m => m.identifier).join(', ');
+                };
+
+                marketDataCache = {
+                    makerBuyPrice: myBuyPrice.toFixed(2),
+                    makerSellPrice: mySellPrice.toFixed(2),
+                    spreadBruto: spreadBruto.toFixed(2),
+                    spreadPct: spreadPct.toFixed(2),
+                    lastUpdate: Date.now(),
+                    topBuyAdBank: formatBanks(makerBuyAdv, botConfig.selectedBanks),
+                    topSellAdBank: formatBanks(makerSellAdv, botConfig.selectedBanks),
+                    buyWallVolume: parseFloat(makerBuyAdv.surplusAmount).toFixed(2),
+                    sellWallVolume: parseFloat(makerSellAdv.surplusAmount).toFixed(2)
+                };
+                
+                console.log(`[DASHBOARD] Muro Compra: ${makerBuyPrice} (${marketDataCache.buyWallVolume} USDT) | Muro Venta: ${makerSellPrice} (${marketDataCache.sellWallVolume} USDT)`);
+            }
         }
 
         // --- 2. SCAN PARA TELEGRAM (Estrictamente BDV) ---

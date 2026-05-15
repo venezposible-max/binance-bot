@@ -199,6 +199,18 @@
         .buy-row td { color: var(--buy-color); }
         .sell-row td { color: var(--sell-color); }
         .close-btn { margin-top: 20px; background: #333; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; }
+
+        .volume-badge {
+            display: inline-block;
+            background: rgba(229, 192, 43, 0.1);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-top: 10px;
+            border: 1px solid rgba(229, 192, 43, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -294,6 +306,7 @@
             <div class="card-title">TU ANUNCIO DE COMPRA (Maker Buy)</div>
             <div class="price buy-price" id="buy-price">---</div>
             <div style="color: var(--text-muted); font-size: 0.9rem;">Bs / USDT</div>
+            <div class="volume-badge" id="buy-wall">Muro: --- USDT</div>
             <div class="bank-info" id="buy-bank">Referencia: ---</div>
         </div>
 
@@ -310,6 +323,7 @@
             <div class="card-title">TU ANUNCIO DE VENTA (Maker Sell)</div>
             <div class="price sell-price" id="sell-price">---</div>
             <div style="color: var(--text-muted); font-size: 0.9rem;">Bs / USDT</div>
+            <div class="volume-badge" id="sell-wall">Muro: --- USDT</div>
             <div class="bank-info" id="sell-bank">Referencia: ---</div>
         </div>
     </div>
@@ -524,6 +538,9 @@
                     document.getElementById('spread-pct').innerText = data.spreadPct + '%';
                     document.getElementById('spread-bruto').innerText = '+' + data.spreadBruto + ' Bs por USDT';
                     
+                    document.getElementById('buy-wall').innerText = 'Muro: ' + data.buyWallVolume + ' USDT';
+                    document.getElementById('sell-wall').innerText = 'Muro: ' + data.sellWallVolume + ' USDT';
+
                     const profit60k = (60000 / data.makerBuyPrice) * data.spreadBruto;
                     document.getElementById('profit-60k').innerText = 'Ganancia por cada 60.000 Bs: +' + profit60k.toFixed(2) + ' Bs';
                     
