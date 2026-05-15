@@ -129,14 +129,22 @@ async function updateMarketData() {
             const spreadBruto = mySellPrice - myBuyPrice;
             const spreadPct = (spreadBruto / myBuyPrice) * 100;
 
+            const formatBanks = (adv, selectedBanks) => {
+                if (botConfig.mode === 'SOLO_BDV') return 'Banco de Venezuela';
+                const matched = adv.tradeMethods
+                    .map(m => m.identifier)
+                    .filter(id => selectedBanks.includes(id));
+                return matched.length > 0 ? matched.join(', ') : adv.tradeMethods.map(m => m.identifier).join(', ');
+            };
+
             marketDataCache = {
                 makerBuyPrice: myBuyPrice.toFixed(2),
                 makerSellPrice: mySellPrice.toFixed(2),
                 spreadBruto: spreadBruto.toFixed(2),
                 spreadPct: spreadPct.toFixed(2),
                 lastUpdate: Date.now(),
-                topBuyAdBank: botConfig.mode === 'SOLO_BDV' ? 'Banco de Venezuela' : makerBuyAdv.tradeMethods.map(m => m.identifier).join(', '),
-                topSellAdBank: botConfig.mode === 'SOLO_BDV' ? 'Banco de Venezuela' : makerSellAdv.tradeMethods.map(m => m.identifier).join(', ')
+                topBuyAdBank: formatBanks(makerBuyAdv, botConfig.selectedBanks),
+                topSellAdBank: formatBanks(makerSellAdv, botConfig.selectedBanks)
             };
             
             console.log(`[DASHBOARD] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
