@@ -306,27 +306,38 @@ async function updateMarketData() {
                     const now = Date.now();
                     
                     if (liquidityTracker[adId]) {
-                        const prev = liquidityTracker[adId];
-                        const timeDiff = (now - prev.time) / 1000; // segundos
-                        const volDiff = prev.vol - currentVol;
+                        const firstEntry = liquidityTracker[adId].first;
+                        const lastEntry = liquidityTracker[adId].last;
                         
-                        if (volDiff > 0 && timeDiff > 0) {
-                            const rate = volDiff / timeDiff; // USDT/seg
-                            const secondsLeft = currentVol / rate;
+                        // Solo calcular si ha pasado al menos 10 segundos desde la primera vez que lo vimos
+                        const totalTimeDiff = (now - firstEntry.time) / 1000;
+                        const totalVolDiff = firstEntry.vol - currentVol;
+                        
+                        if (totalVolDiff > 0 && totalTimeDiff > 10) {
+                            const avgRate = totalVolDiff / totalTimeDiff; // USDT/seg promedio
+                            const secondsLeft = currentVol / avgRate;
                             
                             marketDataCache.exhaustion = {
-                                imminent: secondsLeft < 180, // Menos de 3 minutos
+                                imminent: secondsLeft < 300, // Alerta si queda menos de 5 min
                                 adId: adId,
                                 secondsLeft: Math.round(secondsLeft),
-                                rate: rate.toFixed(2),
+                                rate: avgRate.toFixed(2),
                                 status: secondsLeft < 180 ? '⚠️ AGOTÁNDOSE' : 'ACTIVO'
                             };
-                        } else if (volDiff === 0) {
-                            // Si el volumen es el mismo, mantenemos la tasa anterior pero avisamos que no hay movimiento
-                            marketDataCache.exhaustion.status = 'SIN MOVIMIENTO';
+                        } else if (totalVolDiff === 0 && totalTimeDiff > 30) {
+                            marketDataCache.exhaustion.status = 'SIN MOVIMIENTO (30s+)';
+                            marketDataCache.exhaustion.rate = "0.00";
+                            marketDataCache.exhaustion.secondsLeft = 0;
                         }
+                        
+                        // Actualizar último avistamiento
+                        liquidityTracker[adId].last = { vol: currentVol, time: now };
                     } else {
-                        // Nuevo anuncio detectado
+                        // Nuevo anuncio detectado: Iniciamos seguimiento
+                        liquidityTracker[adId] = {
+                            first: { vol: currentVol, time: now },
+                            last: { vol: currentVol, time: now }
+                        };
                         marketDataCache.exhaustion = {
                             imminent: false,
                             adId: adId,
@@ -336,9 +347,7 @@ async function updateMarketData() {
                         };
                     }
                     
-                    // Actualizar tracker (mantener el top ad actual)
-                    liquidityTracker[adId] = { vol: currentVol, time: now };
-                    // Limpiar basura antigua del tracker
+                    // Limpiar basura antigua (solo nos interesa el líder actual)
                     Object.keys(liquidityTracker).forEach(id => {
                         if (id !== adId) delete liquidityTracker[id];
                     });
