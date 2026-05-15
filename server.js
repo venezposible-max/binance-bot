@@ -224,7 +224,7 @@ app.post('/api/arbitrage/vault', async (req, res) => {
     }
 
     const timestamp = Date.now();
-    const queryString = `fiat=VES&timestamp=${timestamp}&rows=50`; // Últimos 50 trades en VES
+    const queryString = `timestamp=${timestamp}&rows=50`; // Últimos 50 trades
     const signature = crypto.createHmac('sha256', BINANCE_API_SECRET).update(queryString).digest('hex');
     
     try {
@@ -232,8 +232,8 @@ app.post('/api/arbitrage/vault', async (req, res) => {
             headers: { 'X-MBX-APIKEY': BINANCE_API_KEY }
         });
         
-        // Filtrar solo las completadas y asegurar que sean en Bolívares
-        const completedTrades = (response.data.data || []).filter(t => t.orderStatus === 'COMPLETED' && t.fiat === 'VES');
+        // Filtrar solo las completadas
+        const completedTrades = (response.data.data || []).filter(t => t.orderStatus === 'COMPLETED');
         
         res.json({ success: true, data: completedTrades });
     } catch (e) {

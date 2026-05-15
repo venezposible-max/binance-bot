@@ -226,7 +226,8 @@
                         <tr>
                             <th>Fecha</th>
                             <th>Tipo</th>
-                            <th>Fiat (VES)</th>
+                            <th>Método</th>
+                            <th>Monto Total</th>
                             <th>Cripto (USDT)</th>
                             <th>Precio</th>
                         </tr>
@@ -394,7 +395,8 @@
                 row.innerHTML = `
                     <td>${date}</td>
                     <td><strong>${type}</strong></td>
-                    <td>${parseFloat(t.totalPrice).toFixed(2)}</td>
+                    <td><span style="font-size: 0.8rem; color: #aaa;">${t.payMethodName || t.fiat}</span></td>
+                    <td>${parseFloat(t.totalPrice).toFixed(2)} <span style="font-size: 0.7rem; color: var(--primary);">${t.fiat}</span></td>
                     <td>${parseFloat(t.amount).toFixed(2)}</td>
                     <td>${parseFloat(t.unitPrice).toFixed(2)}</td>
                 `;
