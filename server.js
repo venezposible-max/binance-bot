@@ -96,27 +96,12 @@ async function fetchBinanceP2P(tradeType, fiat, asset, customPayTypes = null) {
         });
         
         if (response.data && response.data.data && response.data.data.length > 0) {
-            const ads = response.data.data;
-            if (ads.length === 1) return ads[0].adv;
-            
-            // Filtro Anti-Outlier: Buscar el primer anuncio que esté cerca del siguiente (mercado real)
-            for (let i = 0; i < ads.length - 1; i++) {
-                const currentPrice = parseFloat(ads[i].adv.price);
-                const nextPrice = parseFloat(ads[i+1].adv.price);
-                
-                // Si la diferencia con el siguiente competidor es menor a 0.5%, es un precio real
-                const diffPct = Math.abs(currentPrice - nextPrice) / nextPrice;
-                if (diffPct < 0.005) {
-                    return ads[i].adv;
-                }
-            }
-            // Si no encuentra cluster, ignora el primero que suele ser un outlier promocionado
-            return ads[1].adv || ads[0].adv;
+            return response.data.data; // Retornar la lista completa para análisis de muros
         }
-        return null;
+        return [];
     } catch (error) {
         console.error(`Error fetching P2P data for ${tradeType}:`, error.message);
-        return null;
+        return [];
     }
 }
 
@@ -125,19 +110,14 @@ async function updateMarketData() {
         const threshold = 100; // Un "muro" es un anuncio con al menos 100 USDT
 
         // --- 1. SCAN PARA EL DASHBOARD (Dinámico) ---
-        const buyResponse = await fetchBinanceP2P('BUY', FIAT, ASSET); // Vendedores (nosotros seremos Vendedores)
-        const sellResponse = await fetchBinanceP2P('SELL', FIAT, ASSET); // Compradores (nosotros seremos Compradores)
+        const buyAds = await fetchBinanceP2P('BUY', FIAT, ASSET); // Vendedores
+        const sellAds = await fetchBinanceP2P('SELL', FIAT, ASSET); // Compradores
 
-        if (buyResponse && sellResponse) {
-            const buyAds = buyResponse.data || [];
-            const sellAds = sellResponse.data || [];
-
+        if (buyAds.length > 0 && sellAds.length > 0) {
             // Encontrar el "Muro" en las compras (donde nosotros queremos vender caro)
-            // Buscamos el primer vendedor que tenga volumen real para competir
             const makerSellAdv = buyAds.find(a => parseFloat(a.adv.surplusAmount) >= threshold)?.adv || buyAds[0]?.adv;
             
             // Encontrar el "Muro" en las ventas (donde nosotros queremos comprar barato)
-            // Buscamos el primer comprador que tenga volumen real para competir
             const makerBuyAdv = sellAds.find(a => parseFloat(a.adv.surplusAmount) >= threshold)?.adv || sellAds[0]?.adv;
 
             if (makerSellAdv && makerBuyAdv) {
@@ -173,18 +153,21 @@ async function updateMarketData() {
         }
 
         // --- 2. SCAN PARA TELEGRAM (Estrictamente BDV) ---
-        let telMakerSell, telMakerBuy;
+        let telMakerSellAdv, telMakerBuyAdv;
         if (botConfig.mode === 'SOLO_BDV') {
-            telMakerSell = makerSellAdv; // Reutilizamos si ya es BDV
-            telMakerBuy = makerBuyAdv;
+            // Ya calculamos los muros arriba, usamos esos mismos anuncios
+            telMakerSellAdv = makerSellAdv;
+            telMakerBuyAdv = makerBuyAdv;
         } else {
-            telMakerSell = await fetchBinanceP2P('BUY', FIAT, ASSET, ['BancoDeVenezuela']);
-            telMakerBuy = await fetchBinanceP2P('SELL', FIAT, ASSET, ['BancoDeVenezuela']);
+            const telBuyAds = await fetchBinanceP2P('BUY', FIAT, ASSET, ['BancoDeVenezuela']);
+            const telSellAds = await fetchBinanceP2P('SELL', FIAT, ASSET, ['BancoDeVenezuela']);
+            telMakerSellAdv = telBuyAds.length > 0 ? telBuyAds[0].adv : null;
+            telMakerBuyAdv = telSellAds.length > 0 ? telSellAds[0].adv : null;
         }
 
-        if (telMakerSell && telMakerBuy) {
-            const telMyBuyPrice = parseFloat(telMakerBuy.price) + 0.01;
-            const telMySellPrice = parseFloat(telMakerSell.price) - 0.01;
+        if (telMakerSellAdv && telMakerBuyAdv) {
+            const telMyBuyPrice = parseFloat(telMakerBuyAdv.price) + 0.01;
+            const telMySellPrice = parseFloat(telMakerSellAdv.price) - 0.01;
             const telSpreadBruto = telMySellPrice - telMyBuyPrice;
             const telSpreadPct = (telSpreadBruto / telMyBuyPrice) * 100;
             const telProfit60k = (60000 / telMyBuyPrice) * telSpreadBruto;
