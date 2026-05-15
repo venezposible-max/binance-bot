@@ -42,8 +42,15 @@ let marketDataCache = {
         status: 'Cerrado',
         rate: '---',
         lastUpdate: 'Esperando datos...'
+    },
+    prediction: {
+        sentiment: 'NEUTRAL',
+        confidence: 0,
+        direction: 'ESTABLE'
     }
 };
+
+let marketHistory = []; // Para análisis predictivo (últimos 20 registros)
 
 // Configuración Dinámica
 let botConfig = {
@@ -183,6 +190,51 @@ async function fetchBinanceP2P(tradeType, fiat, asset, customPayTypes = null) {
     }
 }
 
+function calculatePrediction() {
+    if (marketHistory.length < 3) return;
+
+    const latest = marketHistory[marketHistory.length - 1];
+    
+    let confidence = 60;
+    let sentiment = 'NEUTRAL';
+    let direction = 'ESTABLE';
+
+    // 1. Análisis de Tendencia de Precio (Venta Maker)
+    const prices = marketHistory.map(h => h.sellPrice);
+    const firstPrice = prices[0];
+    const lastPrice = prices[prices.length - 1];
+    const priceDiff = lastPrice - firstPrice;
+
+    if (priceDiff > 0.02) {
+        direction = 'ALCISTA 📈';
+        confidence += 15;
+    } else if (priceDiff < -0.02) {
+        direction = 'BAJISTA 📉';
+        confidence += 15;
+    }
+
+    // 2. Análisis de Liquidez (Muros)
+    const buyWall = latest.buyWall;
+    const sellWall = latest.sellWall;
+    
+    if (buyWall > sellWall * 1.3) {
+        sentiment = 'FUERTE APOYO 🟢';
+        confidence += 10;
+    } else if (sellWall > buyWall * 1.3) {
+        sentiment = 'PRESIÓN DE VENTA 🔴';
+        confidence += 10;
+    }
+
+    // 3. Normalizar Confianza
+    if (confidence > 98) confidence = 98;
+
+    marketDataCache.prediction = {
+        sentiment,
+        confidence: Math.round(confidence),
+        direction
+    };
+}
+
 async function updateMarketData() {
     try {
         const threshold = 100; // Un "muro" es un anuncio con al menos 100 USDT
@@ -215,6 +267,7 @@ async function updateMarketData() {
                 };
 
                 marketDataCache = {
+                    ...marketDataCache,
                     makerBuyPrice: myBuyPrice.toFixed(2),
                     makerSellPrice: mySellPrice.toFixed(2),
                     spreadBruto: spreadBruto.toFixed(2),
@@ -225,8 +278,20 @@ async function updateMarketData() {
                     buyWallVolume: parseFloat(makerBuyAdv.surplusAmount).toFixed(2),
                     sellWallVolume: parseFloat(makerSellAdv.surplusAmount).toFixed(2)
                 };
+
+                // Actualizar Historial para Predicción
+                marketHistory.push({
+                    sellPrice: makerSellPrice,
+                    buyPrice: makerBuyPrice,
+                    buyWall: parseFloat(makerBuyAdv.surplusAmount),
+                    sellWall: parseFloat(makerSellAdv.surplusAmount),
+                    time: Date.now()
+                });
+                if (marketHistory.length > 20) marketHistory.shift();
                 
-                console.log(`[DASHBOARD] Muro Compra: ${makerBuyPrice} (${marketDataCache.buyWallVolume} USDT) | Muro Venta: ${makerSellPrice} (${marketDataCache.sellWallVolume} USDT)`);
+                calculatePrediction();
+                
+                console.log(`[DASHBOARD] Muro Compra: ${makerBuyPrice} | Muro Venta: ${makerSellPrice} | Predicción: ${marketDataCache.prediction.direction}`);
             }
         }
 

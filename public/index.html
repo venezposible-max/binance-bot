@@ -344,6 +344,22 @@
         <p>Escáner Cuántico de Mercado P2P // USDT-VES</p>
     </div>
 
+    <!-- WIDGET PREDICTIVO -->
+    <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 20px; display: flex; justify-content: space-around; align-items: center; border-color: rgba(0, 242, 255, 0.4); background: linear-gradient(90deg, rgba(0, 242, 255, 0.05), transparent, rgba(0, 242, 255, 0.05));">
+        <div style="text-align: center;">
+            <div class="card-label" style="justify-content: center;">TENDENCIA</div>
+            <div id="pred-direction" style="font-family: 'Orbitron'; font-size: 1.5rem; color: var(--cyber-blue);">ANALIZANDO...</div>
+        </div>
+        <div style="text-align: center; border-left: 1px solid rgba(0, 242, 255, 0.2); border-right: 1px solid rgba(0, 242, 255, 0.2); padding: 0 40px;">
+            <div class="card-label" style="justify-content: center;">CONFIANZA DEL ALGO</div>
+            <div id="pred-confidence" style="font-family: 'Orbitron'; font-size: 2.2rem; color: var(--cyber-yellow);">--%</div>
+        </div>
+        <div style="text-align: center;">
+            <div class="card-label" style="justify-content: center;">SENTIMIENTO</div>
+            <div id="pred-sentiment" style="font-family: 'Orbitron'; font-size: 1.2rem; color: #fff;">ESPERANDO...</div>
+        </div>
+    </div>
+
     <div class="cyber-settings">
         <div style="display: flex; gap: 30px; margin-bottom: 20px;">
             <label class="bank-item"><input type="radio" name="scanMode" value="SOLO_BDV" checked onchange="toggleBankList()"> <span>HUB INDIVIDUAL (BDV)</span></label>
@@ -520,7 +536,20 @@
                     document.getElementById('action-sell').innerText = d.makerSellPrice;
                     document.getElementById('action-buy-bank').innerText = d.topBuyAdBank;
                     document.getElementById('action-sell-bank').innerText = d.topSellAdBank;
-                    document.getElementById('last-update').innerText = 'SYS_UPDATE: ' + new Date(d.lastUpdate).toLocaleTimeString();
+                    document.getElementById('last-update').innerText = 'ACTUALIZACIÓN: ' + new Date(d.lastUpdate).toLocaleTimeString();
+
+                    // Actualizar Widget Predictivo
+                    if (d.prediction) {
+                        document.getElementById('pred-direction').innerText = d.prediction.direction;
+                        document.getElementById('pred-confidence').innerText = d.prediction.confidence + '%';
+                        document.getElementById('pred-sentiment').innerText = d.prediction.sentiment;
+                        
+                        // Color dinámico según confianza
+                        const confEl = document.getElementById('pred-confidence');
+                        if (d.prediction.confidence > 80) confEl.style.color = 'var(--buy-glow)';
+                        else if (d.prediction.confidence < 60) confEl.style.color = 'var(--sell-glow)';
+                        else confEl.style.color = 'var(--cyber-yellow)';
+                    }
                 }
             } catch (e) {}
         }
