@@ -100,6 +100,54 @@
             font-size: 1.1rem;
         }
 
+        .settings-panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            width: 80%;
+            max-width: 800px;
+        }
+
+        .settings-header {
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .bank-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .bank-list label {
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .save-btn {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .save-btn:hover {
+            background: #e5c02b;
+        }
+
         .last-update {
             margin-top: 50px;
             color: var(--text-muted);
@@ -111,6 +159,37 @@
 
     <h1>📊 ARBITRAJE BOT (P2P RADAR)</h1>
     <p style="color: var(--text-muted)">Escaneando oportunidades Maker en Binance P2P (USDT/VES)</p>
+
+    <div class="settings-panel">
+        <div class="settings-header">⚙️ Filtros de Escaneo</div>
+        
+        <div class="mode-selector">
+            <label>
+                <input type="radio" name="scanMode" value="SOLO_BDV" checked onchange="toggleBankList()"> 
+                Solo Banco de Venezuela
+            </label>
+            <label style="margin-left: 20px;">
+                <input type="radio" name="scanMode" value="MULTI_BANK" onchange="toggleBankList()"> 
+                Múltiples Bancos
+            </label>
+        </div>
+
+        <div class="bank-list" id="bank-list" style="display: none;">
+            <label><input type="checkbox" value="Provincial"> Provincial</label>
+            <label><input type="checkbox" value="Banesco"> Banesco</label>
+            <label><input type="checkbox" value="Mercantil"> Mercantil</label>
+            <label><input type="checkbox" value="BancoActivo"> Banco Activo</label>
+            <label><input type="checkbox" value="BancodelTesoro"> Banco del Tesoro</label>
+            <label><input type="checkbox" value="Bancamiga"> Bancamiga</label>
+            <label><input type="checkbox" value="BNC"> BNC</label>
+            <label><input type="checkbox" value="BancoDigitaldelosTrabajadores"> BDT</label>
+            <label><input type="checkbox" value="BancoDeVenezuela" checked> Banco de Venezuela</label>
+            <label><input type="checkbox" value="BancoPlaza"> Banco Plaza</label>
+            <label><input type="checkbox" value="BancodelCaribe"> Banco del Caribe</label>
+        </div>
+
+        <button class="save-btn" onclick="saveConfig()">Guardar Filtros</button>
+    </div>
 
     <div class="dashboard">
         <!-- Tarjeta Compra -->
@@ -148,10 +227,60 @@
     <div class="last-update" id="last-update">Última actualización: ---</div>
 
     <script>
+        function toggleBankList() {
+            const mode = document.querySelector('input[name="scanMode"]:checked').value;
+            document.getElementById('bank-list').style.display = mode === 'MULTI_BANK' ? 'grid' : 'none';
+        }
+
+        async function saveConfig() {
+            const mode = document.querySelector('input[name="scanMode"]:checked').value;
+            let selectedBanks = [];
+            
+            if (mode === 'MULTI_BANK') {
+                const checkboxes = document.querySelectorAll('#bank-list input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => selectedBanks.push(cb.value));
+                
+                if (selectedBanks.length === 0) {
+                    alert('Debes seleccionar al menos un banco.');
+                    return;
+                }
+            }
+
+            try {
+                const btn = document.querySelector('.save-btn');
+                btn.innerText = 'Guardando...';
+                await fetch('/api/arbitrage/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode, selectedBanks })
+                });
+                btn.innerText = 'Guardado Exitoso!';
+                setTimeout(() => btn.innerText = 'Guardar Filtros', 2000);
+                fetchData(); // Forzar actualización visual
+            } catch (e) {
+                console.error("Error saving config", e);
+                alert('Error al guardar configuración');
+            }
+        }
+
+        let firstLoad = true;
+
         async function fetchData() {
             try {
                 const res = await fetch('/api/arbitrage/status');
                 const json = await res.json();
+                
+                if (firstLoad && json.config) {
+                    document.querySelector(`input[name="scanMode"][value="${json.config.mode}"]`).checked = true;
+                    toggleBankList();
+                    if (json.config.mode === 'MULTI_BANK') {
+                        document.querySelectorAll('#bank-list input[type="checkbox"]').forEach(cb => {
+                            cb.checked = json.config.selectedBanks.includes(cb.value);
+                        });
+                    }
+                    firstLoad = false;
+                }
+
                 if (json.success && json.data.makerBuyPrice > 0) {
                     const data = json.data;
                     

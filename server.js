@@ -34,6 +34,12 @@ let marketDataCache = {
     banks: [] // Lista de mejores precios por banco
 };
 
+// Configuración Dinámica
+let botConfig = {
+    mode: 'SOLO_BDV', // 'SOLO_BDV' o 'MULTI_BANK'
+    selectedBanks: ['BancoDeVenezuela']
+};
+
 async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
     
@@ -73,7 +79,7 @@ async function fetchBinanceP2P(tradeType, fiat, asset) {
             proMerchantAds: false,
             shieldMerchantAds: false,
             publisherType: null,
-            payTypes: ["BancoDeVenezuela"],
+            payTypes: botConfig.selectedBanks,
             transAmount: "60000",
             classifies: ['mass', 'profession']
         }, {
@@ -134,8 +140,8 @@ async function updateMarketData() {
                 spreadBruto: spreadBruto.toFixed(2),
                 spreadPct: spreadPct.toFixed(2),
                 lastUpdate: Date.now(),
-                topBuyAdBank: 'Banco de Venezuela',
-                topSellAdBank: 'Banco de Venezuela'
+                topBuyAdBank: botConfig.mode === 'SOLO_BDV' ? 'Banco de Venezuela' : makerBuyAdv.tradeMethods.map(m => m.identifier).join(', '),
+                topSellAdBank: botConfig.mode === 'SOLO_BDV' ? 'Banco de Venezuela' : makerSellAdv.tradeMethods.map(m => m.identifier).join(', ')
             };
             
             console.log(`[P2P] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
@@ -160,8 +166,25 @@ updateMarketData(); // Llamada inicial
 app.get('/api/arbitrage/status', (req, res) => {
     res.json({
         success: true,
-        data: marketDataCache
+        data: marketDataCache,
+        config: botConfig
     });
+});
+
+app.post('/api/arbitrage/config', (req, res) => {
+    const { mode, selectedBanks } = req.body;
+    if (mode === 'SOLO_BDV') {
+        botConfig.mode = 'SOLO_BDV';
+        botConfig.selectedBanks = ['BancoDeVenezuela'];
+    } else if (mode === 'MULTI_BANK' && Array.isArray(selectedBanks)) {
+        botConfig.mode = 'MULTI_BANK';
+        botConfig.selectedBanks = selectedBanks;
+    }
+    
+    // Forzar actualización inmediata con nueva config
+    updateMarketData();
+    
+    res.json({ success: true, config: botConfig });
 });
 
 const PORT = process.env.PORT || 3000;
