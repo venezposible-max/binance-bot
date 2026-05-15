@@ -226,10 +226,16 @@
                 <div>Volumen VES: <br><strong id="volVes" style="color: var(--primary); font-size: 1.2rem;">0.00</strong></div>
             </div>
 
+            <div style="background: rgba(0,255,0,0.05); padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed var(--buy-color);">
+                <button onclick="calculateSelected()" style="background: var(--buy-color); color: black; padding: 8px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">🧮 Calcular Ciclo Seleccionado</button>
+                <div id="calcResult" style="margin-top: 10px; font-weight: bold; color: white; font-size: 1rem; text-align: center;">Selecciona compras y ventas en la tabla para calcular ganancia.</div>
+            </div>
+
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
+                            <th>Sel.</th>
                             <th>Fecha</th>
                             <th>Tipo</th>
                             <th>Método</th>
@@ -409,6 +415,7 @@
                 const type = isBuy ? 'COMPRA' : 'VENTA';
                 
                 row.innerHTML = `
+                    <td><input type="checkbox" class="trade-checkbox" style="width:18px; height:18px; cursor:pointer;" data-type="${type}" data-ves="${t.totalPrice}" data-fiat="${t.fiat}" data-usdt="${t.amount}"></td>
                     <td>${date}</td>
                     <td><strong>${type}</strong></td>
                     <td><span style="font-size: 0.8rem; color: #aaa;">${t.payMethodName || t.fiat}</span></td>
@@ -426,6 +433,40 @@
         function openPinModal() {
             document.getElementById('pinModal').style.display = 'flex';
             document.getElementById('vaultPin').focus();
+        }
+
+        function calculateSelected() {
+            const checkboxes = document.querySelectorAll('.trade-checkbox:checked');
+            if (checkboxes.length < 2) {
+                document.getElementById('calcResult').innerText = '⚠️ Selecciona al menos una COMPRA y una VENTA de la tabla para cruzar los datos.';
+                return;
+            }
+
+            let totalInversionVES = 0;
+            let totalRetornoVES = 0;
+
+            checkboxes.forEach(cb => {
+                const type = cb.getAttribute('data-type');
+                const fiat = cb.getAttribute('data-fiat');
+                const ves = parseFloat(cb.getAttribute('data-ves'));
+
+                // Omitir calculo si hay un trade en USD mezclado
+                if (fiat !== 'VES') return;
+
+                if (type === 'COMPRA') {
+                    totalInversionVES += ves;
+                } else if (type === 'VENTA') {
+                    totalRetornoVES += ves;
+                }
+            });
+
+            const ganancia = totalRetornoVES - totalInversionVES;
+            const color = ganancia >= 0 ? 'var(--buy-color)' : 'var(--sell-color)';
+            
+            document.getElementById('calcResult').innerHTML = `
+                <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">Has invertido: <span style="color:var(--sell-color)">-${totalInversionVES.toFixed(2)} VES</span> | Has recibido: <span style="color:var(--buy-color)">+${totalRetornoVES.toFixed(2)} VES</span></div>
+                Ganancia Neta del Ciclo: <span style="color: ${color}; font-size: 1.3rem;">${ganancia > 0 ? '+' : ''}${ganancia.toFixed(2)} VES</span>
+            `;
         }
 
         function closeModals() {
