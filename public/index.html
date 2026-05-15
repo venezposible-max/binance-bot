@@ -126,6 +126,7 @@
             <div class="card-title" style="color: var(--primary)">SPREAD (Ganancia)</div>
             <div class="price spread-price" id="spread-pct">---%</div>
             <div style="color: var(--text-muted); font-size: 0.9rem;" id="spread-bruto">--- Bs por USDT</div>
+            <div style="color: #0ecb81; font-weight: bold; margin-top: 15px; font-size: 1rem; padding: 10px; background: rgba(14,203,129,0.1); border-radius: 8px;" id="profit-60k">Calculando ganancia...</div>
         </div>
 
         <!-- Tarjeta Venta -->
@@ -158,6 +159,9 @@
                     document.getElementById('sell-price').innerText = data.makerSellPrice;
                     document.getElementById('spread-pct').innerText = data.spreadPct + '%';
                     document.getElementById('spread-bruto').innerText = '+' + data.spreadBruto + ' Bs por USDT';
+                    
+                    const profit60k = (60000 / data.makerBuyPrice) * data.spreadBruto;
+                    document.getElementById('profit-60k').innerText = 'Ganancia por cada 60.000 Bs: +' + profit60k.toFixed(2) + ' Bs';
                     
                     document.getElementById('buy-bank').innerText = 'Competencia: ' + data.topBuyAdBank;
                     document.getElementById('sell-bank').innerText = 'Competencia: ' + data.topSellAdBank;
