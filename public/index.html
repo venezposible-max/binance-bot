@@ -416,6 +416,25 @@
         </div>
     </div>
 
+    <!-- WIDGET SENTINEL -->
+    <div id="sentinel-box" class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-style: dashed; border-color: rgba(255, 0, 200, 0.3);">
+        <div class="card-label" style="justify-content: center;">CENTINELA DE AGOTAMIENTO (ANTICIPACIÓN)</div>
+        <div style="display: flex; justify-content: space-around; align-items: center; padding: 10px;">
+            <div style="text-align: center;">
+                <div style="font-size: 0.7rem; color: #aaa;">VELOCIDAD DE CONSUMO</div>
+                <div id="sentinel-rate" style="font-size: 1.5rem; font-family: 'Orbitron'; color: var(--cyber-pink);">0.00 USDT/s</div>
+            </div>
+            <div style="text-align: center; background: rgba(255, 0, 200, 0.05); padding: 10px 30px; border: 1px solid rgba(255, 0, 200, 0.2);">
+                <div style="font-size: 0.8rem; color: #fff;">TIEMPO PARA TOMAR EL LIDERAZGO</div>
+                <div id="sentinel-time" style="font-size: 2.5rem; font-family: 'Orbitron'; color: #fff;">--:--</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 0.7rem; color: #aaa;">ESTADO DE COMPETENCIA</div>
+                <div id="sentinel-status" style="font-size: 1.2rem; font-family: 'Orbitron'; color: #fff;">ESTABLE</div>
+            </div>
+        </div>
+    </div>
+
     <div class="hud-action">
         <div class="card-label" style="justify-content: center;">RECOMENDACIÓN ESTRATÉGICA</div>
         <p style="margin: 15px 0;">COLOCA ORDEN DE COMPRA A <b id="action-buy">---</b> <small>(VÍA <span id="action-buy-bank">---</span>)</small></p>
@@ -554,6 +573,38 @@
                         if (d.prediction.confidence > 80) confEl.style.color = 'var(--buy-glow)';
                         else if (d.prediction.confidence < 60) confEl.style.color = 'var(--sell-glow)';
                         else confEl.style.color = 'var(--cyber-yellow)';
+                    }
+
+                    // Actualizar Centinela de Agotamiento
+                    if (d.exhaustion) {
+                        const ex = d.exhaustion;
+                        document.getElementById('sentinel-rate').innerText = ex.rate + ' USDT/s';
+                        
+                        if (ex.secondsLeft > 0) {
+                            const mins = Math.floor(ex.secondsLeft / 60);
+                            const secs = ex.secondsLeft % 60;
+                            document.getElementById('sentinel-time').innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+                        } else {
+                            document.getElementById('sentinel-time').innerText = '--:--';
+                        }
+
+                        const statusEl = document.getElementById('sentinel-status');
+                        const boxEl = document.getElementById('sentinel-box');
+                        const timeEl = document.getElementById('sentinel-time');
+
+                        if (ex.imminent) {
+                            statusEl.innerText = '⚠️ AGOTÁNDOSE';
+                            statusEl.style.color = 'var(--cyber-pink)';
+                            boxEl.style.borderColor = 'var(--cyber-pink)';
+                            boxEl.style.boxShadow = '0 0 20px rgba(255, 0, 200, 0.2)';
+                            timeEl.style.color = 'var(--cyber-pink)';
+                        } else {
+                            statusEl.innerText = 'ESTABLE';
+                            statusEl.style.color = '#fff';
+                            boxEl.style.borderColor = 'rgba(255, 0, 200, 0.3)';
+                            boxEl.style.boxShadow = 'none';
+                            timeEl.style.color = '#fff';
+                        }
                     }
                 }
             } catch (e) {}

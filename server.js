@@ -47,10 +47,17 @@ let marketDataCache = {
         sentiment: 'NEUTRAL',
         confidence: 0,
         direction: 'ESTABLE'
+    },
+    exhaustion: {
+        imminent: false,
+        adId: null,
+        secondsLeft: 0,
+        rate: 0
     }
 };
 
 let marketHistory = []; // Para análisis predictivo (últimos 20 registros)
+let liquidityTracker = {}; // Para medir velocidad de agotamiento de la competencia
 
 // Configuración Dinámica
 let botConfig = {
@@ -291,6 +298,39 @@ async function updateMarketData() {
                 
                 calculatePrediction();
                 
+                // --- 3. ANÁLISIS DE AGOTAMIENTO (SENTINEL) ---
+                const topAd = buyAds[0]; // El competidor #1 en ventas
+                if (topAd) {
+                    const adId = topAd.adv.advNo;
+                    const currentVol = parseFloat(topAd.adv.surplusAmount);
+                    const now = Date.now();
+                    
+                    if (liquidityTracker[adId]) {
+                        const prev = liquidityTracker[adId];
+                        const timeDiff = (now - prev.time) / 1000; // segundos
+                        const volDiff = prev.vol - currentVol;
+                        
+                        if (volDiff > 0 && timeDiff > 0) {
+                            const rate = volDiff / timeDiff; // USDT/seg
+                            const secondsLeft = currentVol / rate;
+                            
+                            marketDataCache.exhaustion = {
+                                imminent: secondsLeft < 180, // Menos de 3 minutos
+                                adId: adId,
+                                secondsLeft: Math.round(secondsLeft),
+                                rate: rate.toFixed(2)
+                            };
+                        }
+                    }
+                    
+                    // Actualizar tracker (mantener el top ad actual)
+                    liquidityTracker[adId] = { vol: currentVol, time: now };
+                    // Limpiar basura antigua del tracker
+                    Object.keys(liquidityTracker).forEach(id => {
+                        if (id !== adId) delete liquidityTracker[id];
+                    });
+                }
+
                 console.log(`[DASHBOARD] Muro Compra: ${makerBuyPrice} | Muro Venta: ${makerSellPrice} | Predicción: ${marketDataCache.prediction.direction}`);
             }
         }
