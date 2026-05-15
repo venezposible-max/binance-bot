@@ -41,7 +41,7 @@ async function fetchBinanceP2P(tradeType, fiat, asset) {
             proMerchantAds: false,
             shieldMerchantAds: false,
             publisherType: null,
-            payTypes: ["Mercantil", "Banesco", "BancoDeVenezuela", "PagoMovilVenezuela"],
+            payTypes: ["BancoDeVenezuela"],
             transAmount: "60000",
             classifies: ['mass', 'profession']
         }, {
