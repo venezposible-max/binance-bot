@@ -102,8 +102,8 @@ async function updateMarketData() {
                 spreadBruto: spreadBruto.toFixed(2),
                 spreadPct: spreadPct.toFixed(2),
                 lastUpdate: Date.now(),
-                topBuyAdBank: makerBuyAdv.tradeMethods[0]?.identifier || 'Varios',
-                topSellAdBank: makerSellAdv.tradeMethods[0]?.identifier || 'Varios'
+                topBuyAdBank: 'Banco de Venezuela',
+                topSellAdBank: 'Banco de Venezuela'
             };
             
             console.log(`[P2P] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
