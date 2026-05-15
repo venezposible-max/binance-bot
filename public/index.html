@@ -592,14 +592,18 @@
                         const boxEl = document.getElementById('sentinel-box');
                         const timeEl = document.getElementById('sentinel-time');
 
+                        statusEl.innerText = ex.status || 'ESTABLE';
+
                         if (ex.imminent) {
-                            statusEl.innerText = '⚠️ AGOTÁNDOSE';
                             statusEl.style.color = 'var(--cyber-pink)';
                             boxEl.style.borderColor = 'var(--cyber-pink)';
                             boxEl.style.boxShadow = '0 0 20px rgba(255, 0, 200, 0.2)';
                             timeEl.style.color = 'var(--cyber-pink)';
+                        } else if (ex.status === 'CALIBRANDO...') {
+                            statusEl.style.color = 'var(--cyber-blue)';
+                            boxEl.style.borderColor = 'rgba(0, 242, 255, 0.3)';
+                            timeEl.innerText = '--:--';
                         } else {
-                            statusEl.innerText = 'ESTABLE';
                             statusEl.style.color = '#fff';
                             boxEl.style.borderColor = 'rgba(255, 0, 200, 0.3)';
                             boxEl.style.boxShadow = 'none';

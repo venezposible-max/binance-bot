@@ -318,9 +318,22 @@ async function updateMarketData() {
                                 imminent: secondsLeft < 180, // Menos de 3 minutos
                                 adId: adId,
                                 secondsLeft: Math.round(secondsLeft),
-                                rate: rate.toFixed(2)
+                                rate: rate.toFixed(2),
+                                status: secondsLeft < 180 ? '⚠️ AGOTÁNDOSE' : 'ACTIVO'
                             };
+                        } else if (volDiff === 0) {
+                            // Si el volumen es el mismo, mantenemos la tasa anterior pero avisamos que no hay movimiento
+                            marketDataCache.exhaustion.status = 'SIN MOVIMIENTO';
                         }
+                    } else {
+                        // Nuevo anuncio detectado
+                        marketDataCache.exhaustion = {
+                            imminent: false,
+                            adId: adId,
+                            secondsLeft: 0,
+                            rate: 0,
+                            status: 'CALIBRANDO...'
+                        };
                     }
                     
                     // Actualizar tracker (mantener el top ad actual)
