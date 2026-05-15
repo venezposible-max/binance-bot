@@ -329,9 +329,12 @@
 
         <!-- Tarjeta BCV -->
         <div class="card" id="bcv-card" style="border: 1px solid rgba(0, 184, 212, 0.3);">
-            <div class="card-title" style="color: #00b8d4">INTERVENCIÓN BCV</div>
+            <div class="card-title" style="color: #00b8d4">INTERVENCIÓN / MENUDEO</div>
             <div class="price" id="bcv-status" style="font-size: 1.8rem;">Cargando...</div>
-            <div style="color: var(--text-muted); font-size: 0.9rem;" id="bcv-rate">Tasa: Bs. ---</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;" id="bcv-rate">Tasa: Bs. ---</div>
+            <div id="bcv-banks" style="font-size: 0.8rem; color: #fff; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px; margin: 10px 0;">
+                Buscando bancos activos...
+            </div>
             <div style="margin-top: 10px; font-size: 0.75rem; color: #aaa;" id="bcv-update">Actualizado: ---</div>
         </div>
     </div>
@@ -568,6 +571,18 @@
                         document.getElementById('bcv-rate').innerText = 'Tasa: Bs. ' + data.bcv.rate;
                         document.getElementById('bcv-update').innerText = 'Canal: @BancaVenezolana (' + data.bcv.lastUpdate + ')';
                         
+                        const bcvBanks = document.getElementById('bcv-banks');
+                        if (data.bcv.activeBanks && data.bcv.activeBanks.length > 0) {
+                            bcvBanks.innerHTML = data.bcv.activeBanks.map(b => 
+                                `<div style="display:flex; justify-content:space-between; margin-bottom:4px; padding:2px 5px; background:rgba(0,184,212,0.1); border-radius:4px;">
+                                    <span>${b.name}</span>
+                                    <span style="font-weight:bold; color:#00b8d4">${b.type}</span>
+                                </div>`
+                            ).join('');
+                        } else {
+                            bcvBanks.innerHTML = '<div style="color:#666">No se detectan bancos específicos activos</div>';
+                        }
+
                         const bcvCard = document.getElementById('bcv-card');
                         bcvCard.style.boxShadow = data.bcv.status === 'Abierto' ? '0 0 15px rgba(0, 184, 212, 0.4)' : 'none';
                     }

@@ -70,32 +70,53 @@ async function scrapeBCV() {
         let interventionInfo = {
             status: 'Cerrado',
             rate: '---',
+            activeBanks: [], // Bancos con intervención o menudeo activo
             lastUpdate: new Date().toLocaleTimeString('es-VE', {timeZone: 'America/Caracas'})
         };
 
-        // Recorrer de atrás hacia adelante para encontrar el estado más reciente
-        for (let i = messages.length - 1; i >= 0; i--) {
-            const msg = messages[i].toLowerCase();
+        const bankKeywords = [
+            'bdv', 'banco de venezuela', 'banesco', 'mercantil', 'provincial', 'bancamiga', 
+            'bnc', 'tesoro', 'banco del tesoro', 'activo', 'banco activo', 'plaza', 'banco plaza', '100%'
+        ];
+
+        // Recorrer los últimos 10 mensajes para ver el panorama actual
+        const recentMessages = messages.slice(-15);
+        
+        recentMessages.forEach(msgOriginal => {
+            const msg = msgOriginal.toLowerCase();
             
+            // 1. Detección de Intervención General
             if (msg.includes('intervención') || msg.includes('intervencion')) {
                 if (msg.includes('vta') || msg.includes('venta') || msg.includes('digital')) {
                     interventionInfo.status = 'Abierto';
-                } else if (msg.includes('cerrada') || msg.includes('finalizó') || msg.includes('finalizo')) {
-                    interventionInfo.status = 'Cerrado';
                 }
-                
-                // Intentar extraer tasa
                 const tasaMatch = msg.match(/tasa:\s*bs\.\s*([\d,.]+)/i);
-                if (tasaMatch) {
-                    interventionInfo.rate = tasaMatch[1];
-                }
-                break; 
+                if (tasaMatch) interventionInfo.rate = tasaMatch[1];
             }
+
+            // 2. Detección de Bancos Específicos y Menudeo
+            if (msg.includes('activo') || msg.includes('abierto') || msg.includes('vta') || msg.includes('venta')) {
+                bankKeywords.forEach(bank => {
+                    if (msg.includes(bank)) {
+                        let type = 'Intervención';
+                        if (msg.includes('menudeo')) type = 'Menudeo';
+                        
+                        const bankName = bank.toUpperCase();
+                        if (!interventionInfo.activeBanks.some(b => b.name === bankName && b.type === type)) {
+                            interventionInfo.activeBanks.push({ name: bankName, type: type });
+                        }
+                    }
+                });
+            }
+        });
+
+        // Si no hay bancos detectados pero el status general es Abierto, poner "General"
+        if (interventionInfo.status === 'Abierto' && interventionInfo.activeBanks.length === 0) {
+            interventionInfo.activeBanks.push({ name: 'SISTEMA BANCARIO', type: 'Intervención' });
         }
 
-        // Si cambió el estado o la tasa, podríamos enviar una alerta específica si se desea
         marketDataCache.bcv = interventionInfo;
-        console.log(`📡 BCV Scraper: ${interventionInfo.status} | Tasa: ${interventionInfo.rate}`);
+        console.log(`📡 BCV Scraper: ${interventionInfo.status} | Bancos: ${interventionInfo.activeBanks.map(b => b.name).join(', ')}`);
 
     } catch (error) {
         console.error('Error scraping BCV:', error.message);
