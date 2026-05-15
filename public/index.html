@@ -329,11 +329,11 @@
 
         <!-- Tarjeta BCV -->
         <div class="card" id="bcv-card" style="border: 1px solid rgba(0, 184, 212, 0.3);">
-            <div class="card-title" style="color: #00b8d4">INTERVENCIÓN / MENUDEO</div>
-            <div class="price" id="bcv-status" style="font-size: 1.8rem;">Cargando...</div>
-            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;" id="bcv-rate">Tasa: Bs. ---</div>
-            <div id="bcv-banks" style="font-size: 0.8rem; color: #fff; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px; margin: 10px 0;">
-                Buscando bancos activos...
+            <div class="card-title" style="color: #00b8d4">BCV INTERVENCIÓN</div>
+            <div class="price" id="bcv-status" style="font-size: 2rem;">--- Bs</div>
+            <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 5px;">Tasa oficial de inyección</div>
+            <div id="bcv-gap" style="font-size: 1.2rem; font-weight: bold; color: #00b8d4; margin-top: 10px;">
+                BRECHA: ---%
             </div>
             <div style="margin-top: 10px; font-size: 0.75rem; color: #aaa;" id="bcv-update">Actualizado: ---</div>
         </div>
@@ -563,24 +563,23 @@
                     document.getElementById('action-buy-bank').innerText = data.topBuyAdBank;
                     document.getElementById('action-sell-bank').innerText = data.topSellAdBank;
 
-                    // Actualizar Info BCV
+                    // Actualizar Info BCV (Estilo Monitor Movil)
                     if (data.bcv) {
                         const bcvStatus = document.getElementById('bcv-status');
-                        bcvStatus.innerText = data.bcv.status.toUpperCase();
-                        bcvStatus.style.color = data.bcv.status === 'Abierto' ? '#00b8d4' : '#ff4d4d';
-                        document.getElementById('bcv-rate').innerText = 'Tasa: Bs. ' + data.bcv.rate;
+                        bcvStatus.innerText = data.bcv.rate + ' Bs';
+                        
                         document.getElementById('bcv-update').innerText = 'Canal: @BancaVenezolana (' + data.bcv.lastUpdate + ')';
                         
-                        const bcvBanks = document.getElementById('bcv-banks');
-                        if (data.bcv.activeBanks && data.bcv.activeBanks.length > 0) {
-                            bcvBanks.innerHTML = data.bcv.activeBanks.map(b => 
-                                `<div style="display:flex; justify-content:space-between; margin-bottom:4px; padding:2px 5px; background:rgba(0,184,212,0.1); border-radius:4px;">
-                                    <span>${b.name}</span>
-                                    <span style="font-weight:bold; color:#00b8d4">${b.type}</span>
-                                </div>`
-                            ).join('');
+                        const bcvGap = document.getElementById('bcv-gap');
+                        const bcvRateNum = parseFloat(data.bcv.rate.replace(',', '.'));
+                        const p2pPriceNum = parseFloat(data.makerSellPrice);
+                        
+                        if (!isNaN(bcvRateNum) && bcvRateNum > 0) {
+                            const gap = (((p2pPriceNum / bcvRateNum) - 1) * 100).toFixed(2);
+                            bcvGap.innerText = 'BRECHA: ' + gap + '%';
+                            bcvGap.style.color = gap > 10 ? '#ff4d4d' : '#00b8d4';
                         } else {
-                            bcvBanks.innerHTML = '<div style="color:#666">No se detectan bancos específicos activos</div>';
+                            bcvGap.innerText = 'BRECHA: ---%';
                         }
 
                         const bcvCard = document.getElementById('bcv-card');

@@ -123,18 +123,21 @@ async function scrapeBCV() {
     }
 }
 
-async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
+async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct, bcvRate, gap) {
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
     
     // Solo enviar 1 alerta cada 5 minutos máximo para no hacer spam
     const now = Date.now();
     if (now - lastAlertTime < 5 * 60 * 1000) return;
 
-    const message = `🚨 *OPORTUNIDAD P2P (BDV)* 🚨\n\n` +
+    const bcvText = bcvRate !== '---' ? `🏛️ *BCV:* ${bcvRate} Bs\n📉 *Brecha/Gap:* ${gap}%\n\n` : '';
+
+    const message = `🚨 *MONITOR ARBITRAJE* 🚨\n\n` +
+                    bcvText +
                     `💰 *Ganancia Neta:* +${profit.toFixed(2)} Bs (al mover 60k)\n` +
                     `📊 *Spread:* ${spreadPct}%\n\n` +
-                    `🟢 *Crea Anuncio de Compra a:* ${buyPrice} Bs\n` +
-                    `🔴 *Crea Anuncio de Venta a:* ${sellPrice} Bs\n\n` +
+                    `🟢 *Crea Compra a:* ${buyPrice} Bs\n` +
+                    `🔴 *Crea Venta a:* ${sellPrice} Bs\n\n` +
                     `⏱️ _${new Date().toLocaleTimeString('es-VE', {timeZone: 'America/Caracas'})}_`;
 
     try {
@@ -249,10 +252,24 @@ async function updateMarketData() {
             const telSpreadBruto = telMySellPrice - telMyBuyPrice;
             const telSpreadPct = (telSpreadBruto / telMyBuyPrice) * 100;
             const telProfit60k = (60000 / telMyBuyPrice) * telSpreadBruto;
+
+            // Calcular Brecha (Gap) con el BCV para la alerta
+            let bcvGap = '---';
+            const bcvRateNum = parseFloat(marketDataCache.bcv.rate.replace(',', '.'));
+            if (!isNaN(bcvRateNum) && bcvRateNum > 0) {
+                bcvGap = (((telMySellPrice / bcvRateNum) - 1) * 100).toFixed(2);
+            }
             
             // Lógica de Disparo de Alerta Telegram (Solo BDV)
             if (telProfit60k >= 50 && telSpreadPct > 0.2) {
-                sendTelegramAlert(telProfit60k, telMyBuyPrice.toFixed(2), telMySellPrice.toFixed(2), telSpreadPct.toFixed(2));
+                sendTelegramAlert(
+                    telProfit60k, 
+                    telMyBuyPrice.toFixed(2), 
+                    telMySellPrice.toFixed(2), 
+                    telSpreadPct.toFixed(2),
+                    marketDataCache.bcv.rate,
+                    bcvGap
+                );
             }
         }
 
