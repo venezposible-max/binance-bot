@@ -184,7 +184,7 @@ async function updateMarketData() {
 }
 
 // Iniciar ciclo de escaneo cada 15 segundos
-setInterval(updateMarketData, 15000);
+setInterval(updateMarketData, 5000);
 updateMarketData(); // Llamada inicial
 
 // Endpoints de la API
