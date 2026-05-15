@@ -67,7 +67,8 @@ async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
     }
 }
 
-async function fetchBinanceP2P(tradeType, fiat, asset) {
+async function fetchBinanceP2P(tradeType, fiat, asset, customPayTypes = null) {
+    const banksToSearch = customPayTypes || botConfig.selectedBanks;
     try {
         const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
             fiat: fiat,
@@ -79,7 +80,7 @@ async function fetchBinanceP2P(tradeType, fiat, asset) {
             proMerchantAds: false,
             shieldMerchantAds: false,
             publisherType: null,
-            payTypes: botConfig.selectedBanks,
+            payTypes: banksToSearch,
             transAmount: "60000",
             classifies: ['mass', 'profession']
         }, {
@@ -116,21 +117,15 @@ async function fetchBinanceP2P(tradeType, fiat, asset) {
 
 async function updateMarketData() {
     try {
-        // "BUY" tab = Taker buys from Maker. So this is the lowest price a Maker is selling at.
+        // --- 1. SCAN PARA EL DASHBOARD (Dinámico) ---
         const makerSellAdv = await fetchBinanceP2P('BUY', FIAT, ASSET);
-        // "SELL" tab = Taker sells to Maker. So this is the highest price a Maker is buying at.
         const makerBuyAdv = await fetchBinanceP2P('SELL', FIAT, ASSET);
 
         if (makerSellAdv && makerBuyAdv) {
             const makerSellPrice = parseFloat(makerSellAdv.price);
             const makerBuyPrice = parseFloat(makerBuyAdv.price);
-            
-            // Para ganar, como Maker debes comprar barato y vender caro
-            // Tu precio de compra sería (makerBuyPrice + 0.01) para estar de primero
-            // Tu precio de venta sería (makerSellPrice - 0.01) para estar de primero
             const myBuyPrice = makerBuyPrice + 0.01;
             const mySellPrice = makerSellPrice - 0.01;
-            
             const spreadBruto = mySellPrice - myBuyPrice;
             const spreadPct = (spreadBruto / myBuyPrice) * 100;
 
@@ -144,15 +139,32 @@ async function updateMarketData() {
                 topSellAdBank: botConfig.mode === 'SOLO_BDV' ? 'Banco de Venezuela' : makerSellAdv.tradeMethods.map(m => m.identifier).join(', ')
             };
             
-            console.log(`[P2P] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
+            console.log(`[DASHBOARD] Compra Maker: ${myBuyPrice.toFixed(2)} | Venta Maker: ${mySellPrice.toFixed(2)} | Spread: ${spreadPct.toFixed(2)}%`);
+        }
+
+        // --- 2. SCAN PARA TELEGRAM (Estrictamente BDV) ---
+        let telMakerSell, telMakerBuy;
+        if (botConfig.mode === 'SOLO_BDV') {
+            telMakerSell = makerSellAdv; // Reutilizamos si ya es BDV
+            telMakerBuy = makerBuyAdv;
+        } else {
+            telMakerSell = await fetchBinanceP2P('BUY', FIAT, ASSET, ['BancoDeVenezuela']);
+            telMakerBuy = await fetchBinanceP2P('SELL', FIAT, ASSET, ['BancoDeVenezuela']);
+        }
+
+        if (telMakerSell && telMakerBuy) {
+            const telMyBuyPrice = parseFloat(telMakerBuy.price) + 0.01;
+            const telMySellPrice = parseFloat(telMakerSell.price) - 0.01;
+            const telSpreadBruto = telMySellPrice - telMyBuyPrice;
+            const telSpreadPct = (telSpreadBruto / telMyBuyPrice) * 100;
+            const telProfit60k = (60000 / telMyBuyPrice) * telSpreadBruto;
             
-            // Lógica de Disparo de Alerta Telegram
-            // Configurado para alertar si la ganancia es mayor a 50 Bs (puedes ajustar esto)
-            const profit60k = (60000 / myBuyPrice) * spreadBruto;
-            if (profit60k >= 50 && spreadPct > 0.2) {
-                sendTelegramAlert(profit60k, myBuyPrice.toFixed(2), mySellPrice.toFixed(2), spreadPct.toFixed(2));
+            // Lógica de Disparo de Alerta Telegram (Solo BDV)
+            if (telProfit60k >= 50 && telSpreadPct > 0.2) {
+                sendTelegramAlert(telProfit60k, telMyBuyPrice.toFixed(2), telMySellPrice.toFixed(2), telSpreadPct.toFixed(2));
             }
         }
+
     } catch (e) {
         console.error('Error in updateMarketData:', e.message);
     }
