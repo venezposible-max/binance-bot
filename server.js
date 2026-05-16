@@ -52,7 +52,12 @@ let marketDataCache = {
         imminent: false,
         adId: null,
         secondsLeft: 0,
-        rate: 0
+        rate: 0,
+        status: 'ESPERANDO...'
+    },
+    topAds: {
+        buy: [], // Para calcular capital por delante
+        sell: []
     }
 };
 
@@ -283,7 +288,11 @@ async function updateMarketData() {
                     topBuyAdBank: formatBanks(makerBuyAdv, botConfig.selectedBanks),
                     topSellAdBank: formatBanks(makerSellAdv, botConfig.selectedBanks),
                     buyWallVolume: parseFloat(makerBuyAdv.surplusAmount).toFixed(2),
-                    sellWallVolume: parseFloat(makerSellAdv.surplusAmount).toFixed(2)
+                    sellWallVolume: parseFloat(makerSellAdv.surplusAmount).toFixed(2),
+                    topAds: {
+                        buy: sellAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount) })),
+                        sell: buyAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount) }))
+                    }
                 };
 
                 // Actualizar Historial para Predicción

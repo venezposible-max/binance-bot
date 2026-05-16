@@ -435,6 +435,32 @@
         </div>
     </div>
 
+    <!-- RADAR DE APROXIMACIÓN (SIMULADOR MANUAL) -->
+    <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-color: var(--cyber-yellow);">
+        <div class="card-label" style="justify-content: center;">RADAR DE APROXIMACIÓN (SEGUIMIENTO DE TU ORDEN)</div>
+        <div style="display: flex; gap: 20px; align-items: center; padding: 15px; background: rgba(255, 213, 0, 0.05);">
+            <div style="flex: 1;">
+                <small>PRECIO DE MI ORDEN EN BINANCE</small>
+                <input type="number" id="myPriceInput" step="0.01" placeholder="Ej: 694.50" style="width: 100%; background: transparent; border: 1px solid var(--cyber-yellow); color: #fff; padding: 10px; font-family: 'Orbitron'; margin-top: 5px;">
+            </div>
+            <div style="flex: 1;">
+                <small>TIPO DE ORDEN</small>
+                <select id="myOrderType" style="width: 100%; background: #000; border: 1px solid var(--cyber-yellow); color: #fff; padding: 10px; font-family: 'Orbitron'; margin-top: 5px;">
+                    <option value="SELL">VENTA (Maker Sell)</option>
+                    <option value="BUY">COMPRA (Maker Buy)</option>
+                </select>
+            </div>
+        </div>
+        <div id="sim-results" style="padding: 20px; text-align: center; border-top: 1px solid rgba(255, 213, 0, 0.2); display: none;">
+            <div style="font-size: 0.8rem; color: var(--cyber-yellow); margin-bottom: 10px;">CAPITAL POR DELANTE DE TI</div>
+            <div id="sim-volume" style="font-size: 3rem; font-family: 'Orbitron'; color: #fff;">0.00 USDT</div>
+            <div id="sim-progress-container" style="width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; margin: 20px 0; overflow: hidden;">
+                <div id="sim-progress-bar" style="width: 0%; height: 100%; background: var(--cyber-yellow); box-shadow: 0 0 10px var(--cyber-yellow); transition: width 0.5s;"></div>
+            </div>
+            <div id="sim-status" style="font-size: 1rem; color: var(--cyber-blue);">CALCULANDO POSICIÓN...</div>
+        </div>
+    </div>
+
     <div class="hud-action">
         <div class="card-label" style="justify-content: center;">RECOMENDACIÓN ESTRATÉGICA</div>
         <p style="margin: 15px 0;">COLOCA ORDEN DE COMPRA A <b id="action-buy">---</b> <small>(VÍA <span id="action-buy-bank">---</span>)</small></p>
@@ -530,6 +556,48 @@
         function openPinModal() { document.getElementById('pinModal').style.display = 'flex'; document.getElementById('vaultPin').focus(); }
         function closeModals() { document.getElementById('pinModal').style.display = 'none'; document.getElementById('vaultModal').style.display = 'none'; }
 
+        function updateSimulation(data) {
+            const userPrice = parseFloat(document.getElementById('myPriceInput').value);
+            const type = document.getElementById('myOrderType').value;
+            const resDiv = document.getElementById('sim-results');
+            
+            if (isNaN(userPrice) || userPrice <= 0) {
+                resDiv.style.display = 'none';
+                return;
+            }
+            
+            resDiv.style.display = 'block';
+            let ads = (type === 'BUY') ? data.topAds.buy : data.topAds.sell;
+            
+            let capitalAhead = 0;
+            let competitorsCount = 0;
+            
+            ads.forEach(ad => {
+                if (type === 'BUY') {
+                    if (ad.price > userPrice) { capitalAhead += ad.vol; competitorsCount++; }
+                } else {
+                    if (ad.price < userPrice) { capitalAhead += ad.vol; competitorsCount++; }
+                }
+            });
+            
+            document.getElementById('sim-volume').innerText = capitalAhead.toFixed(2) + ' USDT';
+            
+            const maxSim = 5000;
+            let pct = (1 - (capitalAhead / maxSim)) * 100;
+            if (pct < 0) pct = 0;
+            if (pct > 100) pct = 100;
+            document.getElementById('sim-progress-bar').style.width = pct + '%';
+            
+            const statusEl = document.getElementById('sim-status');
+            if (capitalAhead === 0) {
+                statusEl.innerText = '¡ERES EL LÍDER DEL MERCADO! 👑';
+                statusEl.style.color = 'var(--buy-glow)';
+            } else {
+                statusEl.innerText = `Tienes ${competitorsCount} competidores bloqueándote el paso.`;
+                statusEl.style.color = 'var(--cyber-blue)';
+            }
+        }
+
         // --- DATA FETCHING ---
         let firstLoad = true;
         async function fetchData() {
@@ -545,6 +613,7 @@
                     firstLoad = false;
                 }
                 if (json.success && json.data.makerBuyPrice > 0) {
+                    updateSimulation(json.data);
                     const d = json.data;
                     document.getElementById('buy-price').innerText = d.makerBuyPrice;
                     document.getElementById('sell-price').innerText = d.makerSellPrice;
