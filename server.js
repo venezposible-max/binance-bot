@@ -428,14 +428,14 @@ async function huntSilverrabit() {
     try {
         const types = ['BUY', 'SELL'];
         for (const type of types) {
-            for (let p = 1; p <= 3; p++) { // Escanear 3 páginas
+            for (let p = 1; p <= 5; p++) { // Escanear 5 páginas (100 ads de BDV)
                 const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
                     fiat: 'VES',
                     page: p,
                     rows: 20,
                     tradeType: type,
                     asset: 'USDT',
-                    payTypes: [],
+                    payTypes: ['BancoDeVenezuela'], // ENFOCADO EN TU BANCO
                     transAmount: "",
                     publisherType: null
                 }, {
@@ -456,7 +456,7 @@ async function huntSilverrabit() {
                         min: parseFloat(match.adv.minSingleTransAmount),
                         max: parseFloat(match.adv.maxSingleTransAmount),
                         surplus: parseFloat(match.adv.surplusAmount),
-                        status: 'RASTREO ACTIVO ✅'
+                        status: 'CONEXIÓN ESTABLE ✅'
                     };
                     return;
                 }
