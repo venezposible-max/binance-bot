@@ -567,6 +567,10 @@
             }
             
             resDiv.style.display = 'block';
+            
+            // Detección de orden propia
+            const myMatch = (data.myAds || []).find(ad => ad.price === userPrice && ad.type === type);
+
             let ads = (type === 'BUY') ? data.topAds.buy : data.topAds.sell;
             
             let capitalAhead = 0;
@@ -589,13 +593,13 @@
             document.getElementById('sim-progress-bar').style.width = pct + '%';
             
             const statusEl = document.getElementById('sim-status');
-            if (capitalAhead === 0) {
-                statusEl.innerText = '¡ERES EL LÍDER DEL MERCADO! 👑';
-                statusEl.style.color = 'var(--buy-glow)';
-            } else {
-                statusEl.innerText = `Tienes ${competitorsCount} competidores bloqueándote el paso.`;
-                statusEl.style.color = 'var(--cyber-blue)';
+            let statusText = capitalAhead === 0 ? '¡ERES EL LÍDER DEL MERCADO! 👑' : `Tienes ${competitorsCount} competidores bloqueándote el paso.`;
+            statusEl.style.color = capitalAhead === 0 ? 'var(--buy-glow)' : 'var(--cyber-blue)';
+
+            if (myMatch) {
+                statusText += `<br><span style="color:var(--cyber-yellow); font-size:0.8rem; border-top: 1px solid rgba(255,213,0,0.2); margin-top:10px; display:block; padding-top:10px;">ORDEN PROPIA DETECTADA ✅ | LÍMITES: ${myMatch.min} - ${myMatch.max} BS</span>`;
             }
+            statusEl.innerHTML = statusText;
         }
 
         // --- DATA FETCHING ---

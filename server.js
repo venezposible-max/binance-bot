@@ -402,11 +402,41 @@ async function updateMarketData() {
     }
 }
 
+async function fetchMyAds() {
+    if (!BINANCE_API_KEY || !BINANCE_API_SECRET) return [];
+    
+    const timestamp = Date.now();
+    const queryString = `timestamp=${timestamp}`;
+    const signature = crypto.createHmac('sha256', BINANCE_API_SECRET).update(queryString).digest('hex');
+    
+    try {
+        const response = await axios.get(`https://api.binance.com/sapi/v1/c2c/ads/list?${queryString}&signature=${signature}`, {
+            headers: { 'X-MBX-APIKEY': BINANCE_API_KEY }
+        });
+        // Filtrar solo las que están activas (status 1 = ON)
+        return (response.data.data || []).filter(ad => ad.advStatus === 'ON' || ad.advStatus === 1);
+    } catch (e) {
+        console.error('Error fetching my ads:', e.message);
+        return [];
+    }
+}
+
 // Endpoints de la API
-app.get('/api/arbitrage/status', (req, res) => {
+app.get('/api/arbitrage/status', async (req, res) => {
+    const myAds = await fetchMyAds();
     res.json({
         success: true,
-        data: marketDataCache,
+        data: {
+            ...marketDataCache,
+            myAds: myAds.map(ad => ({
+                id: ad.advNo,
+                price: parseFloat(ad.price),
+                type: ad.tradeType, // BUY o SELL
+                min: parseFloat(ad.minSingleTransAmount),
+                max: parseFloat(ad.maxSingleTransAmount),
+                surplus: parseFloat(ad.surplusAmount)
+            }))
+        },
         config: botConfig
     });
 });
