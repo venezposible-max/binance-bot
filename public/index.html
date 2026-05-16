@@ -435,11 +435,11 @@
         </div>
     </div>
 
-    <!-- RADAR DE APROXIMACIÓN (AUTOMATIZADO) -->
-    <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-color: var(--cyber-yellow); background: rgba(255, 213, 0, 0.02);">
-        <div class="card-label" style="justify-content: center; background: rgba(255, 213, 0, 0.1); color: var(--cyber-yellow);">CENTRO DE CONTROL: MIS ÓRDENES EN BINANCE</div>
+    <!-- MONITOR SILVERRABIT (TOTALMENTE AUTOMATIZADO) -->
+    <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-color: var(--cyber-yellow); background: rgba(255, 213, 0, 0.05); border-width: 2px;">
+        <div class="card-label" style="justify-content: center; background: var(--cyber-yellow); color: #000; font-weight: bold;">MONITOR SILVERRABIT: ÓRDENES EN VIVO</div>
         <div id="my-ads-container" style="padding: 10px;">
-            <div style="text-align: center; color: #666; padding: 20px;">ESPERANDO ÓRDENES ACTIVAS EN TU CUENTA...</div>
+            <div style="text-align: center; color: var(--cyber-yellow); padding: 20px; font-family: 'Orbitron';">BUSCANDO A SILVERRABIT EN EL MERCADO...</div>
         </div>
     </div>
 
@@ -540,45 +540,47 @@
 
         function renderMyAds(data) {
             const container = document.getElementById('my-ads-container');
-            if (!data.myAds || data.myAds.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">NO SE DETECTARON ÓRDENES ACTIVAS EN BINANCE.</div>';
+            const myAds = data.myAds || [];
+            
+            if (myAds.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #fff; padding: 20px; font-family: Orbitron; opacity: 0.5;">BUSCANDO ÓRDEN DE SILVERRABIT...</div>';
                 return;
             }
             
             container.innerHTML = '';
-            data.myAds.forEach(myAd => {
-                const typeLabel = myAd.type === 'SELL' ? 'VENTA' : 'COMPRA';
-                const ads = (myAd.type === 'BUY') ? data.topAds.buy : data.topAds.sell;
+            myAds.forEach(myAd => {
+                const typeLabel = myAd.type === 'SELL' ? 'COMPRANDO (Maker Buy)' : 'VENDIENDO (Maker Sell)';
+                const ads = (myAd.type === 'SELL') ? data.topAds.sell : data.topAds.buy;
                 
                 let capitalAhead = 0;
                 let competitorsCount = 0;
                 ads.forEach(ad => {
-                    if (myAd.type === 'BUY') {
+                    if (myAd.type === 'SELL') { // Somos Comprador Maker
                         if (ad.price > myAd.price) { capitalAhead += ad.vol; competitorsCount++; }
-                    } else {
+                    } else { // Somos Vendedor Maker
                         if (ad.price < myAd.price) { capitalAhead += ad.vol; competitorsCount++; }
                     }
                 });
                 
-                const pct = Math.max(0, Math.min(100, (1 - (capitalAhead / 5000)) * 100));
+                const pct = Math.max(0, Math.min(100, (1 - (capitalAhead / 3000)) * 100));
                 
                 const adEl = document.createElement('div');
-                adEl.className = 'holo-ad-item';
-                adEl.style.cssText = 'border: 1px solid rgba(255,213,0,0.2); margin: 10px 0; padding: 15px; background: rgba(0,0,0,0.3); position: relative;';
+                adEl.style.cssText = 'border: 1px solid var(--cyber-yellow); margin: 10px 0; padding: 15px; background: rgba(255,213,0,0.1); position: relative;';
                 adEl.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <b style="color: var(--cyber-yellow); font-size: 1.1rem;">${typeLabel} @ ${myAd.price} BS</b>
-                        <span style="font-size: 0.8rem; color: #aaa;">LÍMITES: ${myAd.min} - ${myAd.max} BS</span>
+                        <b style="color: var(--cyber-yellow); font-size: 1.2rem;">${typeLabel} @ ${myAd.price} BS</b>
+                        <span style="font-size: 0.8rem; color: var(--cyber-blue); font-weight: bold;">[ORDEN DETECTADA]</span>
                     </div>
                     <div style="display: flex; gap: 20px; font-size: 0.9rem; margin-bottom: 10px;">
-                        <div style="flex: 1;">DELANTE: <span style="color: #fff; font-weight: bold;">${capitalAhead.toFixed(2)} USDT</span></div>
+                        <div style="flex: 1;">USDT POR DELANTE: <span style="color: #fff; font-weight: bold;">${capitalAhead.toFixed(2)}</span></div>
                         <div style="flex: 1;">RIVALES: <span style="color: #fff; font-weight: bold;">${competitorsCount}</span></div>
                     </div>
-                    <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-                        <div style="width: ${pct}%; height: 100%; background: var(--cyber-yellow); box-shadow: 0 0 8px var(--cyber-yellow); transition: width 0.5s;"></div>
+                    <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
+                        <div style="width: ${pct}%; height: 100%; background: var(--cyber-yellow); box-shadow: 0 0 15px var(--cyber-yellow); transition: width 0.5s;"></div>
                     </div>
-                    <div style="text-align: right; margin-top: 5px; font-size: 0.7rem; color: var(--cyber-blue); font-family: 'Orbitron';">
-                        ${capitalAhead === 0 ? '👑 LÍDER DE MERCADO' : 'APROXIMANDO AL OBJETIVO...'}
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.8rem; color: #aaa;">
+                        <div>LÍMITES: ${myMatch?.min || myAd.min} - ${myMatch?.max || myAd.max} BS</div>
+                        <div style="color: var(--cyber-pink); font-family: 'Orbitron';">${capitalAhead === 0 ? '👑 ERES EL LÍDER' : 'EN CAMINO AL TOP 1'}</div>
                     </div>
                 `;
                 container.appendChild(adEl);
