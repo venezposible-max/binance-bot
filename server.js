@@ -169,6 +169,41 @@ async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
     }
 }
 
+let lastMirroredMessageId = null;
+
+async function mirrorChannel() {
+    try {
+        const sourceUrl = 'https://t.me/s/bancocompradedivisa'; 
+        const response = await axios.get(sourceUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const $ = cheerio.load(response.data);
+        
+        const lastMessage = $('.tgme_widget_message_wrap').last();
+        if (!lastMessage.length) return;
+
+        const messageId = lastMessage.find('.tgme_widget_message').attr('data-post');
+        const messageText = lastMessage.find('.tgme_widget_message_text').text().trim();
+
+        if (messageId && messageId !== lastMirroredMessageId && messageText) {
+            console.log(`[ESPEJO] Nuevo mensaje detectado: ${messageId}`);
+            
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                chat_id: TELEGRAM_CHAT_ID,
+                text: `📢 *INFORMACIÓN FINANCIERA REPLICADA* 📢\n\n${messageText}`,
+                parse_mode: 'Markdown'
+            });
+            
+            lastMirroredMessageId = messageId;
+        }
+    } catch (e) {
+        console.error('[ESPEJO ERROR]:', e.message);
+    }
+}
+
+// Escanear canal fuente cada 2 minutos
+setInterval(mirrorChannel, 120000);
+mirrorChannel();
+
+
 async function fetchBinanceP2P(tradeType, fiat, asset, customPayTypes = null) {
     const banksToSearch = customPayTypes || botConfig.selectedBanks;
     try {
