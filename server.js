@@ -175,7 +175,7 @@ async function fetchBinanceP2P(tradeType, fiat, asset, customPayTypes = null) {
         const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
             fiat: fiat,
             page: 1,
-            rows: 10,
+            rows: 20, // Aumentado a 20 para encontrar a Silverrabit
             tradeType: tradeType,
             asset: asset,
             countries: [],
@@ -290,8 +290,8 @@ async function updateMarketData() {
                     buyWallVolume: parseFloat(makerBuyAdv.surplusAmount).toFixed(2),
                     sellWallVolume: parseFloat(makerSellAdv.surplusAmount).toFixed(2),
                     topAds: {
-                        buy: sellAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName })),
-                        sell: buyAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName }))
+                        buy: sellAds.slice(0, 20).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName })),
+                        sell: buyAds.slice(0, 20).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName }))
                     },
                     // PLAN B: Detección por Nickname
                     silverMatch: [...sellAds, ...buyAds].find(a => a.advertiser.nickName === 'Silverrabit')
