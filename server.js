@@ -428,38 +428,38 @@ async function huntSilverrabit() {
     try {
         const types = ['BUY', 'SELL'];
         for (const type of types) {
-            const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
-                fiat: 'VES',
-                page: 1,
-                rows: 100, // Escaneo profundo
-                tradeType: type,
-                asset: 'USDT',
-                countries: [],
-                proMerchantAds: false,
-                shieldMerchantAds: false,
-                publisherType: null,
-                payTypes: [], // SIN FILTROS
-                transAmount: "",
-                classifies: ['mass', 'profession']
-            }, {
-                headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' }
-            });
+            for (let p = 1; p <= 3; p++) { // Escanear 3 páginas
+                const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
+                    fiat: 'VES',
+                    page: p,
+                    rows: 20,
+                    tradeType: type,
+                    asset: 'USDT',
+                    payTypes: [],
+                    transAmount: "",
+                    publisherType: null
+                }, {
+                    headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+                });
 
-            const ads = response.data.data || [];
-            const match = ads.find(a => a.advertiser.nickName.toLowerCase().trim() === 'silverrabit');
-            
-            if (match) {
-                console.log(`[CAZADOR] ¡Silverrabit encontrado en ${type}!`);
-                marketDataCache.fallbackAd = {
-                    id: match.adv.advNo,
-                    price: parseFloat(match.adv.price),
-                    type: match.adv.tradeType,
-                    min: parseFloat(match.adv.minSingleTransAmount),
-                    max: parseFloat(match.adv.maxSingleTransAmount),
-                    surplus: parseFloat(match.adv.surplusAmount),
-                    status: 'EN VIVO (Cazador Global)'
-                };
-                return;
+                const ads = response.data.data || [];
+                const match = ads.find(a => {
+                    const nick = (a.advertiser.nickName || "").toLowerCase().trim();
+                    return nick.includes('silverrabit');
+                });
+                
+                if (match) {
+                    marketDataCache.fallbackAd = {
+                        id: match.adv.advNo,
+                        price: parseFloat(match.adv.price),
+                        type: match.adv.tradeType,
+                        min: parseFloat(match.adv.minSingleTransAmount),
+                        max: parseFloat(match.adv.maxSingleTransAmount),
+                        surplus: parseFloat(match.adv.surplusAmount),
+                        status: 'RASTREO ACTIVO ✅'
+                    };
+                    return;
+                }
             }
         }
         marketDataCache.fallbackAd = null;
