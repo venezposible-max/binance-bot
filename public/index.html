@@ -435,29 +435,11 @@
         </div>
     </div>
 
-    <!-- RADAR DE APROXIMACIÓN (SIMULADOR MANUAL) -->
-    <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-color: var(--cyber-yellow);">
-        <div class="card-label" style="justify-content: center;">RADAR DE APROXIMACIÓN (SEGUIMIENTO DE TU ORDEN)</div>
-        <div style="display: flex; gap: 20px; align-items: center; padding: 15px; background: rgba(255, 213, 0, 0.05);">
-            <div style="flex: 1;">
-                <small>PRECIO DE MI ORDEN EN BINANCE</small>
-                <input type="number" id="myPriceInput" step="0.01" placeholder="Ej: 694.50" style="width: 100%; background: transparent; border: 1px solid var(--cyber-yellow); color: #fff; padding: 10px; font-family: 'Orbitron'; margin-top: 5px;">
-            </div>
-            <div style="flex: 1;">
-                <small>TIPO DE ORDEN</small>
-                <select id="myOrderType" style="width: 100%; background: #000; border: 1px solid var(--cyber-yellow); color: #fff; padding: 10px; font-family: 'Orbitron'; margin-top: 5px;">
-                    <option value="SELL">VENTA (Maker Sell)</option>
-                    <option value="BUY">COMPRA (Maker Buy)</option>
-                </select>
-            </div>
-        </div>
-        <div id="sim-results" style="padding: 20px; text-align: center; border-top: 1px solid rgba(255, 213, 0, 0.2); display: none;">
-            <div style="font-size: 0.8rem; color: var(--cyber-yellow); margin-bottom: 10px;">CAPITAL POR DELANTE DE TI</div>
-            <div id="sim-volume" style="font-size: 3rem; font-family: 'Orbitron'; color: #fff;">0.00 USDT</div>
-            <div id="sim-progress-container" style="width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; margin: 20px 0; overflow: hidden;">
-                <div id="sim-progress-bar" style="width: 0%; height: 100%; background: var(--cyber-yellow); box-shadow: 0 0 10px var(--cyber-yellow); transition: width 0.5s;"></div>
-            </div>
-            <div id="sim-status" style="font-size: 1rem; color: var(--cyber-blue);">CALCULANDO POSICIÓN...</div>
+    <!-- RADAR DE APROXIMACIÓN (AUTOMATIZADO) -->
+    <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-color: var(--cyber-yellow); background: rgba(255, 213, 0, 0.02);">
+        <div class="card-label" style="justify-content: center; background: rgba(255, 213, 0, 0.1); color: var(--cyber-yellow);">CENTRO DE CONTROL: MIS ÓRDENES EN BINANCE</div>
+        <div id="my-ads-container" style="padding: 10px;">
+            <div style="text-align: center; color: #666; padding: 20px;">ESPERANDO ÓRDENES ACTIVAS EN TU CUENTA...</div>
         </div>
     </div>
 
@@ -556,50 +538,51 @@
         function openPinModal() { document.getElementById('pinModal').style.display = 'flex'; document.getElementById('vaultPin').focus(); }
         function closeModals() { document.getElementById('pinModal').style.display = 'none'; document.getElementById('vaultModal').style.display = 'none'; }
 
-        function updateSimulation(data) {
-            const userPrice = parseFloat(document.getElementById('myPriceInput').value);
-            const type = document.getElementById('myOrderType').value;
-            const resDiv = document.getElementById('sim-results');
-            
-            if (isNaN(userPrice) || userPrice <= 0) {
-                resDiv.style.display = 'none';
+        function renderMyAds(data) {
+            const container = document.getElementById('my-ads-container');
+            if (!data.myAds || data.myAds.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">NO SE DETECTARON ÓRDENES ACTIVAS EN BINANCE.</div>';
                 return;
             }
             
-            resDiv.style.display = 'block';
-            
-            // Detección de orden propia
-            const myMatch = (data.myAds || []).find(ad => ad.price === userPrice && ad.type === type);
-
-            let ads = (type === 'BUY') ? data.topAds.buy : data.topAds.sell;
-            
-            let capitalAhead = 0;
-            let competitorsCount = 0;
-            
-            ads.forEach(ad => {
-                if (type === 'BUY') {
-                    if (ad.price > userPrice) { capitalAhead += ad.vol; competitorsCount++; }
-                } else {
-                    if (ad.price < userPrice) { capitalAhead += ad.vol; competitorsCount++; }
-                }
+            container.innerHTML = '';
+            data.myAds.forEach(myAd => {
+                const typeLabel = myAd.type === 'SELL' ? 'VENTA' : 'COMPRA';
+                const ads = (myAd.type === 'BUY') ? data.topAds.buy : data.topAds.sell;
+                
+                let capitalAhead = 0;
+                let competitorsCount = 0;
+                ads.forEach(ad => {
+                    if (myAd.type === 'BUY') {
+                        if (ad.price > myAd.price) { capitalAhead += ad.vol; competitorsCount++; }
+                    } else {
+                        if (ad.price < myAd.price) { capitalAhead += ad.vol; competitorsCount++; }
+                    }
+                });
+                
+                const pct = Math.max(0, Math.min(100, (1 - (capitalAhead / 5000)) * 100));
+                
+                const adEl = document.createElement('div');
+                adEl.className = 'holo-ad-item';
+                adEl.style.cssText = 'border: 1px solid rgba(255,213,0,0.2); margin: 10px 0; padding: 15px; background: rgba(0,0,0,0.3); position: relative;';
+                adEl.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <b style="color: var(--cyber-yellow); font-size: 1.1rem;">${typeLabel} @ ${myAd.price} BS</b>
+                        <span style="font-size: 0.8rem; color: #aaa;">LÍMITES: ${myAd.min} - ${myAd.max} BS</span>
+                    </div>
+                    <div style="display: flex; gap: 20px; font-size: 0.9rem; margin-bottom: 10px;">
+                        <div style="flex: 1;">DELANTE: <span style="color: #fff; font-weight: bold;">${capitalAhead.toFixed(2)} USDT</span></div>
+                        <div style="flex: 1;">RIVALES: <span style="color: #fff; font-weight: bold;">${competitorsCount}</span></div>
+                    </div>
+                    <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                        <div style="width: ${pct}%; height: 100%; background: var(--cyber-yellow); box-shadow: 0 0 8px var(--cyber-yellow); transition: width 0.5s;"></div>
+                    </div>
+                    <div style="text-align: right; margin-top: 5px; font-size: 0.7rem; color: var(--cyber-blue); font-family: 'Orbitron';">
+                        ${capitalAhead === 0 ? '👑 LÍDER DE MERCADO' : 'APROXIMANDO AL OBJETIVO...'}
+                    </div>
+                `;
+                container.appendChild(adEl);
             });
-            
-            document.getElementById('sim-volume').innerText = capitalAhead.toFixed(2) + ' USDT';
-            
-            const maxSim = 5000;
-            let pct = (1 - (capitalAhead / maxSim)) * 100;
-            if (pct < 0) pct = 0;
-            if (pct > 100) pct = 100;
-            document.getElementById('sim-progress-bar').style.width = pct + '%';
-            
-            const statusEl = document.getElementById('sim-status');
-            let statusText = capitalAhead === 0 ? '¡ERES EL LÍDER DEL MERCADO! 👑' : `Tienes ${competitorsCount} competidores bloqueándote el paso.`;
-            statusEl.style.color = capitalAhead === 0 ? 'var(--buy-glow)' : 'var(--cyber-blue)';
-
-            if (myMatch) {
-                statusText += `<br><span style="color:var(--cyber-yellow); font-size:0.8rem; border-top: 1px solid rgba(255,213,0,0.2); margin-top:10px; display:block; padding-top:10px;">ORDEN PROPIA DETECTADA ✅ | LÍMITES: ${myMatch.min} - ${myMatch.max} BS</span>`;
-            }
-            statusEl.innerHTML = statusText;
         }
 
         // --- DATA FETCHING ---
@@ -617,7 +600,7 @@
                     firstLoad = false;
                 }
                 if (json.success && json.data.makerBuyPrice > 0) {
-                    updateSimulation(json.data);
+                    renderMyAds(json.data);
                     const d = json.data;
                     document.getElementById('buy-price').innerText = d.makerBuyPrice;
                     document.getElementById('sell-price').innerText = d.makerSellPrice;
