@@ -403,7 +403,10 @@ async function updateMarketData() {
 }
 
 async function fetchMyAds() {
-    if (!BINANCE_API_KEY || !BINANCE_API_SECRET) return [];
+    if (!BINANCE_API_KEY || !BINANCE_API_SECRET) {
+        console.log('[API] No hay llaves configuradas.');
+        return [];
+    }
     
     const timestamp = Date.now();
     const queryString = `timestamp=${timestamp}`;
@@ -413,10 +416,14 @@ async function fetchMyAds() {
         const response = await axios.get(`https://api.binance.com/sapi/v1/c2c/ads/list?${queryString}&signature=${signature}`, {
             headers: { 'X-MBX-APIKEY': BINANCE_API_KEY }
         });
-        // Filtrar solo las que están activas (status 1 = ON)
-        return (response.data.data || []).filter(ad => ad.advStatus === 'ON' || ad.advStatus === 1);
+        
+        const allAds = response.data.data || [];
+        console.log(`[API] Binance devolvió ${allAds.length} anuncios.`);
+        
+        // No filtramos por ahora para ver qué llega
+        return allAds;
     } catch (e) {
-        console.error('Error fetching my ads:', e.message);
+        console.error('[API ERROR] Error en Binance P2P Ads:', e.response ? JSON.stringify(e.response.data) : e.message);
         return [];
     }
 }
@@ -434,7 +441,8 @@ app.get('/api/arbitrage/status', async (req, res) => {
                 type: ad.tradeType, // BUY o SELL
                 min: parseFloat(ad.minSingleTransAmount),
                 max: parseFloat(ad.maxSingleTransAmount),
-                surplus: parseFloat(ad.surplusAmount)
+                surplus: parseFloat(ad.surplusAmount),
+                status: ad.advStatus
             }))
         },
         config: botConfig
