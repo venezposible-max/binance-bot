@@ -169,39 +169,48 @@ async function sendTelegramAlert(profit, buyPrice, sellPrice, spreadPct) {
     }
 }
 
-let lastMirroredMessageId = null;
+import { TelegramClient } from "telegram";
+import { StringSession } from "telegram/sessions/index.js";
 
-async function mirrorChannel() {
-    try {
-        const sourceUrl = 'https://t.me/s/bancocompradedivisa'; 
-        const response = await axios.get(sourceUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        const $ = cheerio.load(response.data);
-        
-        const lastMessage = $('.tgme_widget_message_wrap').last();
-        if (!lastMessage.length) return;
-
-        const messageId = lastMessage.find('.tgme_widget_message').attr('data-post');
-        const messageText = lastMessage.find('.tgme_widget_message_text').text().trim();
-
-        if (messageId && messageId !== lastMirroredMessageId && messageText) {
-            console.log(`[ESPEJO] Nuevo mensaje detectado: ${messageId}`);
-            
-            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                chat_id: TELEGRAM_CHAT_ID,
-                text: `📢 *INFORMACIÓN FINANCIERA REPLICADA* 📢\n\n${messageText}`,
-                parse_mode: 'Markdown'
-            });
-            
-            lastMirroredMessageId = messageId;
-        }
-    } catch (e) {
-        console.error('[ESPEJO ERROR]:', e.message);
-    }
+const apiId = 34693713;
+const apiHash = "ac85826864b1ee35fed41cd4966631f5";
+let sessionString = "";
+try {
+    sessionString = fs.readFileSync("session.txt", "utf8");
+} catch (e) {
+    console.log("[USERBOT] No se encontró sesión. Ejecuta setup-userbot primero.");
 }
 
-// Escanear canal fuente cada 2 minutos
-setInterval(mirrorChannel, 120000);
-mirrorChannel();
+async function startUserBot() {
+    if (!sessionString) return;
+    
+    const client = new TelegramClient(new StringSession(sessionString), apiId, apiHash, {
+        connectionRetries: 5,
+    });
+
+    await client.connect();
+    console.log("[USERBOT] Conectado y escuchando...");
+
+    client.addEventHandler(async (event) => {
+        const message = event.message;
+        if (message && message.peerId) {
+            const channel = await client.getEntity(message.peerId);
+            if (channel.username === 'httpsbancocompradedivisa' || channel.username === 'bancocompradedivisa') {
+                const text = message.message;
+                if (text) {
+                    console.log("[ESPEJO] Replicando mensaje del UserBot...");
+                    await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: `📢 *INFORMACIÓN FINANCIERA REPLICADA* 📢\n\n${text}`,
+                        parse_mode: 'Markdown'
+                    });
+                }
+            }
+        }
+    });
+}
+
+startUserBot();
 
 
 async function fetchBinanceP2P(tradeType, fiat, asset, customPayTypes = null) {
