@@ -290,10 +290,27 @@ async function updateMarketData() {
                     buyWallVolume: parseFloat(makerBuyAdv.surplusAmount).toFixed(2),
                     sellWallVolume: parseFloat(makerSellAdv.surplusAmount).toFixed(2),
                     topAds: {
-                        buy: sellAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount) })),
-                        sell: buyAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount) }))
-                    }
+                        buy: sellAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName })),
+                        sell: buyAds.slice(0, 10).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName }))
+                    },
+                    // PLAN B: Detección por Nickname
+                    silverMatch: [...sellAds, ...buyAds].find(a => a.advertiser.nickName === 'Silverrabit')
                 };
+
+                if (marketDataCache.silverMatch) {
+                    const sm = marketDataCache.silverMatch;
+                    marketDataCache.fallbackAd = {
+                        id: sm.adv.advNo,
+                        price: parseFloat(sm.adv.price),
+                        type: sm.adv.tradeType,
+                        min: parseFloat(sm.adv.minSingleTransAmount),
+                        max: parseFloat(sm.adv.maxSingleTransAmount),
+                        surplus: parseFloat(sm.adv.surplusAmount),
+                        status: 'ON (Vía Radar Público)'
+                    };
+                } else {
+                    marketDataCache.fallbackAd = null;
+                }
 
                 // Actualizar Historial para Predicción
                 marketHistory.push({
@@ -430,20 +447,27 @@ async function fetchMyAds() {
 
 // Endpoints de la API
 app.get('/api/arbitrage/status', async (req, res) => {
-    const myAds = await fetchMyAds();
+    const privateAds = await fetchMyAds();
+    const myAds = privateAds.map(ad => ({
+        id: ad.advNo,
+        price: parseFloat(ad.price),
+        type: ad.tradeType,
+        min: parseFloat(ad.minSingleTransAmount),
+        max: parseFloat(ad.maxSingleTransAmount),
+        surplus: parseFloat(ad.surplusAmount),
+        status: ad.advStatus
+    }));
+    
+    // Si la API privada no devolvió nada, usamos el Plan B (Fallback por Nick)
+    if (myAds.length === 0 && marketDataCache.fallbackAd) {
+        myAds.push(marketDataCache.fallbackAd);
+    }
+
     res.json({
         success: true,
         data: {
             ...marketDataCache,
-            myAds: myAds.map(ad => ({
-                id: ad.advNo,
-                price: parseFloat(ad.price),
-                type: ad.tradeType, // BUY o SELL
-                min: parseFloat(ad.minSingleTransAmount),
-                max: parseFloat(ad.maxSingleTransAmount),
-                surplus: parseFloat(ad.surplusAmount),
-                status: ad.advStatus
-            }))
+            myAds: myAds
         },
         config: botConfig
     });
