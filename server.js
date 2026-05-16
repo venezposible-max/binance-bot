@@ -424,47 +424,58 @@ async function updateMarketData() {
     }
 }
 
-async function fetchMyAds() {
-    if (!BINANCE_API_KEY || !BINANCE_API_SECRET) {
-        console.log('[API] No hay llaves configuradas.');
-        return [];
-    }
-    
-    const timestamp = Date.now();
-    const queryString = `timestamp=${timestamp}`;
-    const signature = crypto.createHmac('sha256', BINANCE_API_SECRET).update(queryString).digest('hex');
-    
+async function huntSilverrabit() {
     try {
-        const response = await axios.get(`https://api.binance.com/sapi/v1/c2c/ads/list?${queryString}&signature=${signature}`, {
-            headers: { 'X-MBX-APIKEY': BINANCE_API_KEY }
-        });
-        
-        const allAds = response.data.data || [];
-        console.log(`[API] Binance devolvió ${allAds.length} anuncios.`);
-        
-        // No filtramos por ahora para ver qué llega
-        return allAds;
+        const types = ['BUY', 'SELL'];
+        for (const type of types) {
+            const response = await axios.post('https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search', {
+                fiat: 'VES',
+                page: 1,
+                rows: 100, // Escaneo profundo
+                tradeType: type,
+                asset: 'USDT',
+                countries: [],
+                proMerchantAds: false,
+                shieldMerchantAds: false,
+                publisherType: null,
+                payTypes: [], // SIN FILTROS
+                transAmount: "",
+                classifies: ['mass', 'profession']
+            }, {
+                headers: { 'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const ads = response.data.data || [];
+            const match = ads.find(a => a.advertiser.nickName.toLowerCase().trim() === 'silverrabit');
+            
+            if (match) {
+                console.log(`[CAZADOR] ¡Silverrabit encontrado en ${type}!`);
+                marketDataCache.fallbackAd = {
+                    id: match.adv.advNo,
+                    price: parseFloat(match.adv.price),
+                    type: match.adv.tradeType,
+                    min: parseFloat(match.adv.minSingleTransAmount),
+                    max: parseFloat(match.adv.maxSingleTransAmount),
+                    surplus: parseFloat(match.adv.surplusAmount),
+                    status: 'EN VIVO (Cazador Global)'
+                };
+                return;
+            }
+        }
+        marketDataCache.fallbackAd = null;
     } catch (e) {
-        console.error('[API ERROR] Error en Binance P2P Ads:', e.response ? JSON.stringify(e.response.data) : e.message);
-        return [];
+        console.error('[CAZADOR ERROR]:', e.message);
     }
 }
 
+// Escaneo cada 10s
+setInterval(huntSilverrabit, 10000);
+huntSilverrabit();
+
 // Endpoints de la API
 app.get('/api/arbitrage/status', async (req, res) => {
-    const privateAds = await fetchMyAds();
-    const myAds = privateAds.map(ad => ({
-        id: ad.advNo,
-        price: parseFloat(ad.price),
-        type: ad.tradeType,
-        min: parseFloat(ad.minSingleTransAmount),
-        max: parseFloat(ad.maxSingleTransAmount),
-        surplus: parseFloat(ad.surplusAmount),
-        status: ad.advStatus
-    }));
-    
-    // Si la API privada no devolvió nada, usamos el Plan B (Fallback por Nick)
-    if (myAds.length === 0 && marketDataCache.fallbackAd) {
+    const myAds = [];
+    if (marketDataCache.fallbackAd) {
         myAds.push(marketDataCache.fallbackAd);
     }
 
