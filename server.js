@@ -293,9 +293,14 @@ async function updateMarketData() {
                         buy: sellAds.slice(0, 20).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName })),
                         sell: buyAds.slice(0, 20).map(a => ({ price: parseFloat(a.adv.price), vol: parseFloat(a.adv.surplusAmount), nick: a.advertiser.nickName }))
                     },
-                    // PLAN B: Detección por Nickname
-                    silverMatch: [...sellAds, ...buyAds].find(a => a.advertiser.nickName === 'Silverrabit')
+                    // PLAN B: Detección por Nickname (Insensible a mayúsculas)
+                    silverMatch: [...sellAds, ...buyAds].find(a => 
+                        a.advertiser.nickName.toLowerCase().trim() === 'silverrabit'
+                    )
                 };
+
+                // Log para debug (ver quiénes están en el top)
+                console.log('[DEBUG] Nombres en el Top:', [...sellAds.slice(0,5), ...buyAds.slice(0,5)].map(a => a.advertiser.nickName).join(', '));
 
                 if (marketDataCache.silverMatch) {
                     const sm = marketDataCache.silverMatch;
