@@ -435,11 +435,27 @@
         </div>
     </div>
 
-    <!-- MONITOR SILVERRABIT (TOTALMENTE AUTOMATIZADO) -->
+    <!-- MONITOR SILVERRABIT (MANUAL + AUTO) -->
     <div class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-color: var(--cyber-yellow); background: rgba(255, 213, 0, 0.05); border-width: 2px;">
-        <div class="card-label" style="justify-content: center; background: var(--cyber-yellow); color: #000; font-weight: bold;">MONITOR SILVERRABIT: ÓRDENES EN VIVO</div>
-        <div id="my-ads-container" style="padding: 10px;">
-            <div style="text-align: center; color: var(--cyber-yellow); padding: 20px; font-family: 'Orbitron';">BUSCANDO A SILVERRABIT EN EL MERCADO...</div>
+        <div class="card-label" style="justify-content: center; background: var(--cyber-yellow); color: #000; font-weight: bold;">PANEL DE CONTROL MANUAL: RASTREA TU ORDEN</div>
+        
+        <!-- Controles Manuales -->
+        <div style="display: flex; gap: 15px; padding: 15px; background: rgba(255,213,0,0.1); flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 150px;">
+                <small style="color: var(--cyber-yellow);">PRECIO DE TU ORDEN</small>
+                <input type="number" id="manualPrice" step="0.01" placeholder="Ej: 684.50" oninput="triggerManualUpdate()" style="width: 100%; background: transparent; border: 1px solid var(--cyber-yellow); color: #fff; padding: 8px; font-family: 'Orbitron'; margin-top: 5px;">
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <small style="color: var(--cyber-yellow);">TIPO DE OPERACIÓN</small>
+                <select id="manualType" onchange="triggerManualUpdate()" style="width: 100%; background: #000; border: 1px solid var(--cyber-yellow); color: #fff; padding: 8px; font-family: Orbitron; margin-top: 5px;">
+                    <option value="SELL">ESTOY COMPRANDO (Maker Buy)</option>
+                    <option value="BUY">ESTOY VENDIENDO (Maker Sell)</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="my-ads-container" style="padding: 15px;">
+            <div style="text-align: center; color: #666; font-family: Orbitron; font-size: 0.8rem;">INGRESA TU PRECIO PARA INICIAR EL RASTREO</div>
         </div>
     </div>
 
@@ -538,26 +554,49 @@
         function openPinModal() { document.getElementById('pinModal').style.display = 'flex'; document.getElementById('vaultPin').focus(); }
         function closeModals() { document.getElementById('pinModal').style.display = 'none'; document.getElementById('vaultModal').style.display = 'none'; }
 
+        let lastJsonData = null;
+        function triggerManualUpdate() {
+            if (lastJsonData) renderMyAds(lastJsonData);
+        }
+
         function renderMyAds(data) {
             const container = document.getElementById('my-ads-container');
-            const myAds = data.myAds || [];
+            const manualPrice = parseFloat(document.getElementById('manualPrice').value);
+            const manualType = document.getElementById('manualType').value;
+            
+            let myAds = [...(data.myAds || [])];
+            
+            // Si hay precio manual y no está en la lista auto, lo agregamos como "Manual"
+            if (!isNaN(manualPrice) && manualPrice > 0) {
+                const alreadyExists = myAds.find(a => a.price === manualPrice && a.type === manualType);
+                if (!alreadyExists) {
+                    myAds.push({
+                        price: manualPrice,
+                        type: manualType,
+                        min: '---',
+                        max: '---',
+                        status: 'RASTREO MANUAL 🕹️'
+                    });
+                }
+            }
             
             if (myAds.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #fff; padding: 20px; font-family: Orbitron; opacity: 0.5;">BUSCANDO ÓRDEN DE SILVERRABIT...</div>';
+                container.innerHTML = '<div style="text-align: center; color: #fff; padding: 20px; font-family: Orbitron; opacity: 0.5;">INGRESA TU PRECIO PARA INICIAR EL RASTREO...</div>';
                 return;
             }
             
             container.innerHTML = '';
             myAds.forEach(myAd => {
+                const isManual = myAd.status.includes('MANUAL');
                 const typeLabel = myAd.type === 'SELL' ? 'COMPRANDO (Maker Buy)' : 'VENDIENDO (Maker Sell)';
                 const ads = (myAd.type === 'SELL') ? data.topAds.sell : data.topAds.buy;
                 
                 let capitalAhead = 0;
                 let competitorsCount = 0;
                 ads.forEach(ad => {
-                    if (myAd.type === 'SELL') { // Somos Comprador Maker
+                    if (myAd.type === 'SELL') { 
                         if (ad.price > myAd.price) { capitalAhead += ad.vol; competitorsCount++; }
-                    } else { // Somos Vendedor Maker
+                    } else { 
                         if (ad.price < myAd.price) { capitalAhead += ad.vol; competitorsCount++; }
                     }
                 });
@@ -565,22 +604,21 @@
                 const pct = Math.max(0, Math.min(100, (1 - (capitalAhead / 3000)) * 100));
                 
                 const adEl = document.createElement('div');
-                adEl.style.cssText = 'border: 1px solid var(--cyber-yellow); margin: 10px 0; padding: 15px; background: rgba(255,213,0,0.1); position: relative;';
+                adEl.style.cssText = `border: 1px solid ${isManual ? 'var(--cyber-blue)' : 'var(--cyber-yellow)'}; margin: 10px 0; padding: 15px; background: rgba(0,0,0,0.5); border-left: 5px solid ${isManual ? 'var(--cyber-blue)' : 'var(--cyber-yellow)'};`;
                 adEl.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <b style="color: var(--cyber-yellow); font-size: 1.2rem;">${typeLabel} @ ${myAd.price} BS</b>
-                        <span style="font-size: 0.8rem; color: var(--cyber-blue); font-weight: bold;">[ORDEN DETECTADA]</span>
+                        <b style="color: ${isManual ? 'var(--cyber-blue)' : 'var(--cyber-yellow)'}; font-size: 1.1rem;">${typeLabel} @ ${myAd.price} BS</b>
+                        <span style="font-size: 0.7rem; color: #aaa;">${myAd.status}</span>
                     </div>
                     <div style="display: flex; gap: 20px; font-size: 0.9rem; margin-bottom: 10px;">
                         <div style="flex: 1;">USDT POR DELANTE: <span style="color: #fff; font-weight: bold;">${capitalAhead.toFixed(2)}</span></div>
                         <div style="flex: 1;">RIVALES: <span style="color: #fff; font-weight: bold;">${competitorsCount}</span></div>
                     </div>
-                    <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
-                        <div style="width: ${pct}%; height: 100%; background: var(--cyber-yellow); box-shadow: 0 0 15px var(--cyber-yellow); transition: width 0.5s;"></div>
+                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div style="width: ${pct}%; height: 100%; background: ${isManual ? 'var(--cyber-blue)' : 'var(--cyber-yellow)'}; box-shadow: 0 0 10px ${isManual ? 'var(--cyber-blue)' : 'var(--cyber-yellow)'}; transition: width 0.5s;"></div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.8rem; color: #aaa;">
-                        <div>LÍMITES: ${myMatch?.min || myAd.min} - ${myMatch?.max || myAd.max} BS</div>
-                        <div style="color: var(--cyber-pink); font-family: 'Orbitron';">${capitalAhead === 0 ? '👑 ERES EL LÍDER' : 'EN CAMINO AL TOP 1'}</div>
+                    <div style="text-align: right; margin-top: 8px; font-size: 0.7rem; color: var(--cyber-pink); font-family: 'Orbitron'; font-weight: bold;">
+                        ${capitalAhead === 0 ? '👑 LIDERANDO EL MERCADO' : 'APROXIMANDO A POSICIÓN #1'}
                     </div>
                 `;
                 container.appendChild(adEl);
@@ -593,6 +631,8 @@
             try {
                 const res = await fetch('/api/arbitrage/status');
                 const json = await res.json();
+                lastJsonData = json.data;
+                
                 if (firstLoad && json.config) {
                     document.querySelector(`input[value="${json.config.mode}"]`).checked = true;
                     toggleBankList();
