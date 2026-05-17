@@ -299,12 +299,28 @@
         }
 
         @media (max-width: 768px) {
-            .holo-card { width: 95% !important; padding: 15px; }
-            .flex-mobile-col { flex-direction: column !important; gap: 15px; }
-            .middle-col { border-left: none; border-right: none; border-top: 1px solid rgba(0, 242, 255, 0.3); border-bottom: 1px solid rgba(0, 242, 255, 0.3); padding: 15px 0 !important; }
-            .dashboard { gap: 15px; flex-direction: column; align-items: center; }
+            .holo-card { width: 95% !important; padding: 10px; }
+            
+            /* Mantener horizontal pero escalar contenido */
+            .flex-mobile-col { flex-direction: row !important; gap: 5px; justify-content: space-between; }
+            .middle-col { padding: 5px 0 !important; }
+            
+            /* Ajustar textos grandes en móvil para que no desborden */
+            .card-label { font-size: 0.6rem; letter-spacing: 1px; }
+            #pred-direction { font-size: 0.9rem !important; }
+            #pred-confidence { font-size: 1.2rem !important; }
+            #pred-sentiment { font-size: 0.8rem !important; }
+            
+            #sentinel-rate { font-size: 1rem !important; }
+            #sentinel-time { font-size: 1.5rem !important; }
+            #sentinel-status { font-size: 0.8rem !important; }
+            
+            .main-value { font-size: 2rem; }
+            .dashboard { gap: 10px; width: 100%; }
+            .dashboard .holo-card { width: 95%; margin: 0 auto; }
+            
             .bank-grid { grid-template-columns: 1fr 1fr; }
-            .modal-box { padding: 20px; }
+            .modal-box { padding: 15px; }
             #vaultPin { width: 100% !important; letter-spacing: 5px !important; }
         }
     </style>
