@@ -68,20 +68,22 @@
 
         .header h1 {
             font-family: 'Orbitron', sans-serif;
-            font-size: 2.5rem;
+            font-size: clamp(1.8rem, 6vw, 2.5rem);
             margin: 0;
             color: var(--cyber-yellow);
             text-shadow: 0 0 20px rgba(252, 213, 53, 0.5);
-            letter-spacing: 4px;
+            letter-spacing: 2px;
+            word-wrap: break-word;
         }
 
         .header p {
             color: var(--cyber-blue);
             text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 0.9rem;
+            letter-spacing: 1px;
+            font-size: clamp(0.7rem, 3vw, 0.9rem);
             margin-top: 5px;
             opacity: 0.8;
+            padding: 0 10px;
         }
 
         .dashboard {
@@ -287,8 +289,23 @@
         th { border-bottom: 1px solid var(--cyber-blue); color: var(--cyber-blue); padding: 10px; text-align: left; }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
 
+        .flex-mobile-col {
+            display: flex;
+        }
+
+        .middle-col {
+            border-left: 1px solid rgba(0, 242, 255, 0.3);
+            border-right: 1px solid rgba(0, 242, 255, 0.3);
+        }
+
         @media (max-width: 768px) {
-            .holo-card { width: 100%; }
+            .holo-card { width: 95% !important; padding: 15px; }
+            .flex-mobile-col { flex-direction: column !important; gap: 15px; }
+            .middle-col { border-left: none; border-right: none; border-top: 1px solid rgba(0, 242, 255, 0.3); border-bottom: 1px solid rgba(0, 242, 255, 0.3); padding: 15px 0 !important; }
+            .dashboard { gap: 15px; flex-direction: column; align-items: center; }
+            .bank-grid { grid-template-columns: 1fr 1fr; }
+            .modal-box { padding: 20px; }
+            #vaultPin { width: 100% !important; letter-spacing: 5px !important; }
         }
     </style>
 </head>
@@ -350,12 +367,12 @@
     </div>
 
     <!-- WIDGET PREDICTIVO -->
-    <div class="holo-card" style="width: 95%; max-width: 1000px; margin: 20px auto; display: flex; justify-content: space-around; align-items: center; border: 2px solid var(--cyber-blue); background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 20px rgba(0, 242, 255, 0.2); position: relative; z-index: 100;">
+    <div class="holo-card flex-mobile-col" style="width: 95%; max-width: 1000px; margin: 20px auto; justify-content: space-around; align-items: center; border: 2px solid var(--cyber-blue); background: rgba(0, 242, 255, 0.1); box-shadow: 0 0 20px rgba(0, 242, 255, 0.2); position: relative; z-index: 100;">
         <div style="text-align: center; flex: 1;">
             <div class="card-label" style="justify-content: center; color: var(--cyber-blue);">TENDENCIA</div>
             <div id="pred-direction" style="font-family: 'Orbitron'; font-size: 1.4rem; color: #fff; text-shadow: 0 0 10px var(--cyber-blue);">ANALIZANDO...</div>
         </div>
-        <div style="text-align: center; flex: 1; border-left: 1px solid rgba(0, 242, 255, 0.3); border-right: 1px solid rgba(0, 242, 255, 0.3); padding: 10px 0;">
+        <div class="middle-col" style="text-align: center; flex: 1; padding: 10px 0;">
             <div class="card-label" style="justify-content: center; color: var(--cyber-yellow);">CONFIANZA</div>
             <div id="pred-confidence" style="font-family: 'Orbitron'; font-size: 2rem; color: var(--cyber-yellow); text-shadow: 0 0 15px rgba(255, 213, 0, 0.4);">--%</div>
         </div>
@@ -418,8 +435,8 @@
 
     <!-- WIDGET SENTINEL -->
     <div id="sentinel-box" class="holo-card" style="width: 95%; max-width: 1000px; margin-top: 25px; border-style: dashed; border-color: rgba(255, 0, 200, 0.3);">
-        <div class="card-label" style="justify-content: center;">CENTINELA DE AGOTAMIENTO (ANTICIPACIÓN)</div>
-        <div style="display: flex; justify-content: space-around; align-items: center; padding: 10px;">
+        <div class="card-label" style="justify-content: center; text-align: center;">CENTINELA DE AGOTAMIENTO</div>
+        <div class="flex-mobile-col" style="justify-content: space-around; align-items: center; padding: 10px;">
             <div style="text-align: center;">
                 <div style="font-size: 0.7rem; color: #aaa;">VELOCIDAD DE CONSUMO</div>
                 <div id="sentinel-rate" style="font-size: 1.5rem; font-family: 'Orbitron'; color: var(--cyber-pink);">0.00 USDT/s</div>
