@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binance 100 Sobres</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="container">
+        <header>
+            <h1>Binance 100 Sobres</h1>
+            <p>Ahorra USDT progresivamente y genera intereses diarios</p>
+            
+            <div class="stats-panel">
+                <div class="stat-box">
+                    <span class="stat-label">Progreso</span>
+                    <span class="stat-value" id="progress-text">0 / 100</span>
+                </div>
+                <div class="stat-box highlight">
+                    <span class="stat-label">Ahorrado en Earn</span>
+                    <span class="stat-value" id="total-saved">$0.00</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Meta Final</span>
+                    <span class="stat-value">$5,050.00</span>
+                </div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </header>
+
+        <main>
+            <div class="grid-container" id="grid">
+                <!-- Envelopes will be injected here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Confirmation -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <h2 id="modal-title">¿Ahorrar $X USDT?</h2>
+            <p>Se transferirán fondos de tu billetera Spot a Simple Earn Flexible.</p>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" id="btn-cancel">Cancelar</button>
+                <button class="btn btn-confirm" id="btn-confirm">
+                    <span class="btn-text">Confirmar Ahorro</span>
+                    <div class="spinner" id="spinner" style="display:none;"></div>
+                </button>
+            </div>
+            <p class="error-msg" id="modal-error"></p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

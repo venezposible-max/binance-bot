@@ -1,3 +1,5 @@
+import fs from "fs";
+
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
@@ -586,9 +588,98 @@ setInterval(updateMarketData, 5000); // Cada 5 segundos
 scrapeBCV();
 setInterval(scrapeBCV, 60000); // Cada 1 minuto para el canal de Telegram
 
+// ==========================================
+// MÓDULO: BINANCE 100 SOBRES
+// ==========================================
+
+const SOBRES_DATA_FILE = path.join(__dirname, 'data-sobres.json');
+
+// Inicializar data-sobres.json si no existe
+if (!fs.existsSync(SOBRES_DATA_FILE)) {
+    const initialState = {};
+    for (let i = 1; i <= 100; i++) {
+        initialState[i] = false;
+    }
+    fs.writeFileSync(SOBRES_DATA_FILE, JSON.stringify(initialState, null, 2));
+}
+
+// Generar firma de Binance
+function createBinanceSignature(queryString) {
+    return crypto.createHmac('sha256', BINANCE_API_SECRET).update(queryString).digest('hex');
+}
+
+// Obtener progreso de sobres
+app.get('/api/sobres/progress', (req, res) => {
+    try {
+        const data = JSON.parse(fs.readFileSync(SOBRES_DATA_FILE));
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: 'Error reading sobres data' });
+    }
+});
+
+// Guardar progreso (marcar un sobre como completado)
+app.post('/api/sobres/progress', (req, res) => {
+    const { envelopeId, completed } = req.body;
+    try {
+        const data = JSON.parse(fs.readFileSync(SOBRES_DATA_FILE));
+        data[envelopeId] = completed;
+        fs.writeFileSync(SOBRES_DATA_FILE, JSON.stringify(data, null, 2));
+        res.json({ success: true, data });
+    } catch (error) {
+        res.status(500).json({ error: 'Error saving sobres data' });
+    }
+});
+
+// Transferir a Binance Earn
+app.post('/api/sobres/subscribe', async (req, res) => {
+    const { amount, asset = 'USDT' } = req.body;
+    
+    if (!BINANCE_API_KEY || !BINANCE_API_SECRET) {
+        return res.status(400).json({ error: 'Credenciales de Binance no configuradas.' });
+    }
+    
+    try {
+        // 1. Obtener productId del producto Flexible
+        const timestamp1 = Date.now();
+        let queryStr1 = `asset=${asset}&timestamp=${timestamp1}`;
+        const signature1 = createBinanceSignature(queryStr1);
+        
+        const listResponse = await axios.get(`https://api.binance.com/sapi/v1/simple-earn/flexible/list?${queryStr1}&signature=${signature1}`, {
+            headers: { 'X-MBX-APIKEY': BINANCE_API_KEY }
+        });
+        
+        const products = listResponse.data.rows;
+        if (!products || products.length === 0) {
+            return res.status(400).json({ error: `No se encontró producto Flexible para ${asset}` });
+        }
+        
+        const productId = products[0].productId;
+        
+        // 2. Suscribir el monto al productId
+        const timestamp2 = Date.now();
+        let queryStr2 = `productId=${productId}&amount=${amount}&timestamp=${timestamp2}`;
+        const signature2 = createBinanceSignature(queryStr2);
+        
+        const subscribeResponse = await axios.post(`https://api.binance.com/sapi/v1/simple-earn/flexible/subscribe?${queryStr2}&signature=${signature2}`, null, {
+            headers: { 'X-MBX-APIKEY': BINANCE_API_KEY }
+        });
+        
+        res.json({ success: true, message: `Suscritos ${amount} ${asset} a Earn Flexible.` });
+        
+    } catch (error) {
+        console.error("Binance Earn API Error:", error.response ? error.response.data : error.message);
+        res.status(500).json({ 
+            error: error.response?.data?.msg || 'Error al comunicarse con Binance Earn' 
+        });
+    }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log('=============================================');
     console.log(`🤖 ARBITRAJE BOT (P2P Radar) ONLINE -> Puerto ${PORT}`);
+    console.log(`💰 MÓDULO 100 SOBRES ACTIVO`);
     console.log('=============================================');
 });
