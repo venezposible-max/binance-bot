@@ -16,7 +16,7 @@ let envelopesState = {};
 
 async function fetchProgress() {
     try {
-        const res = await fetch('/api/progress');
+        const res = await fetch('/api/sobres/progress');
         envelopesState = await res.json();
         renderGrid();
         updateStats();
@@ -80,7 +80,7 @@ btnConfirm.onclick = async () => {
     
     try {
         // 1. Petición a Binance
-        const binanceRes = await fetch('/api/binance/subscribe', {
+        const binanceRes = await fetch('/api/sobres/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ amount: selectedEnvelope, asset: 'USDT' })
@@ -93,7 +93,7 @@ btnConfirm.onclick = async () => {
         }
         
         // 2. Si Binance fue exitoso, guardamos progreso local
-        const saveRes = await fetch('/api/progress', {
+        const saveRes = await fetch('/api/sobres/progress', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ envelopeId: selectedEnvelope, completed: true })
